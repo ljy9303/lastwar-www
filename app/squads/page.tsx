@@ -220,19 +220,19 @@ export default function SquadsPage() {
         key={user.id}
         className={`p-3 mb-2 rounded-lg border ${isPreferenceMatched ? "bg-green-50 border-green-200" : "bg-background"}`}
       >
-        <div className="flex justify-between items-start">
-          <div>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
             <div className="font-medium">{user.nickname}</div>
             <div className="text-sm text-muted-foreground">
               Lv.{user.level} | {user.power.toLocaleString()}
             </div>
-            <Badge variant={isPreferenceMatched ? "outline" : "secondary"} className="mt-1">
+            <Badge variant={isPreferenceMatched ? "outline" : "secondary"} size="sm">
               {getPreferenceLabel(user.preference)}
             </Badge>
           </div>
 
           {!isConfirmed && (
-            <div className="flex flex-col gap-1">
+            <div className="flex gap-1">
               {team !== TEAM.A_TEAM && (
                 <Button
                   size="sm"

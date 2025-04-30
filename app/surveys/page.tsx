@@ -43,8 +43,8 @@ const preferenceOptions = [
 
 // 임시 이벤트 데이터
 const events = [
-  { id: "1", name: "4월 4주차 사막전" },
-  { id: "2", name: "5월 1주차 사막전" },
+  { id: "1", name: "4월 4주차 사막전", status: "completed" },
+  { id: "2", name: "5월 1주차 사막전", status: "in_progress" },
 ]
 
 export default function SurveysPage() {
@@ -54,6 +54,7 @@ export default function SurveysPage() {
 
   const [users, setUsers] = useState(initialUsers)
   const [searchTerm, setSearchTerm] = useState("")
+  const [leftFilter, setLeftFilter] = useState("all")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
@@ -71,7 +72,13 @@ export default function SurveysPage() {
   }, [eventId])
 
   // 필터링된 유저 목록
-  const filteredUsers = users.filter((user) => user.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.nickname.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesLeft =
+      leftFilter === "all" || (leftFilter === "true" && user.isLeft) || (leftFilter === "false" && !user.isLeft)
+
+    return matchesSearch && matchesLeft
+  })
 
   // 유저 수정 다이얼로그 열기
   const openEditDialog = (user) => {
@@ -97,6 +104,12 @@ export default function SurveysPage() {
   const getPreferenceLabel = (preference) => {
     const option = preferenceOptions.find((opt) => opt.value === preference)
     return option ? option.label : preference
+  }
+
+  // 선호도 변경 함수
+  const handlePreferenceChange = (userId, preference) => {
+    const updatedUsers = users.map((user) => (user.id === userId ? { ...user, preference } : user))
+    setUsers(updatedUsers)
   }
 
   // CSV 내보내기
@@ -231,6 +244,19 @@ export default function SurveysPage() {
             />
           </div>
 
+          <div className="flex mb-4">
+            <Select value={leftFilter} onValueChange={setLeftFilter}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="연맹 탈퇴" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체</SelectItem>
+                <SelectItem value="true">탈퇴</SelectItem>
+                <SelectItem value="false">활동중</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -253,7 +279,27 @@ export default function SurveysPage() {
                       <TableCell>{user.level}</TableCell>
                       <TableCell>{user.power.toLocaleString()}</TableCell>
                       <TableCell>{user.isLeft ? "O" : "X"}</TableCell>
-                      <TableCell>{getPreferenceLabel(user.preference)}</TableCell>
+                      <TableCell>
+                        {selectedEvent?.status !== "completed" ? (
+                          <Select
+                            value={user.preference || ""}
+                            onValueChange={(value) => handlePreferenceChange(user.id, value)}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue placeholder="선택" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {preferenceOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          getPreferenceLabel(user.preference)
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="icon" onClick={() => openEditDialog(user)}>
@@ -279,7 +325,7 @@ export default function SurveysPage() {
         </CardContent>
       </Card>
 
-      {/* 유저 수정 다이얼로그 */}
+      {/* 유저 수정 다이얼로그 - 선호팀 필드 제거 */}
       {currentUser && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
@@ -321,24 +367,6 @@ export default function SurveysPage() {
                   onCheckedChange={(checked) => setCurrentUser({ ...currentUser, isLeft: checked })}
                 />
                 <Label htmlFor="edit-isLeft">연맹 탈퇴 여부</Label>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-preference">선호 팀</Label>
-                <Select
-                  value={currentUser.preference}
-                  onValueChange={(value) => setCurrentUser({ ...currentUser, preference: value })}
-                >
-                  <SelectTrigger id="edit-preference">
-                    <SelectValue placeholder="선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {preferenceOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             <DialogFooter>
