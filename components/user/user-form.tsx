@@ -103,6 +103,7 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
         <Input
           id="power"
           type="number"
+          step="any"
           min={0}
           value={formData.power || ""}
           onChange={(e) => handleChange("power", Number.parseFloat(e.target.value))}
