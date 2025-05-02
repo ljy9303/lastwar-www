@@ -11,6 +11,7 @@ import { getUsers } from "@/app/actions/user-actions"
 import { UserForm } from "@/components/user/user-form"
 import { UserList } from "@/components/user/user-list"
 import { UserFilter } from "@/components/user/user-filter"
+import { UserHistoryList } from "@/components/user/user-history-list"
 import { useToast } from "@/hooks/use-toast"
 
 export default function UsersPage() {
@@ -158,7 +159,7 @@ export default function UsersPage() {
               <CardDescription>유저 정보 변경 내역을 확인합니다.</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">히스토리 기능은 아직 구현되지 않았습니다.</div>
+              <UserHistoryList />
             </CardContent>
           </Card>
         </TabsContent>
