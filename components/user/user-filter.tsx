@@ -47,7 +47,7 @@ export function UserFilter({ onFilter, initialFilters = {} }: UserFilterProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">닉네임</Label>
           <Input
@@ -97,8 +97,8 @@ export function UserFilter({ onFilter, initialFilters = {} }: UserFilterProps) {
         </div>
       </div>
 
-      <div className="flex items-end gap-4">
-        <div className="space-y-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+        <div className="space-y-2 w-full sm:w-auto">
           <Label htmlFor="leave">연맹 탈퇴 여부</Label>
           <Select
             value={filters.leave === undefined ? "all" : filters.leave ? "true" : "false"}
@@ -110,7 +110,7 @@ export function UserFilter({ onFilter, initialFilters = {} }: UserFilterProps) {
               }
             }}
           >
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="연맹 탈퇴" />
             </SelectTrigger>
             <SelectContent>
@@ -121,11 +121,11 @@ export function UserFilter({ onFilter, initialFilters = {} }: UserFilterProps) {
           </Select>
         </div>
 
-        <div className="flex gap-2 ml-auto">
-          <Button type="button" variant="outline" onClick={handleReset}>
+        <div className="flex gap-2 w-full sm:w-auto sm:ml-auto mt-4 sm:mt-0">
+          <Button type="button" variant="outline" onClick={handleReset} className="flex-1 sm:flex-none">
             초기화
           </Button>
-          <Button type="submit">
+          <Button type="submit" className="flex-1 sm:flex-none">
             <Search className="mr-2 h-4 w-4" />
             검색
           </Button>

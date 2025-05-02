@@ -42,7 +42,8 @@ export default function Home() {
       <h1 className="text-3xl font-bold mb-6">사막전 이벤트 매치 관리 시스템</h1>
       <p className="text-muted-foreground mb-8">게임 사막전 이벤트 매치를 효율적으로 관리하기 위한 시스템입니다.</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* 메인 페이지의 카드 그리드를 모바일에 맞게 조정합니다. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {features.map((feature) => (
           <Card key={feature.title} className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">

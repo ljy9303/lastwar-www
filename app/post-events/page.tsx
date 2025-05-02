@@ -174,30 +174,42 @@ export default function PostEventsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
+                    <TableHead className="hidden md:table-cell">ID</TableHead>
                     <TableHead>닉네임</TableHead>
-                    <TableHead>팀</TableHead>
-                    <TableHead>참여 여부</TableHead>
-                    <TableHead>성과</TableHead>
-                    <TableHead>비고</TableHead>
+                    <TableHead className="hidden sm:table-cell">팀</TableHead>
+                    <TableHead>참여/성과</TableHead>
+                    <TableHead className="hidden sm:table-cell">비고</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredResults.length > 0 ? (
                     filteredResults.map((result) => (
                       <TableRow key={result.id}>
-                        <TableCell>{result.id}</TableCell>
-                        <TableCell>{result.nickname}</TableCell>
-                        <TableCell>{getTeamName(result.team)}</TableCell>
+                        <TableCell className="hidden md:table-cell">{result.id}</TableCell>
                         <TableCell>
-                          {result.participated ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <XCircle className="h-5 w-5 text-red-500" />
-                          )}
+                          <div>
+                            <div>{result.nickname}</div>
+                            <div className="sm:hidden text-xs text-muted-foreground">{getTeamName(result.team)}</div>
+                          </div>
                         </TableCell>
-                        <TableCell>{getPerformanceBadge(result.performance)}</TableCell>
-                        <TableCell>{result.notes}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{getTeamName(result.team)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center">
+                              {result.participated ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500 mr-1" />
+                              )}
+                              <span className="text-sm">{result.participated ? "참여" : "불참"}</span>
+                            </div>
+                            <div>{getPerformanceBadge(result.performance)}</div>
+                            <div className="sm:hidden text-xs text-muted-foreground">
+                              {result.notes && result.notes.length > 0 ? result.notes : "비고 없음"}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">{result.notes}</TableCell>
                       </TableRow>
                     ))
                   ) : (

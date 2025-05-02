@@ -61,11 +61,11 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
+              <TableHead className="hidden md:table-cell">ID</TableHead>
               <TableHead>닉네임</TableHead>
-              <TableHead>본부 레벨</TableHead>
-              <TableHead>전투력</TableHead>
-              <TableHead>연맹 탈퇴</TableHead>
+              <TableHead className="hidden sm:table-cell">본부 레벨</TableHead>
+              <TableHead className="hidden sm:table-cell">전투력</TableHead>
+              <TableHead className="hidden sm:table-cell">연맹 탈퇴</TableHead>
               <TableHead className="text-right">관리</TableHead>
             </TableRow>
           </TableHeader>
@@ -73,11 +73,18 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
             {users.length > 0 ? (
               users.map((user) => (
                 <TableRow key={user.userSeq}>
-                  <TableCell>{user.id}</TableCell>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.level}</TableCell>
-                  <TableCell>{user.power.toLocaleString()}</TableCell>
-                  <TableCell>{user.leave ? "O" : "X"}</TableCell>
+                  <TableCell className="hidden md:table-cell">{user.id}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div>{user.name}</div>
+                      <div className="sm:hidden text-xs text-muted-foreground">
+                        Lv.{user.level} | {user.power.toLocaleString()} | {user.leave ? "탈퇴" : "활동중"}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{user.power.toLocaleString()}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{user.leave ? "O" : "X"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       {onEdit && (

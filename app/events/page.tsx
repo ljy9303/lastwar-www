@@ -102,8 +102,8 @@ export default function EventsPage() {
     <div className="container mx-auto">
       <h1 className="text-3xl font-bold mb-6">이벤트 관리</h1>
 
-      <div className="flex justify-between items-center mb-6">
-        <div className="relative w-full max-w-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="이벤트 검색..."
@@ -115,7 +115,7 @@ export default function EventsPage() {
 
         <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />새 사막전 생성
             </Button>
           </DialogTrigger>
@@ -146,7 +146,7 @@ export default function EventsPage() {
       </div>
 
       {filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEvents.map((event) => (
             <Card key={event.id} className="overflow-hidden">
               <CardHeader className="pb-3">

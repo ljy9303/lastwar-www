@@ -71,12 +71,12 @@ export default function EventDetailPage({ params }) {
 
   return (
     <div className="container mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => router.push("/events")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-3xl font-bold">{event.name}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">{event.name}</h1>
           {getStatusBadge(event.status)}
         </div>
 
@@ -102,7 +102,7 @@ export default function EventDetailPage({ params }) {
         </AlertDialog>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <Card>
           <CardHeader>
             <CardTitle>기본 정보</CardTitle>

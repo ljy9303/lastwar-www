@@ -70,7 +70,7 @@ export function UserHistoryList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>날짜</TableHead>
+              <TableHead className="hidden md:table-cell">날짜</TableHead>
               <TableHead>유저</TableHead>
               <TableHead>변경 내역</TableHead>
             </TableRow>
@@ -78,8 +78,17 @@ export function UserHistoryList() {
           <TableBody>
             {historyData.content.map((item: UserHistoryItem) => (
               <TableRow key={item.userHistory.historyId}>
-                <TableCell className="whitespace-nowrap">{formatDate(item.userHistory.updatedAt)}</TableCell>
-                <TableCell>{item.userName}</TableCell>
+                <TableCell className="hidden md:table-cell whitespace-nowrap">
+                  {formatDate(item.userHistory.updatedAt)}
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <div>{item.userName}</div>
+                    <div className="md:hidden text-xs text-muted-foreground">
+                      {formatDate(item.userHistory.updatedAt)}
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell>
                   <UserHistoryChange changes={item.userHistory.changes} />
                 </TableCell>

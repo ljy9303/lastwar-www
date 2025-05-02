@@ -138,8 +138,8 @@ export default function DashboardPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>이벤트명</TableHead>
-                    <TableHead>날짜</TableHead>
-                    <TableHead>참가자</TableHead>
+                    <TableHead className="hidden sm:table-cell">날짜</TableHead>
+                    <TableHead className="hidden sm:table-cell">참가자</TableHead>
                     <TableHead>상태</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -148,11 +148,16 @@ export default function DashboardPage() {
                     <TableRow key={event.id}>
                       <TableCell>
                         <Link href={`/events/${event.id}`} className="hover:underline">
-                          {event.name}
+                          <div>
+                            {event.name}
+                            <div className="sm:hidden text-xs text-muted-foreground">
+                              {event.date} | {event.participants}명
+                            </div>
+                          </div>
                         </Link>
                       </TableCell>
-                      <TableCell>{event.date}</TableCell>
-                      <TableCell>{event.participants}명</TableCell>
+                      <TableCell className="hidden sm:table-cell">{event.date}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{event.participants}명</TableCell>
                       <TableCell>
                         {event.status === "completed" ? (
                           <span className="flex items-center text-green-600">
@@ -211,8 +216,8 @@ export default function DashboardPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>닉네임</TableHead>
-                  <TableHead>레벨</TableHead>
-                  <TableHead>전투력</TableHead>
+                  <TableHead className="hidden sm:table-cell">레벨</TableHead>
+                  <TableHead className="hidden sm:table-cell">전투력</TableHead>
                   <TableHead>참여 횟수</TableHead>
                 </TableRow>
               </TableHeader>
@@ -222,9 +227,16 @@ export default function DashboardPage() {
                   .slice(0, 5)
                   .map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell>{user.nickname}</TableCell>
-                      <TableCell>{user.level}</TableCell>
-                      <TableCell>{user.power.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <div>
+                          {user.nickname}
+                          <div className="sm:hidden text-xs text-muted-foreground">
+                            Lv.{user.level} | {user.power.toLocaleString()}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{user.power.toLocaleString()}</TableCell>
                       <TableCell>{user.participation}회</TableCell>
                     </TableRow>
                   ))}
