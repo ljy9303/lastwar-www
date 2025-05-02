@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -15,81 +15,234 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, CalendarDays, ArrowRight, FileSpreadsheet, UserSquare, ClipboardList } from "lucide-react"
-import { format } from "date-fns"
+import {
+  Plus,
+  Search,
+  CalendarDays,
+  ArrowRight,
+  FileSpreadsheet,
+  UserSquare,
+  ClipboardList,
+  Loader2,
+  Filter,
+} from "lucide-react"
+import { format, nextFriday, subMonths, addMonths } from "date-fns"
 import { ko } from "date-fns/locale"
 import Link from "next/link"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { getDeserts, createDesert } from "@/app/actions/event-actions"
+import { useToast } from "@/hooks/use-toast"
+import { Pagination } from "@/components/ui/pagination"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { Desert, DesertResponse, DesertSearchParams } from "@/app/actions/event-actions"
 
-// 임시 이벤트 데이터
-const initialEvents = [
-  {
-    id: 1,
-    name: "4월 4주차 사막전",
-    date: "2023-04-22",
-    status: "completed",
-    participants: 45,
-    aTeam: 20,
-    bTeam: 20,
-  },
-  {
-    id: 2,
-    name: "5월 1주차 사막전",
-    date: "2023-05-01",
-    status: "in_progress",
-    participants: 42,
-    aTeam: 20,
-    bTeam: 18,
-  },
-]
+// 이번주 금요일 날짜 계산 함수
+function getThisFriday() {
+  const today = new Date()
+
+  // 오늘이 금요일(5)인지 확인
+  if (today.getDay() === 5) {
+    return today
+  }
+
+  // 이번주 금요일 계산
+  return nextFriday(today)
+}
 
 export default function EventsPage() {
-  const [events, setEvents] = useState(initialEvents)
+  const { toast } = useToast()
+  const [desertResponse, setDesertResponse] = useState<DesertResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [tempSearchTerm, setTempSearchTerm] = useState("")
   const [isCreateEventDialogOpen, setIsCreateEventDialogOpen] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const [newEventName, setNewEventName] = useState("")
+  const [newEventDate, setNewEventDate] = useState<Date | undefined>(getThisFriday())
 
-  // 필터링된 이벤트 목록
-  const filteredEvents = events.filter((event) => event.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  // 검색 필터
+  const [searchParams, setSearchParams] = useState<DesertSearchParams>({
+    page: 0,
+    size: 10,
+    sortOrder: "DESC",
+  })
 
-  // 이벤트 생성 함수
-  const handleCreateEvent = () => {
+  // 임시 필터 상태 (필터 다이얼로그에서 사용)
+  const [tempFilters, setTempFilters] = useState({
+    fromDate: subMonths(new Date(), 1),
+    toDate: addMonths(new Date(), 1),
+    sortOrder: "DESC" as "ASC" | "DESC",
+  })
+
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false)
+
+  // 사막전 목록 로드 - useCallback으로 감싸서 불필요한 재생성 방지
+  const loadDeserts = useCallback(
+    async (params: DesertSearchParams = {}) => {
+      setIsLoading(true)
+      try {
+        const data = await getDeserts({
+          ...searchParams,
+          ...params,
+          title: searchTerm || undefined,
+          fromDate: tempFilters.fromDate ? format(tempFilters.fromDate, "yyyy-MM-dd") : undefined,
+          toDate: tempFilters.toDate ? format(tempFilters.toDate, "yyyy-MM-dd") : undefined,
+        })
+        setDesertResponse(data)
+      } catch (error) {
+        console.error("사막전 목록 로드 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "사막전 목록을 불러오는 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+        setIsInitialLoad(false)
+      }
+    },
+    [searchParams, searchTerm, tempFilters.fromDate, tempFilters.toDate, toast],
+  )
+
+  // 초기 로드
+  useEffect(() => {
+    loadDeserts()
+  }, [loadDeserts])
+
+  // 검색 처리
+  const handleSearch = () => {
+    setSearchTerm(tempSearchTerm)
+    setSearchParams((prev) => ({ ...prev, page: 0 })) // 검색 시 첫 페이지로 이동
+    loadDeserts({ page: 0 })
+  }
+
+  // 페이지 변경 처리
+  const handlePageChange = (page: number) => {
+    setSearchParams((prev) => ({ ...prev, page }))
+    loadDeserts({ page })
+  }
+
+  // 정렬 변경 처리
+  const handleSortChange = (sortOrder: "ASC" | "DESC") => {
+    setTempFilters((prev) => ({ ...prev, sortOrder }))
+  }
+
+  // 필터 적용
+  const applyFilters = () => {
+    setSearchParams((prev) => ({
+      ...prev,
+      page: 0,
+      sortOrder: tempFilters.sortOrder,
+    }))
+    loadDeserts({
+      page: 0,
+      sortOrder: tempFilters.sortOrder,
+    })
+    setIsFilterDialogOpen(false)
+  }
+
+  // 필터 초기화
+  const resetFilters = () => {
+    const defaultFilters = {
+      fromDate: subMonths(new Date(), 1),
+      toDate: addMonths(new Date(), 1),
+      sortOrder: "DESC" as "ASC" | "DESC",
+    }
+
+    setTempFilters(defaultFilters)
+    setTempSearchTerm("")
+    setSearchTerm("")
+
+    setSearchParams({
+      page: 0,
+      size: 10,
+      sortOrder: "DESC",
+    })
+
+    loadDeserts({
+      page: 0,
+      size: 10,
+      sortOrder: "DESC",
+      title: undefined,
+      fromDate: undefined,
+      toDate: undefined,
+    })
+
+    setIsFilterDialogOpen(false)
+  }
+
+  // 사막전 생성 함수
+  const handleCreateEvent = async () => {
     if (!newEventName.trim()) {
-      alert("이벤트 이름을 입력해주세요.")
+      toast({
+        title: "입력 오류",
+        description: "이벤트 이름을 입력해주세요.",
+        variant: "destructive",
+      })
       return
     }
 
-    const id = events.length > 0 ? Math.max(...events.map((e) => e.id)) + 1 : 1
-    const newEvent = {
-      id,
-      name: newEventName,
-      date: new Date().toISOString().split("T")[0],
-      status: "created",
-      participants: 0,
-      aTeam: 0,
-      bTeam: 0,
+    if (!newEventDate) {
+      toast({
+        title: "입력 오류",
+        description: "이벤트 날짜를 선택해주세요.",
+        variant: "destructive",
+      })
+      return
     }
 
-    setEvents([...events, newEvent])
-    setIsCreateEventDialogOpen(false)
-    setNewEventName("")
+    setIsCreating(true)
+    try {
+      // API 요청 데이터 형식
+      const requestData = {
+        title: newEventName,
+        eventDate: format(newEventDate, "yyyy-MM-dd"),
+      }
+
+      await createDesert(requestData)
+
+      toast({
+        title: "사막전 생성 성공",
+        description: `${newEventName} 사막전이 생성되었습니다.`,
+      })
+
+      // 사막전 목록 새로고침
+      await loadDeserts()
+
+      // 폼 초기화
+      setIsCreateEventDialogOpen(false)
+      setNewEventName("")
+      setNewEventDate(getThisFriday())
+    } catch (error) {
+      console.error("사막전 생성 실패:", error)
+
+      // 에러 메시지 추출
+      const errorMessage = error instanceof Error ? error.message : "사막전 생성 중 오류가 발생했습니다."
+
+      // 400 에러 관련 메시지인지 확인
+      const isDuplicateError =
+        errorMessage.includes("이미 존재") || errorMessage.includes("중복") || errorMessage.includes("동일한")
+
+      toast({
+        title: "사막전 생성 실패",
+        description: isDuplicateError ? "이미 동일한 제목 또는 날짜의 사막전이 존재합니다." : errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsCreating(false)
+    }
   }
 
-  // 상태에 따른 배지 색상
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "created":
-        return <Badge variant="outline">생성됨</Badge>
-      case "in_progress":
-        return <Badge variant="secondary">진행중</Badge>
-      case "completed":
-        return <Badge variant="default">완료</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
+  // 상태에 따른 배지 색상 (삭제 여부에 따라 표시)
+  const getStatusBadge = (deleted: boolean) => {
+    return deleted ? <Badge variant="destructive">삭제됨</Badge> : <Badge variant="outline">활성</Badge>
   }
 
   // 날짜 포맷팅
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString)
       return format(date, "yyyy년 MM월 dd일", { locale: ko })
@@ -98,19 +251,58 @@ export default function EventsPage() {
     }
   }
 
+  // 참가자 수 계산 (API 연동 후 실제 데이터로 대체 필요)
+  const getParticipantCount = (desert: Desert) => {
+    // 임시로 랜덤 값 반환
+    return Math.floor(Math.random() * 30) + 20
+  }
+
+  // A팀 인원 수 계산 (API 연동 후 실제 데이터로 대체 필요)
+  const getTeamACount = (desert: Desert) => {
+    // 임시로 랜덤 값 반환
+    return Math.floor(Math.random() * 15) + 10
+  }
+
+  // B팀 인원 수 계산 (API 연동 후 실제 데이터로 대체 필요)
+  const getTeamBCount = (desert: Desert) => {
+    // 임시로 랜덤 값 반환
+    return Math.floor(Math.random() * 15) + 10
+  }
+
+  if (isInitialLoad) {
+    return (
+      <div className="container mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">사막전 목록을 불러오는 중...</p>
+      </div>
+    )
+  }
+
+  const deserts = desertResponse?.content || []
+
   return (
     <div className="container mx-auto">
-      <h1 className="text-3xl font-bold mb-6">이벤트 관리</h1>
+      <h1 className="text-3xl font-bold mb-6">사막전 관리</h1>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="이벤트 검색..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="relative w-full sm:max-w-sm flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="사막전 검색..."
+              className="pl-8"
+              value={tempSearchTerm}
+              onChange={(e) => setTempSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+          </div>
+          <Button variant="outline" onClick={() => setIsFilterDialogOpen(true)}>
+            <Filter className="h-4 w-4 mr-2" />
+            필터
+          </Button>
+          <Button variant="secondary" onClick={handleSearch}>
+            검색
+          </Button>
         </div>
 
         <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
@@ -121,12 +313,12 @@ export default function EventsPage() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>새 사막전 이벤트 생성</DialogTitle>
-              <DialogDescription>새로운 사막전 이벤트를 생성합니다.</DialogDescription>
+              <DialogTitle>새 사막전 생성</DialogTitle>
+              <DialogDescription>새로운 사막전을 생성합니다.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="event-name">이벤트 이름</Label>
+                <Label htmlFor="event-name">사막전 이름</Label>
                 <Input
                   id="event-name"
                   placeholder="예: 5월 1주차 사막전"
@@ -134,87 +326,214 @@ export default function EventsPage() {
                   onChange={(e) => setNewEventName(e.target.value)}
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="event-date">사막전 날짜</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="event-date"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newEventDate && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {newEventDate ? format(newEventDate, "yyyy년 MM월 dd일", { locale: ko }) : "날짜 선택"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={newEventDate} onSelect={setNewEventDate} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateEventDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsCreateEventDialogOpen(false)} disabled={isCreating}>
                 취소
               </Button>
-              <Button onClick={handleCreateEvent}>생성</Button>
+              <Button onClick={handleCreateEvent} disabled={isCreating}>
+                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isCreating ? "생성 중..." : "생성"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      {filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEvents.map((event) => (
-            <Card key={event.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{event.name}</CardTitle>
-                  {getStatusBadge(event.status)}
-                </div>
-                <CardDescription>
-                  <div className="flex items-center gap-1">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    <span>{formatDate(event.date)}</span>
-                  </div>
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">참가자</p>
-                    <p className="font-medium">{event.participants}명</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">A팀</p>
-                    <p className="font-medium">{event.aTeam}명</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">B팀</p>
-                    <p className="font-medium">{event.bTeam}명</p>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col gap-2 pt-0">
-                <div className="w-full h-px bg-border my-1"></div>
-                <div className="grid grid-cols-4 gap-2 w-full">
-                  <Link href={`/surveys?eventId=${event.id}`} className="col-span-1">
-                    <Button variant="ghost" size="sm" className="w-full">
-                      <FileSpreadsheet className="h-4 w-4" />
-                      <span className="sr-only">사전조사</span>
-                    </Button>
-                  </Link>
-                  <Link href={`/squads?eventId=${event.id}`} className="col-span-1">
-                    <Button variant="ghost" size="sm" className="w-full">
-                      <UserSquare className="h-4 w-4" />
-                      <span className="sr-only">스쿼드</span>
-                    </Button>
-                  </Link>
-                  <Link href={`/post-events?eventId=${event.id}`} className="col-span-1">
-                    <Button variant="ghost" size="sm" className="w-full">
-                      <ClipboardList className="h-4 w-4" />
-                      <span className="sr-only">사후관리</span>
-                    </Button>
-                  </Link>
-                  <Link href={`/events/${event.id}`} className="col-span-1">
-                    <Button variant="ghost" size="sm" className="w-full">
-                      <ArrowRight className="h-4 w-4" />
-                      <span className="sr-only">상세보기</span>
-                    </Button>
-                  </Link>
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
+      {/* 필터 다이얼로그 */}
+      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>사막전 필터</DialogTitle>
+            <DialogDescription>날짜 범위와 정렬 순서를 설정하여 사막전을 필터링합니다.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>시작 날짜</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !tempFilters.fromDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {tempFilters.fromDate
+                      ? format(tempFilters.fromDate, "yyyy년 MM월 dd일", { locale: ko })
+                      : "시작 날짜 선택"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={tempFilters.fromDate}
+                    onSelect={(date) => setTempFilters((prev) => ({ ...prev, fromDate: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid gap-2">
+              <Label>종료 날짜</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !tempFilters.toDate && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {tempFilters.toDate
+                      ? format(tempFilters.toDate, "yyyy년 MM월 dd일", { locale: ko })
+                      : "종료 날짜 선택"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={tempFilters.toDate}
+                    onSelect={(date) => setTempFilters((prev) => ({ ...prev, toDate: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid gap-2">
+              <Label>정렬 순서</Label>
+              <Select value={tempFilters.sortOrder} onValueChange={(value: "ASC" | "DESC") => handleSortChange(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="정렬 순서" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DESC">최신순</SelectItem>
+                  <SelectItem value="ASC">오래된순</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetFilters}>
+              초기화
+            </Button>
+            <Button onClick={applyFilters}>적용</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {isLoading && !isInitialLoad && (
+        <div className="flex justify-center my-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : (
+      )}
+
+      {!isLoading && deserts.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {deserts.map((desert) => (
+              <Card key={desert.desertSeq} className="overflow-hidden">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg">{desert.title}</CardTitle>
+                    {getStatusBadge(desert.deleted)}
+                  </div>
+                  <CardDescription>
+                    <div className="flex items-center gap-1">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      <span>{formatDate(desert.eventDate)}</span>
+                    </div>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pb-3">
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">참가자</p>
+                      <p className="font-medium">{getParticipantCount(desert)}명</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">A팀</p>
+                      <p className="font-medium">{getTeamACount(desert)}명</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">B팀</p>
+                      <p className="font-medium">{getTeamBCount(desert)}명</p>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-2 pt-0">
+                  <div className="w-full h-px bg-border my-1"></div>
+                  <div className="grid grid-cols-4 gap-2 w-full">
+                    <Link href={`/surveys?eventId=${desert.desertSeq}`} className="col-span-1">
+                      <Button variant="ghost" size="sm" className="w-full">
+                        <FileSpreadsheet className="h-4 w-4" />
+                        <span className="sr-only">사전조사</span>
+                      </Button>
+                    </Link>
+                    <Link href={`/squads?eventId=${desert.desertSeq}`} className="col-span-1">
+                      <Button variant="ghost" size="sm" className="w-full">
+                        <UserSquare className="h-4 w-4" />
+                        <span className="sr-only">스쿼드</span>
+                      </Button>
+                    </Link>
+                    <Link href={`/post-events?eventId=${desert.desertSeq}`} className="col-span-1">
+                      <Button variant="ghost" size="sm" className="w-full">
+                        <ClipboardList className="h-4 w-4" />
+                        <span className="sr-only">사후관리</span>
+                      </Button>
+                    </Link>
+                    <Link href={`/events/${desert.desertSeq}`} className="col-span-1">
+                      <Button variant="ghost" size="sm" className="w-full">
+                        <ArrowRight className="h-4 w-4" />
+                        <span className="sr-only">상세보기</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+
+          {/* 페이지네이션 */}
+          {desertResponse && desertResponse.totalPages > 1 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={desertResponse.number}
+                totalPages={desertResponse.totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </>
+      ) : !isLoading ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <CalendarDays className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">등록된 이벤트가 없습니다</h3>
-            <p className="text-muted-foreground text-center mb-4">새 사막전 이벤트를 생성하여 관리를 시작하세요.</p>
+            <h3 className="text-lg font-medium mb-2">등록된 사막전이 없습니다</h3>
+            <p className="text-muted-foreground text-center mb-4">새 사막전을 생성하여 관리를 시작하세요.</p>
             <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -224,7 +543,7 @@ export default function EventsPage() {
             </Dialog>
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   )
 }
