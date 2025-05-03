@@ -13,6 +13,7 @@ import {
   X,
   CalendarDays,
   ClipboardList,
+  Shuffle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -28,6 +29,11 @@ const navItems = [
     title: "유저 관리",
     href: "/users",
     icon: Users,
+  },
+  {
+    title: "열차장 랜덤뽑기",
+    href: "/lottery",
+    icon: Shuffle,
   },
   {
     title: "이벤트 관리",
