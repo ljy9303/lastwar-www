@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,7 +23,7 @@ export default function LotteryPage() {
   const [winners, setWinners] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [drawCount, setDrawCount] = useState(1)
+  const [drawCount, setDrawCount] = useState<number>(1)
   const [activeTab, setActiveTab] = useState("selection")
 
   const MAX_SELECTIONS = 50
@@ -86,6 +88,12 @@ export default function LotteryPage() {
     setActiveTab("selection")
   }
 
+  // 추첨 인원 변경 처리
+  const handleDrawCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value === "" ? "" : Number.parseInt(e.target.value, 10)
+    setDrawCount(value === "" ? 1 : isNaN(value) ? 1 : value)
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto flex flex-col items-center justify-center min-h-[60vh]">
@@ -144,9 +152,9 @@ export default function LotteryPage() {
                       id="drawCount"
                       type="number"
                       min={1}
-                      max={Math.min(selectedUsers.length, MAX_DRAW_COUNT)}
+                      max={Math.min(selectedUsers.length || 1, MAX_DRAW_COUNT)}
                       value={drawCount}
-                      onChange={(e) => setDrawCount(Number.parseInt(e.target.value) || 1)}
+                      onChange={handleDrawCountChange}
                     />
                     <p className="text-xs text-muted-foreground">
                       선택된 {selectedUsers.length}명 중 {drawCount}명을 추첨합니다.

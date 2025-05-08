@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://43.203.90.157:8080"
+// API 기본 URL을 프록시 경로로 변경
+const API_BASE_URL = "/api"
 
 export async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`

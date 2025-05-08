@@ -17,18 +17,18 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Search, FileUp, FileDown, Pencil, Trash, ArrowLeft } from "lucide-react"
+import { Search, FileUp, FileDown, Pencil, Trash, ArrowLeft, Loader2, AlertTriangle } from "lucide-react"
 import Link from "next/link"
-
-// 임시 유저 데이터
-const initialUsers = [
-  { id: 1, nickname: "용사1", level: 30, power: 1500000, isLeft: false, preference: "A_TEAM" },
-  { id: 2, nickname: "용사2", level: 28, power: 1350000, isLeft: false, preference: "B_TEAM" },
-  { id: 3, nickname: "용사3", level: 32, power: 1650000, isLeft: true, preference: "AB_POSSIBLE" },
-  { id: 4, nickname: "용사4", level: 25, power: 1200000, isLeft: false, preference: "A_RESERVE" },
-  { id: 5, nickname: "용사5", level: 35, power: 1800000, isLeft: false, preference: "B_RESERVE" },
-]
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  getRosters,
+  updateRoster,
+  saveRosters,
+  type Roster,
+  type RosterUpdateRequest,
+} from "@/app/actions/roster-actions"
+import { getDesertById } from "@/app/actions/event-actions"
+import { useToast } from "@/hooks/use-toast"
 
 // 투표 옵션
 const preferenceOptions = [
@@ -38,93 +38,198 @@ const preferenceOptions = [
   { value: "B_RESERVE", label: "B팀 예비" },
   { value: "AB_POSSIBLE", label: "AB 가능" },
   { value: "AB_IMPOSSIBLE", label: "AB 불가능" },
-  { value: "NONE", label: "미참여" },
-]
-
-// 임시 이벤트 데이터
-const events = [
-  { id: "1", name: "4월 4주차 사막전", status: "completed" },
-  { id: "2", name: "5월 1주차 사막전", status: "in_progress" },
+  { value: "none", label: "미참여" },
 ]
 
 export default function SurveysPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { toast } = useToast()
   const eventId = searchParams.get("eventId")
 
-  const [users, setUsers] = useState(initialUsers)
+  const [rosters, setRosters] = useState<Roster[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [leftFilter, setLeftFilter] = useState("all")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentRoster, setCurrentRoster] = useState<Roster | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [importText, setImportText] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({})
 
-  // 이벤트 ID가 있으면 해당 이벤트 선택
+  // 이벤트 ID가 없으면 이벤트 목록 페이지로 리다이렉트
   useEffect(() => {
-    if (eventId) {
-      const event = events.find((e) => e.id === eventId)
-      if (event) {
-        setSelectedEvent(event)
+    if (!eventId) {
+      router.push("/events")
+    }
+  }, [eventId, router])
+
+  // 이벤트 정보와 사전조사 데이터 로드
+  useEffect(() => {
+    const loadData = async () => {
+      if (!eventId) return
+
+      setIsLoading(true)
+      try {
+        // 이벤트 정보 로드
+        const eventData = await getDesertById(Number(eventId))
+        setSelectedEvent(eventData)
+
+        // 사전조사 데이터 로드
+        const rostersData = await getRosters(Number(eventId))
+        setRosters(rostersData)
+      } catch (error) {
+        console.error("데이터 로드 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "데이터를 불러오는 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [eventId])
 
-  // 필터링된 유저 목록
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.nickname.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesLeft =
-      leftFilter === "all" || (leftFilter === "true" && user.isLeft) || (leftFilter === "false" && !user.isLeft)
+    loadData()
+  }, [eventId, toast])
 
-    return matchesSearch && matchesLeft
+  // 필터링된 사전조사 목록
+  const filteredRosters = rosters.filter((roster) => {
+    const matchesSearch = roster.userName.toLowerCase().includes(searchTerm.toLowerCase())
+    // 연맹 탈퇴 여부는 API에서 제공하지 않으므로 필터링하지 않음
+    return matchesSearch
   })
 
-  // 유저 수정 다이얼로그 열기
-  const openEditDialog = (user) => {
-    setCurrentUser({ ...user })
+  // 사전조사 수정 다이얼로그 열기
+  const openEditDialog = (roster: Roster) => {
+    setCurrentRoster({ ...roster })
     setIsEditDialogOpen(true)
   }
 
-  // 유저 정보 수정 함수
-  const handleEditUser = () => {
-    const updatedUsers = users.map((user) => (user.id === currentUser.id ? currentUser : user))
-    setUsers(updatedUsers)
-    setIsEditDialogOpen(false)
+  // 사전조사 정보 수정 함수
+  const handleEditRoster = async () => {
+    if (!currentRoster) return
+
+    setIsSaving(true)
+    try {
+      await updateRoster(currentRoster.desertSeq, currentRoster.userSeq, currentRoster.intentType)
+
+      // 로컬 상태 업데이트
+      setRosters((prev) => prev.map((roster) => (roster.userSeq === currentRoster.userSeq ? currentRoster : roster)))
+
+      toast({
+        title: "수정 완료",
+        description: `${currentRoster.userName}님의 사전조사가 수정되었습니다.`,
+      })
+
+      setIsEditDialogOpen(false)
+    } catch (error) {
+      console.error("사전조사 수정 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "사전조사 수정 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  // 유저 삭제 함수
-  const handleDeleteUser = (id) => {
-    if (window.confirm("정말로 이 유저를 삭제하시겠습니까?")) {
-      setUsers(users.filter((user) => user.id !== id))
+  // 사전조사 삭제 함수 (intentType을 none으로 설정)
+  const handleDeleteRoster = async (roster: Roster) => {
+    if (window.confirm(`${roster.userName}님의 사전조사를 삭제하시겠습니까?`)) {
+      try {
+        await updateRoster(roster.desertSeq, roster.userSeq, "none")
+
+        // 로컬 상태 업데이트
+        setRosters((prev) => prev.map((r) => (r.userSeq === roster.userSeq ? { ...r, intentType: "none" } : r)))
+
+        toast({
+          title: "삭제 완료",
+          description: `${roster.userName}님의 사전조사가 삭제되었습니다.`,
+        })
+      } catch (error) {
+        console.error("사전조사 삭제 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "사전조사 삭제 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
   // 선호도 레이블 가져오기
-  const getPreferenceLabel = (preference) => {
+  const getPreferenceLabel = (preference: string) => {
     const option = preferenceOptions.find((opt) => opt.value === preference)
     return option ? option.label : preference
   }
 
   // 선호도 변경 함수
-  const handlePreferenceChange = (userId, preference) => {
-    const updatedUsers = users.map((user) => (user.id === userId ? { ...user, preference } : user))
-    setUsers(updatedUsers)
+  const handlePreferenceChange = (userSeq: number, intentType: string) => {
+    // 변경 사항 기록
+    setPendingChanges((prev) => ({
+      ...prev,
+      [userSeq]: intentType,
+    }))
+  }
+
+  // 변경 사항 저장
+  const saveChanges = async () => {
+    if (Object.keys(pendingChanges).length === 0) return
+
+    setIsSaving(true)
+    try {
+      const request = {
+        desertSeq: Number(eventId),
+        rosters: Object.entries(pendingChanges).map(([userSeq, intentType]) => ({
+          userSeq: Number(userSeq),
+          intentType,
+        })),
+      }
+
+      await saveRosters(request)
+
+      // 로컬 상태 업데이트
+      setRosters((prev) =>
+        prev.map((roster) =>
+          pendingChanges[roster.userSeq] ? { ...roster, intentType: pendingChanges[roster.userSeq] } : roster,
+        ),
+      )
+
+      // 변경 사항 초기화
+      setPendingChanges({})
+
+      toast({
+        title: "저장 완료",
+        description: "사전조사 변경 사항이 저장되었습니다.",
+      })
+    } catch (error) {
+      console.error("사전조사 저장 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "사전조사 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // CSV 내보내기
   const exportToCsv = () => {
-    const headers = ["ID", "닉네임", "본부레벨", "전투력", "연맹탈퇴여부", "선호팀"]
+    const headers = ["ID", "닉네임", "본부레벨", "전투력", "선호팀"]
     const csvContent = [
       headers.join(","),
-      ...users.map((user) =>
+      ...rosters.map((roster) =>
         [
-          user.id,
-          user.nickname,
-          user.level,
-          user.power,
-          user.isLeft ? "O" : "X",
-          getPreferenceLabel(user.preference),
+          roster.userSeq,
+          roster.userName,
+          roster.userLevel,
+          roster.userPower,
+          getPreferenceLabel(roster.intentType),
         ].join(","),
       ),
     ].join("\n")
@@ -133,7 +238,7 @@ export default function SurveysPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
-    link.setAttribute("download", `사전조사_${selectedEvent?.name || "전체"}.csv`)
+    link.setAttribute("download", `사전조사_${selectedEvent?.title || eventId}.csv`)
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
@@ -141,33 +246,96 @@ export default function SurveysPage() {
   }
 
   // 텍스트 데이터 가져오기
-  const handleImportData = () => {
+  const handleImportData = async () => {
     if (!importText.trim()) {
-      alert("가져올 데이터를 입력해주세요.")
+      toast({
+        title: "입력 오류",
+        description: "가져올 데이터를 입력해주세요.",
+        variant: "destructive",
+      })
       return
     }
 
     try {
       // 간단한 파싱 예시 (실제로는 더 복잡한 로직이 필요할 수 있음)
       const lines = importText.trim().split("\n")
-      const newUsers = lines.map((line, index) => {
-        const [nickname, level, power, isLeft, preference] = line.split(",").map((item) => item.trim())
-        return {
-          id: users.length + index + 1,
-          nickname,
-          level: Number.parseInt(level) || 0,
-          power: Number.parseInt(power) || 0,
-          isLeft: isLeft === "O" || isLeft === "true",
-          preference: preference || "NONE",
+      const importedRosters: RosterUpdateRequest[] = []
+
+      for (const line of lines) {
+        const [userName, intentType] = line.split(",").map((item) => item.trim())
+
+        // 유저 이름으로 userSeq 찾기
+        const user = rosters.find((r) => r.userName === userName)
+        if (user) {
+          // 선호도 값 검증
+          const validIntentType = preferenceOptions.find((opt) => opt.label === intentType)?.value || "none"
+
+          importedRosters.push({
+            userSeq: user.userSeq,
+            intentType: validIntentType,
+          })
         }
+      }
+
+      if (importedRosters.length === 0) {
+        toast({
+          title: "가져오기 실패",
+          description: "일치하는 유저가 없습니다.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // 데이터 저장
+      setIsSaving(true)
+      await saveRosters({
+        desertSeq: Number(eventId),
+        rosters: importedRosters,
       })
 
-      setUsers([...users, ...newUsers])
+      // 데이터 다시 로드
+      const updatedRosters = await getRosters(Number(eventId))
+      setRosters(updatedRosters)
+
       setIsImportDialogOpen(false)
       setImportText("")
+
+      toast({
+        title: "가져오기 성공",
+        description: `${importedRosters.length}개의 사전조사 데이터가 업데이트되었습니다.`,
+      })
     } catch (error) {
-      alert("데이터 가져오기에 실패했습니다. 형식을 확인해주세요.")
+      console.error("데이터 가져오기 실패:", error)
+      toast({
+        title: "가져오기 실패",
+        description: "데이터 가져오기에 실패했습니다. 형식을 확인해주세요.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
     }
+  }
+
+  if (!eventId) {
+    return (
+      <div className="container mx-auto">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            사전조사를 조회할 이벤트 ID가 필요합니다. 이벤트 관리 페이지로 이동합니다.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">사전조사 데이터를 불러오는 중...</p>
+      </div>
+    )
   }
 
   return (
@@ -178,7 +346,7 @@ export default function SurveysPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">사전조사 관리 {selectedEvent && `- ${selectedEvent.name}`}</h1>
+        <h1 className="text-3xl font-bold">사전조사 관리 {selectedEvent && `- ${selectedEvent.title}`}</h1>
       </div>
 
       <Card>
@@ -202,7 +370,7 @@ export default function SurveysPage() {
                     <DialogDescription>
                       엑셀이나 메모장에서 정리한 데이터를 붙여넣기 하세요.
                       <br />
-                      형식: 닉네임, 레벨, 전투력, 탈퇴여부(O/X), 선호팀
+                      형식: 닉네임, 선호팀
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -211,17 +379,26 @@ export default function SurveysPage() {
                       <textarea
                         id="import-data"
                         className="min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        placeholder="용사1, 30, 1500000, X, A_TEAM&#10;용사2, 28, 1350000, X, B_TEAM"
+                        placeholder="다크입니다, A팀&#10;주사놔주는봇, B팀"
                         value={importText}
                         onChange={(e) => setImportText(e.target.value)}
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                    <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isSaving}>
                       취소
                     </Button>
-                    <Button onClick={handleImportData}>가져오기</Button>
+                    <Button onClick={handleImportData} disabled={isSaving}>
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          가져오는 중...
+                        </>
+                      ) : (
+                        "가져오기"
+                      )}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -230,6 +407,19 @@ export default function SurveysPage() {
                 <FileDown className="mr-2 h-4 w-4" />
                 CSV 내보내기
               </Button>
+
+              {Object.keys(pendingChanges).length > 0 && (
+                <Button onClick={saveChanges} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      저장 중...
+                    </>
+                  ) : (
+                    "변경사항 저장"
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -244,18 +434,14 @@ export default function SurveysPage() {
             />
           </div>
 
-          <div className="flex mb-4">
-            <Select value={leftFilter} onValueChange={setLeftFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="연맹 탈퇴" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">전체</SelectItem>
-                <SelectItem value="true">탈퇴</SelectItem>
-                <SelectItem value="false">활동중</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {Object.keys(pendingChanges).length > 0 && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                {Object.keys(pendingChanges).length}개의 변경사항이 있습니다. 저장 버튼을 클릭하여 변경사항을
+                저장하세요.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="rounded-md border">
             <Table>
@@ -265,54 +451,48 @@ export default function SurveysPage() {
                   <TableHead>닉네임</TableHead>
                   <TableHead className="hidden sm:table-cell">본부 레벨</TableHead>
                   <TableHead className="hidden sm:table-cell">전투력</TableHead>
-                  <TableHead className="hidden sm:table-cell">연맹 탈퇴</TableHead>
                   <TableHead>선호 팀</TableHead>
                   <TableHead className="text-right">관리</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="hidden md:table-cell">{user.id}</TableCell>
+                {filteredRosters.length > 0 ? (
+                  filteredRosters.map((roster) => (
+                    <TableRow key={roster.userSeq}>
+                      <TableCell className="hidden md:table-cell">{roster.userSeq}</TableCell>
                       <TableCell>
                         <div>
-                          <div>{user.nickname}</div>
+                          <div>{roster.userName}</div>
                           <div className="sm:hidden text-xs text-muted-foreground">
-                            Lv.{user.level} | {user.power.toLocaleString()} | {user.isLeft ? "탈퇴" : "활동중"}
+                            Lv.{roster.userLevel} | {roster.userPower.toLocaleString()}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{user.power.toLocaleString()}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{user.isLeft ? "O" : "X"}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{roster.userLevel}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{roster.userPower.toLocaleString()}</TableCell>
                       <TableCell>
-                        {selectedEvent?.status !== "completed" ? (
-                          <Select
-                            value={user.preference || ""}
-                            onValueChange={(value) => handlePreferenceChange(user.id, value)}
-                          >
-                            <SelectTrigger className="w-full sm:w-[140px]">
-                              <SelectValue placeholder="선택" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {preferenceOptions.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          getPreferenceLabel(user.preference)
-                        )}
+                        <Select
+                          value={pendingChanges[roster.userSeq] || roster.intentType}
+                          onValueChange={(value) => handlePreferenceChange(roster.userSeq, value)}
+                        >
+                          <SelectTrigger className="w-full sm:w-[140px]">
+                            <SelectValue placeholder="선택" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {preferenceOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(user)}>
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(roster)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)}>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteRoster(roster)}>
                             <Trash className="h-4 w-4" />
                           </Button>
                         </div>
@@ -321,8 +501,8 @@ export default function SurveysPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
-                      검색 결과가 없습니다.
+                    <TableCell colSpan={6} className="text-center py-4">
+                      {searchTerm ? "검색 결과가 없습니다." : "사전조사 데이터가 없습니다."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -332,55 +512,62 @@ export default function SurveysPage() {
         </CardContent>
       </Card>
 
-      {/* 유저 수정 다이얼로그 - 선호팀 필드 제거 */}
-      {currentUser && (
+      {/* 사전조사 수정 다이얼로그 */}
+      {currentRoster && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>유저 정보 수정</DialogTitle>
-              <DialogDescription>유저 정보를 수정하세요.</DialogDescription>
+              <DialogTitle>사전조사 수정</DialogTitle>
+              <DialogDescription>{currentRoster.userName}님의 사전조사를 수정하세요.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-nickname">닉네임</Label>
-                <Input
-                  id="edit-nickname"
-                  value={currentUser.nickname}
-                  onChange={(e) => setCurrentUser({ ...currentUser, nickname: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>닉네임</Label>
+                  <div className="p-2 border rounded-md bg-muted">{currentRoster.userName}</div>
+                </div>
+                <div className="space-y-2">
+                  <Label>본부 레벨</Label>
+                  <div className="p-2 border rounded-md bg-muted">{currentRoster.userLevel}</div>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-level">본부 레벨</Label>
-                <Input
-                  id="edit-level"
-                  type="number"
-                  value={currentUser.level}
-                  onChange={(e) => setCurrentUser({ ...currentUser, level: Number.parseInt(e.target.value) })}
-                />
+              <div className="space-y-2">
+                <Label>전투력</Label>
+                <div className="p-2 border rounded-md bg-muted">{currentRoster.userPower.toLocaleString()}</div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-power">전투력</Label>
-                <Input
-                  id="edit-power"
-                  type="number"
-                  value={currentUser.power}
-                  onChange={(e) => setCurrentUser({ ...currentUser, power: Number.parseInt(e.target.value) })}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="edit-isLeft"
-                  checked={currentUser.isLeft}
-                  onCheckedChange={(checked) => setCurrentUser({ ...currentUser, isLeft: checked })}
-                />
-                <Label htmlFor="edit-isLeft">연맹 탈퇴 여부</Label>
+              <div className="space-y-2">
+                <Label htmlFor="intentType">선호 팀</Label>
+                <Select
+                  value={currentRoster.intentType}
+                  onValueChange={(value) => setCurrentRoster({ ...currentRoster, intentType: value })}
+                >
+                  <SelectTrigger id="intentType">
+                    <SelectValue placeholder="선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {preferenceOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isSaving}>
                 취소
               </Button>
-              <Button onClick={handleEditUser}>저장</Button>
+              <Button onClick={handleEditRoster} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    저장 중...
+                  </>
+                ) : (
+                  "저장"
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

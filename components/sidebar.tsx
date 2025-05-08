@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   Users,
-  FileSpreadsheet,
   UserSquare,
   LayoutDashboard,
   Settings,
@@ -40,11 +39,7 @@ const navItems = [
     href: "/events",
     icon: CalendarDays,
   },
-  {
-    title: "사전조사 관리",
-    href: "/surveys",
-    icon: FileSpreadsheet,
-  },
+  // 사전조사 관리 메뉴 제거
   {
     title: "스쿼드 관리",
     href: "/squads",

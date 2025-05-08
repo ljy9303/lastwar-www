@@ -328,7 +328,7 @@ export default function SquadsPage() {
       {isConfirmed && (
         <Alert className="mb-4">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>팀이 확정되었습니다. 더 이상 수정할 수 없습니다.</AlertDescription>
+          <AlertDescription>팀이 확���되었습니다. 더 이상 수정할 수 없습니다.</AlertDescription>
         </Alert>
       )}
 

@@ -64,6 +64,7 @@ export default function VotesPage() {
     { value: "B_RESERVE", label: "B팀 예비" },
     { value: "AB_POSSIBLE", label: "AB 가능" },
     { value: "AB_IMPOSSIBLE", label: "AB 불가능" },
+    { value: "NONE", label: "투표안함" },
   ]
 
   // 투표 추가 함수
@@ -129,7 +130,7 @@ export default function VotesPage() {
 
   // CSV 내보내기
   const exportToCsv = () => {
-    const headers = ["ID", "유저", "선호 팀"]
+    const headers = ["ID", "유저", "희망"]
     const csvContent = [
       headers.join(","),
       ...votes.map((vote) => [vote.id, getUserName(vote.userId), getPreferenceLabel(vote.preference)].join(",")),
@@ -244,7 +245,7 @@ export default function VotesPage() {
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>유저</TableHead>
-                    <TableHead>선호 팀</TableHead>
+                    <TableHead>희망</TableHead>
                     <TableHead className="text-right">관리</TableHead>
                   </TableRow>
                 </TableHeader>
