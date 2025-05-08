@@ -40,6 +40,8 @@ import {
 } from "@/app/actions/roster-actions"
 import { getDesertById } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
+import { updateUser } from "@/app/actions/user-actions"
+import type { UserUpdateRequest } from "@/types/user"
 
 // 투표 옵션
 const preferenceOptions = [
@@ -47,9 +49,8 @@ const preferenceOptions = [
   { value: "B_TEAM", label: "B팀" },
   { value: "A_RESERVE", label: "A팀 예비" },
   { value: "B_RESERVE", label: "B팀 예비" },
-  { value: "AB_POSSIBLE", label: "AB 가능" },
-  { value: "AB_IMPOSSIBLE", label: "AB 불가능" },
-  { value: "none", label: "미참여" },
+  { value: "AB_POSSIBLE", label: "모두 가능" },
+  { value: "NONE", label: "미참여" },
 ]
 
 export default function SurveysPage() {
@@ -62,7 +63,15 @@ export default function SurveysPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [leftFilter, setLeftFilter] = useState("all")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [currentRoster, setCurrentRoster] = useState<Roster | null>(null)
+  const [currentRoster, setCurrentRoster] = useState<
+    | (Roster & {
+        editName?: string
+        editLevel?: number
+        editPower?: number
+        editLeave?: boolean
+      })
+    | null
+  >(null)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
   const [importText, setImportText] = useState("")
@@ -182,7 +191,13 @@ export default function SurveysPage() {
 
   // 사전조사 수정 다이얼로그 열기
   const openEditDialog = (roster: Roster) => {
-    setCurrentRoster({ ...roster })
+    setCurrentRoster({
+      ...roster,
+      editName: roster.userName,
+      editLevel: roster.userLevel,
+      editPower: roster.userPower,
+      editLeave: false, // API에서 제공하지 않으므로 기본값 설정
+    })
     setIsEditDialogOpen(true)
   }
 
@@ -192,22 +207,46 @@ export default function SurveysPage() {
 
     setIsSaving(true)
     try {
-      await updateRoster(currentRoster.desertSeq, currentRoster.userSeq, currentRoster.intentType)
+      // 유저 정보 업데이트
+      if (
+        currentRoster.editName !== currentRoster.userName ||
+        currentRoster.editLevel !== currentRoster.userLevel ||
+        currentRoster.editPower !== currentRoster.userPower
+      ) {
+        const userUpdateData: UserUpdateRequest = {}
 
-      // 로컬 상태 업데이트
-      setRosters((prev) => prev.map((roster) => (roster.userSeq === currentRoster.userSeq ? currentRoster : roster)))
+        if (currentRoster.editName !== currentRoster.userName) {
+          userUpdateData.name = currentRoster.editName
+        }
+
+        if (currentRoster.editLevel !== currentRoster.userLevel) {
+          userUpdateData.level = currentRoster.editLevel
+        }
+
+        if (currentRoster.editPower !== currentRoster.userPower) {
+          userUpdateData.power = currentRoster.editPower
+        }
+
+        if (Object.keys(userUpdateData).length > 0) {
+          await updateUser(currentRoster.userSeq, userUpdateData)
+        }
+      }
 
       toast({
         title: "수정 완료",
-        description: `${currentRoster.userName}님의 사전조사가 수정되었습니다.`,
+        description: `${currentRoster.userName}님의 정보가 수정되었습니다.`,
       })
+
+      // 데이터 다시 로드
+      const updatedRosters = await getRosters(Number(eventId))
+      setRosters(updatedRosters)
 
       setIsEditDialogOpen(false)
     } catch (error) {
-      console.error("사전조사 수정 실패:", error)
+      console.error("유저 정보 수정 실패:", error)
       toast({
         title: "오류 발생",
-        description: "사전조사 수정 중 오류가 발생했습니다.",
+        description: "유저 정보 수정 중 오류가 발생했습니다.",
         variant: "destructive",
       })
     } finally {
@@ -667,45 +706,39 @@ export default function SurveysPage() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>사전조사 수정</DialogTitle>
-              <DialogDescription>{currentRoster.userName}님의 사전조사를 수정하세요.</DialogDescription>
+              <DialogTitle>유저 정보 수정</DialogTitle>
+              <DialogDescription>{currentRoster.userName}님의 정보를 수정하세요.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="editName">닉네임</Label>
+                <Input
+                  id="editName"
+                  value={currentRoster.editName || ""}
+                  onChange={(e) => setCurrentRoster({ ...currentRoster, editName: e.target.value })}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>닉네임</Label>
-                  <div className="p-2 border rounded-md bg-muted">{currentRoster.userName}</div>
+                  <Label htmlFor="editLevel">본부 레벨</Label>
+                  <Input
+                    id="editLevel"
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={currentRoster.editLevel || ""}
+                    onChange={(e) => setCurrentRoster({ ...currentRoster, editLevel: Number.parseInt(e.target.value) })}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>본부 레벨</Label>
-                  <div className="p-2 border rounded-md bg-muted">{currentRoster.userLevel}</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>전투력</Label>
-                <div className="p-2 border rounded-md bg-muted">{currentRoster.userPower.toLocaleString()}</div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="intentType">선호 팀</Label>
-                <div className="space-y-2">
-                  {preferenceOptions.map((option) => (
-                    <div key={option.value} className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id={`edit-${option.value}`}
-                        name="edit-preference"
-                        className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                        checked={currentRoster.intentType === option.value}
-                        onChange={() => setCurrentRoster({ ...currentRoster, intentType: option.value })}
-                      />
-                      <label
-                        htmlFor={`edit-${option.value}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {option.label}
-                      </label>
-                    </div>
-                  ))}
+                  <Label htmlFor="editPower">전투력</Label>
+                  <Input
+                    id="editPower"
+                    type="number"
+                    min={0}
+                    value={currentRoster.editPower || ""}
+                    onChange={(e) => setCurrentRoster({ ...currentRoster, editPower: Number.parseInt(e.target.value) })}
+                  />
                 </div>
               </div>
             </div>
