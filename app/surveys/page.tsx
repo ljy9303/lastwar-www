@@ -16,8 +16,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, FileUp, FileDown, Pencil, Trash, ArrowLeft, Loader2, AlertTriangle } from "lucide-react"
+import {
+  Search,
+  FileUp,
+  FileDown,
+  Pencil,
+  Trash,
+  ArrowLeft,
+  Loader2,
+  AlertTriangle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -58,6 +69,13 @@ export default function SurveysPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({})
+  const [sortConfig, setSortConfig] = useState<{
+    key: string
+    direction: "ascending" | "descending" | null
+  }>({
+    key: "",
+    direction: null,
+  })
 
   // 이벤트 ID가 없으면 이벤트 목록 페이지로 리다이렉트
   useEffect(() => {
@@ -95,12 +113,72 @@ export default function SurveysPage() {
     loadData()
   }, [eventId, toast])
 
+  // 정렬 요청 처리 함수
+  const requestSort = (key: string) => {
+    let direction: "ascending" | "descending" | null = "ascending"
+
+    if (sortConfig.key === key) {
+      if (sortConfig.direction === "ascending") {
+        direction = "descending"
+      } else if (sortConfig.direction === "descending") {
+        direction = null
+      }
+    }
+
+    setSortConfig({ key, direction })
+  }
+
+  // 정렬된 로스터 목록 가져오기
+  const getSortedRosters = (rosters: Roster[]) => {
+    const sortableRosters = [...rosters]
+
+    if (sortConfig.direction === null) {
+      return sortableRosters
+    }
+
+    return sortableRosters.sort((a, b) => {
+      if (sortConfig.key === "userLevel") {
+        if (a.userLevel < b.userLevel) {
+          return sortConfig.direction === "ascending" ? -1 : 1
+        }
+        if (a.userLevel > b.userLevel) {
+          return sortConfig.direction === "ascending" ? 1 : -1
+        }
+        return 0
+      }
+
+      if (sortConfig.key === "userPower") {
+        if (a.userPower < b.userPower) {
+          return sortConfig.direction === "ascending" ? -1 : 1
+        }
+        if (a.userPower > b.userPower) {
+          return sortConfig.direction === "ascending" ? 1 : -1
+        }
+        return 0
+      }
+
+      if (sortConfig.key === "intentType") {
+        if (a.intentType < b.intentType) {
+          return sortConfig.direction === "ascending" ? -1 : 1
+        }
+        if (a.intentType > b.intentType) {
+          return sortConfig.direction === "ascending" ? 1 : -1
+        }
+        return 0
+      }
+
+      return 0
+    })
+  }
+
   // 필터링된 사전조사 목록
-  const filteredRosters = rosters.filter((roster) => {
-    const matchesSearch = roster.userName.toLowerCase().includes(searchTerm.toLowerCase())
-    // 연맹 탈퇴 여부는 API에서 제공하지 않으므로 필터링하지 않음
-    return matchesSearch
-  })
+  const filteredRosters = getSortedRosters(
+    rosters.filter((roster) => {
+      const matchesSearch = roster.userName.toLowerCase().includes(searchTerm.toLowerCase())
+      // 연맹 탈퇴 여부는 API에서 제공하지 않으므로 필터링하지 않음
+      return matchesSearch
+    }),
+  )
 
   // 사전조사 수정 다이얼로그 열기
   const openEditDialog = (roster: Roster) => {
@@ -449,9 +527,60 @@ export default function SurveysPage() {
                 <TableRow>
                   <TableHead className="hidden md:table-cell">ID</TableHead>
                   <TableHead>닉네임</TableHead>
-                  <TableHead className="hidden sm:table-cell">본부 레벨</TableHead>
-                  <TableHead className="hidden sm:table-cell">전투력</TableHead>
-                  <TableHead>선호 팀</TableHead>
+                  <TableHead
+                    className="hidden sm:table-cell cursor-pointer hover:bg-muted/50"
+                    onClick={() => requestSort("userLevel")}
+                  >
+                    <div className="flex items-center">
+                      본부 레벨
+                      {sortConfig.key === "userLevel" ? (
+                        sortConfig.direction === "ascending" ? (
+                          <ArrowUp className="ml-1 h-4 w-4" />
+                        ) : sortConfig.direction === "descending" ? (
+                          <ArrowDown className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ArrowUpDown className="ml-1 h-4 w-4" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="ml-1 h-4 w-4 opacity-30" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="hidden sm:table-cell cursor-pointer hover:bg-muted/50"
+                    onClick={() => requestSort("userPower")}
+                  >
+                    <div className="flex items-center">
+                      전투력
+                      {sortConfig.key === "userPower" ? (
+                        sortConfig.direction === "ascending" ? (
+                          <ArrowUp className="ml-1 h-4 w-4" />
+                        ) : sortConfig.direction === "descending" ? (
+                          <ArrowDown className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ArrowUpDown className="ml-1 h-4 w-4" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="ml-1 h-4 w-4 opacity-30" />
+                      )}
+                    </div>
+                  </TableHead>
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => requestSort("intentType")}>
+                    <div className="flex items-center">
+                      선호 팀
+                      {sortConfig.key === "intentType" ? (
+                        sortConfig.direction === "ascending" ? (
+                          <ArrowUp className="ml-1 h-4 w-4" />
+                        ) : sortConfig.direction === "descending" ? (
+                          <ArrowDown className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ArrowUpDown className="ml-1 h-4 w-4" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="ml-1 h-4 w-4 opacity-30" />
+                      )}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-right">관리</TableHead>
                 </TableRow>
               </TableHeader>
@@ -471,21 +600,42 @@ export default function SurveysPage() {
                       <TableCell className="hidden sm:table-cell">{roster.userLevel}</TableCell>
                       <TableCell className="hidden sm:table-cell">{roster.userPower.toLocaleString()}</TableCell>
                       <TableCell>
-                        <Select
-                          value={pendingChanges[roster.userSeq] || roster.intentType}
-                          onValueChange={(value) => handlePreferenceChange(roster.userSeq, value)}
-                        >
-                          <SelectTrigger className="w-full sm:w-[140px]">
-                            <SelectValue placeholder="선택" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {preferenceOptions.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+                          {preferenceOptions.slice(0, 6).map((option) => (
+                            <div key={option.value} className="flex items-center space-x-1">
+                              <input
+                                type="radio"
+                                id={`${roster.userSeq}-${option.value}`}
+                                name={`preference-${roster.userSeq}`}
+                                className="h-3 w-3 text-primary border-gray-300 focus:ring-primary"
+                                checked={(pendingChanges[roster.userSeq] || roster.intentType) === option.value}
+                                onChange={() => handlePreferenceChange(roster.userSeq, option.value)}
+                              />
+                              <label
+                                htmlFor={`${roster.userSeq}-${option.value}`}
+                                className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
                                 {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                              </label>
+                            </div>
+                          ))}
+                          <div className="flex items-center space-x-1">
+                            <input
+                              type="radio"
+                              id={`${roster.userSeq}-none`}
+                              name={`preference-${roster.userSeq}`}
+                              className="h-3 w-3 text-primary border-gray-300 focus:ring-primary"
+                              checked={(pendingChanges[roster.userSeq] || roster.intentType) === "none"}
+                              onChange={() => handlePreferenceChange(roster.userSeq, "none")}
+                            />
+                            <label
+                              htmlFor={`${roster.userSeq}-none`}
+                              className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              미참여
+                            </label>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -537,21 +687,26 @@ export default function SurveysPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="intentType">선호 팀</Label>
-                <Select
-                  value={currentRoster.intentType}
-                  onValueChange={(value) => setCurrentRoster({ ...currentRoster, intentType: value })}
-                >
-                  <SelectTrigger id="intentType">
-                    <SelectValue placeholder="선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {preferenceOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                <div className="space-y-2">
+                  {preferenceOptions.map((option) => (
+                    <div key={option.value} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id={`edit-${option.value}`}
+                        name="edit-preference"
+                        className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                        checked={currentRoster.intentType === option.value}
+                        onChange={() => setCurrentRoster({ ...currentRoster, intentType: option.value })}
+                      />
+                      <label
+                        htmlFor={`edit-${option.value}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
                         {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             <DialogFooter>
