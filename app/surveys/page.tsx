@@ -664,8 +664,8 @@ export default function SurveysPage() {
                               id={`${roster.userSeq}-none`}
                               name={`preference-${roster.userSeq}`}
                               className="h-3 w-3 text-primary border-gray-300 focus:ring-primary"
-                              checked={(pendingChanges[roster.userSeq] || roster.intentType) === "none"}
-                              onChange={() => handlePreferenceChange(roster.userSeq, "none")}
+                              checked={(pendingChanges[roster.userSeq] || roster.intentType) === "NONE"}
+                              onChange={() => handlePreferenceChange(roster.userSeq, "NONE")}
                             />
                             <label
                               htmlFor={`${roster.userSeq}-none`}
