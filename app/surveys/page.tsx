@@ -258,10 +258,10 @@ export default function SurveysPage() {
   const handleDeleteRoster = async (roster: Roster) => {
     if (window.confirm(`${roster.userName}님의 사전조사를 삭제하시겠습니까?`)) {
       try {
-        await updateRoster(roster.desertSeq, roster.userSeq, "none")
+        await updateRoster(roster.desertSeq, roster.userSeq, "NONE")
 
         // 로컬 상태 업데이트
-        setRosters((prev) => prev.map((r) => (r.userSeq === roster.userSeq ? { ...r, intentType: "none" } : r)))
+        setRosters((prev) => prev.map((r) => (r.userSeq === roster.userSeq ? { ...r, intentType: "NONE" } : r)))
 
         toast({
           title: "삭제 완료",
@@ -385,7 +385,7 @@ export default function SurveysPage() {
         const user = rosters.find((r) => r.userName === userName)
         if (user) {
           // 선호도 값 검증
-          const validIntentType = preferenceOptions.find((opt) => opt.label === intentType)?.value || "none"
+          const validIntentType = preferenceOptions.find((opt) => opt.label === intentType)?.value || "NONE"
 
           importedRosters.push({
             userSeq: user.userSeq,
@@ -640,7 +640,7 @@ export default function SurveysPage() {
                       <TableCell className="hidden sm:table-cell">{roster.userPower.toLocaleString()}</TableCell>
                       <TableCell>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-                          {preferenceOptions.slice(0, 6).map((option) => (
+                          {preferenceOptions.map((option) => (
                             <div key={option.value} className="flex items-center space-x-1">
                               <input
                                 type="radio"
