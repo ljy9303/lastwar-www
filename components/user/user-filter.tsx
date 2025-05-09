@@ -121,7 +121,7 @@ export function UserFilter({ onFilter, initialFilters = {} }: UserFilterProps) {
           </Select>
         </div>
 
-        <div className="flex gap-2 w-full sm:w-auto sm:ml-auto mt-4 sm:mt-0">
+        <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
           <Button type="button" variant="outline" onClick={handleReset} className="flex-1 sm:flex-none">
             초기화
           </Button>

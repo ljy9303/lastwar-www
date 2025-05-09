@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://43.203.90.157:8080"
+const API_BASE_URL = "https://api.chunsik.site"
 
 export async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`

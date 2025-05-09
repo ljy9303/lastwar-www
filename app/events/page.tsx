@@ -285,7 +285,7 @@ export default function EventsPage() {
       <h1 className="text-3xl font-bold mb-6">사막전 관리</h1>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="relative w-full sm:max-w-sm flex gap-2">
+        <div className="relative w-full flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -296,13 +296,15 @@ export default function EventsPage() {
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
-          <Button variant="outline" onClick={() => setIsFilterDialogOpen(true)}>
-            <Filter className="h-4 w-4 mr-2" />
-            필터
-          </Button>
-          <Button variant="secondary" onClick={handleSearch}>
-            검색
-          </Button>
+          <div className="flex gap-2 mt-2 sm:mt-0">
+            <Button variant="outline" onClick={() => setIsFilterDialogOpen(true)} className="flex-1 sm:flex-auto">
+              <Filter className="h-4 w-4 mr-2" />
+              필터
+            </Button>
+            <Button variant="secondary" onClick={handleSearch} className="flex-1 sm:flex-auto">
+              검색
+            </Button>
+          </div>
         </div>
 
         <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
@@ -453,7 +455,7 @@ export default function EventsPage() {
 
       {!isLoading && deserts.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {deserts.map((desert) => (
               <Card key={desert.desertSeq} className="overflow-hidden">
                 <CardHeader className="pb-3">

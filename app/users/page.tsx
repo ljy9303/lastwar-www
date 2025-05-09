@@ -113,11 +113,11 @@ export default function UsersPage() {
                 <UserFilter onFilter={handleFilter} initialFilters={searchParams} />
               </div>
 
-              <div className="flex justify-between mb-4">
+              <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
                 <div className="flex gap-2">
                   <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button>
+                      <Button className="flex-1 sm:flex-auto">
                         <Plus className="mr-2 h-4 w-4" />
                         유저 추가
                       </Button>
@@ -132,11 +132,11 @@ export default function UsersPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={exportToCsv}>
+                  <Button variant="outline" onClick={exportToCsv} className="flex-1 sm:flex-auto">
                     <FileDown className="mr-2 h-4 w-4" />
                     CSV 내보내기
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" className="flex-1 sm:flex-auto">
                     <FileUp className="mr-2 h-4 w-4" />
                     CSV 가져오기
                   </Button>

@@ -40,8 +40,8 @@ import {
 } from "@/app/actions/roster-actions"
 import { getDesertById } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
-import { updateUser } from "@/app/actions/user-actions"
-import type { UserUpdateRequest } from "@/types/user"
+import { UserForm } from "@/components/user/user-form"
+import type { User } from "@/types/user"
 
 // 투표 옵션
 const preferenceOptions = [
@@ -201,58 +201,21 @@ export default function SurveysPage() {
     setIsEditDialogOpen(true)
   }
 
-  // 사전조사 정보 수정 함수
-  const handleEditRoster = async () => {
-    if (!currentRoster) return
+  // 유저 수정 성공 처리
+  const handleEditSuccess = async (updatedUser: User) => {
+    setIsEditDialogOpen(false)
 
-    setIsSaving(true)
-    try {
-      // 유저 정보 업데이트
-      if (
-        currentRoster.editName !== currentRoster.userName ||
-        currentRoster.editLevel !== currentRoster.userLevel ||
-        currentRoster.editPower !== currentRoster.userPower
-      ) {
-        const userUpdateData: UserUpdateRequest = {}
+    // 데이터 다시 로드
+    const updatedRosters = await getRosters(Number(eventId))
+    setRosters(updatedRosters)
 
-        if (currentRoster.editName !== currentRoster.userName) {
-          userUpdateData.name = currentRoster.editName
-        }
-
-        if (currentRoster.editLevel !== currentRoster.userLevel) {
-          userUpdateData.level = currentRoster.editLevel
-        }
-
-        if (currentRoster.editPower !== currentRoster.userPower) {
-          userUpdateData.power = currentRoster.editPower
-        }
-
-        if (Object.keys(userUpdateData).length > 0) {
-          await updateUser(currentRoster.userSeq, userUpdateData)
-        }
-      }
-
-      toast({
-        title: "수정 완료",
-        description: `${currentRoster.userName}님의 정보가 수정되었습니다.`,
-      })
-
-      // 데이터 다시 로드
-      const updatedRosters = await getRosters(Number(eventId))
-      setRosters(updatedRosters)
-
-      setIsEditDialogOpen(false)
-    } catch (error) {
-      console.error("유저 정보 수정 실패:", error)
-      toast({
-        title: "오류 발생",
-        description: "유저 정보 수정 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
+    toast({
+      title: "수정 완료",
+      description: `${updatedUser.name}님의 정보가 수정되었습니다.`,
+    })
   }
+
+  // 사전조사 정보 수정 함수
 
   // 사전조사 삭제 함수 (intentType을 none으로 설정)
   const handleDeleteRoster = async (roster: Roster) => {
@@ -457,26 +420,30 @@ export default function SurveysPage() {
 
   return (
     <div className="container mx-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={eventId ? `/events/${eventId}` : "/events"}>
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <h1 className="text-3xl font-bold">사전조사 관리 {selectedEvent && `- ${selectedEvent.title}`}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={eventId ? `/events/${eventId}` : "/events"}>
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <h1 className="text-xl sm:text-3xl font-bold truncate">
+            사전조사 관리 {selectedEvent && `- ${selectedEvent.title}`}
+          </h1>
+        </div>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <CardTitle>사전조사 데이터</CardTitle>
               <CardDescription>외부에서 수집한 사전조사 데이터를 관리합니다.</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto">
                     <FileUp className="mr-2 h-4 w-4" />
                     데이터 가져오기
                   </Button>
@@ -520,13 +487,13 @@ export default function SurveysPage() {
                 </DialogContent>
               </Dialog>
 
-              <Button variant="outline" onClick={exportToCsv}>
+              <Button variant="outline" size="sm" onClick={exportToCsv} className="flex-1 sm:flex-auto">
                 <FileDown className="mr-2 h-4 w-4" />
                 CSV 내보내기
               </Button>
 
               {Object.keys(pendingChanges).length > 0 && (
-                <Button onClick={saveChanges} disabled={isSaving}>
+                <Button onClick={saveChanges} disabled={isSaving} size="sm" className="flex-1 sm:flex-auto">
                   {isSaving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -652,28 +619,12 @@ export default function SurveysPage() {
                               />
                               <label
                                 htmlFor={`${roster.userSeq}-${option.value}`}
-                                className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 truncate"
                               >
                                 {option.label}
                               </label>
                             </div>
                           ))}
-                          <div className="flex items-center space-x-1">
-                            <input
-                              type="radio"
-                              id={`${roster.userSeq}-none`}
-                              name={`preference-${roster.userSeq}`}
-                              className="h-3 w-3 text-primary border-gray-300 focus:ring-primary"
-                              checked={(pendingChanges[roster.userSeq] || roster.intentType) === "NONE"}
-                              onChange={() => handlePreferenceChange(roster.userSeq, "NONE")}
-                            />
-                            <label
-                              htmlFor={`${roster.userSeq}-none`}
-                              className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              미참여
-                            </label>
-                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -709,54 +660,21 @@ export default function SurveysPage() {
               <DialogTitle>유저 정보 수정</DialogTitle>
               <DialogDescription>{currentRoster.userName}님의 정보를 수정하세요.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="editName">닉네임</Label>
-                <Input
-                  id="editName"
-                  value={currentRoster.editName || ""}
-                  onChange={(e) => setCurrentRoster({ ...currentRoster, editName: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="editLevel">본부 레벨</Label>
-                  <Input
-                    id="editLevel"
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={currentRoster.editLevel || ""}
-                    onChange={(e) => setCurrentRoster({ ...currentRoster, editLevel: Number.parseInt(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="editPower">전투력</Label>
-                  <Input
-                    id="editPower"
-                    type="number"
-                    min={0}
-                    value={currentRoster.editPower || ""}
-                    onChange={(e) => setCurrentRoster({ ...currentRoster, editPower: Number.parseInt(e.target.value) })}
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isSaving}>
-                취소
-              </Button>
-              <Button onClick={handleEditRoster} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    저장 중...
-                  </>
-                ) : (
-                  "저장"
-                )}
-              </Button>
-            </DialogFooter>
+            <UserForm
+              mode="edit"
+              user={{
+                userSeq: currentRoster.userSeq,
+                name: currentRoster.userName,
+                level: currentRoster.userLevel,
+                power: currentRoster.userPower,
+                leave: false, // API에서 제공하지 않으므로 기본값 설정
+                id: 0, // 필요한 경우 적절한 값으로 설정
+                createdAt: "",
+                updatedAt: "",
+              }}
+              onSuccess={handleEditSuccess}
+              onCancel={() => setIsEditDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       )}
