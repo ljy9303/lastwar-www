@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Plus,
   Search,
@@ -25,18 +26,21 @@ import {
   ClipboardList,
   Loader2,
   Filter,
+  MoreHorizontal,
 } from "lucide-react"
 import { format, nextFriday, subMonths, addMonths } from "date-fns"
 import { ko } from "date-fns/locale"
 import Link from "next/link"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { getDeserts, createDesert } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
 import { Pagination } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Desert, DesertResponse, DesertSearchParams } from "@/app/actions/event-actions"
+import { useMobile } from "@/hooks/use-mobile"
 
 // 이번주 금요일 날짜 계산 함수
 function getThisFriday() {
@@ -62,6 +66,7 @@ export default function EventsPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [newEventName, setNewEventName] = useState("")
   const [newEventDate, setNewEventDate] = useState<Date | undefined>(getThisFriday())
+  const isMobile = useMobile()
 
   // 검색 필터
   const [searchParams, setSearchParams] = useState<DesertSearchParams>({
@@ -455,68 +460,106 @@ export default function EventsPage() {
 
       {!isLoading && deserts.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {deserts.map((desert) => (
-              <Card key={desert.desertSeq} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{desert.title}</CardTitle>
-                    {getStatusBadge(desert.deleted)}
-                  </div>
-                  <CardDescription>
-                    <div className="flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      <span>{formatDate(desert.eventDate)}</span>
-                    </div>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pb-3">
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">참가자</p>
-                      <p className="font-medium">{getParticipantCount(desert)}명</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">A팀</p>
-                      <p className="font-medium">{getTeamACount(desert)}명</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">B팀</p>
-                      <p className="font-medium">{getTeamBCount(desert)}명</p>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-2 pt-0">
-                  <div className="w-full h-px bg-border my-1"></div>
-                  <div className="grid grid-cols-4 gap-2 w-full">
-                    <Link href={`/surveys?eventId=${desert.desertSeq}`} className="col-span-1">
-                      <Button variant="ghost" size="sm" className="w-full">
-                        <FileSpreadsheet className="h-4 w-4" />
-                        <span className="sr-only">사전조사</span>
-                      </Button>
-                    </Link>
-                    <Link href={`/squads?eventId=${desert.desertSeq}`} className="col-span-1">
-                      <Button variant="ghost" size="sm" className="w-full">
-                        <UserSquare className="h-4 w-4" />
-                        <span className="sr-only">스쿼드</span>
-                      </Button>
-                    </Link>
-                    <Link href={`/post-events?eventId=${desert.desertSeq}`} className="col-span-1">
-                      <Button variant="ghost" size="sm" className="w-full">
-                        <ClipboardList className="h-4 w-4" />
-                        <span className="sr-only">사후관리</span>
-                      </Button>
-                    </Link>
-                    <Link href={`/events/${desert.desertSeq}`} className="col-span-1">
-                      <Button variant="ghost" size="sm" className="w-full">
-                        <ArrowRight className="h-4 w-4" />
-                        <span className="sr-only">상세보기</span>
-                      </Button>
-                    </Link>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>사막전 이름</TableHead>
+                  <TableHead className="hidden md:table-cell">날짜</TableHead>
+                  <TableHead className="hidden sm:table-cell">참가자</TableHead>
+                  <TableHead className="hidden sm:table-cell">A팀</TableHead>
+                  <TableHead className="hidden sm:table-cell">B팀</TableHead>
+                  <TableHead className="hidden md:table-cell">상태</TableHead>
+                  <TableHead className="text-right">관리</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {deserts.map((desert) => (
+                  <TableRow key={desert.desertSeq}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{desert.title}</div>
+                        <div className="md:hidden text-xs text-muted-foreground">{formatDate(desert.eventDate)}</div>
+                        <div className="sm:hidden text-xs text-muted-foreground">
+                          참가자: {getParticipantCount(desert)}명 | A팀: {getTeamACount(desert)}명 | B팀:{" "}
+                          {getTeamBCount(desert)}명
+                        </div>
+                        <div className="md:hidden sm:block text-xs">{getStatusBadge(desert.deleted)}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{formatDate(desert.eventDate)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{getParticipantCount(desert)}명</TableCell>
+                    <TableCell className="hidden sm:table-cell">{getTeamACount(desert)}명</TableCell>
+                    <TableCell className="hidden sm:table-cell">{getTeamBCount(desert)}명</TableCell>
+                    <TableCell className="hidden md:table-cell">{getStatusBadge(desert.deleted)}</TableCell>
+                    <TableCell className="text-right">
+                      {isMobile ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/surveys?eventId=${desert.desertSeq}`}>
+                                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                사전조사
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/squads?eventId=${desert.desertSeq}`}>
+                                <UserSquare className="h-4 w-4 mr-2" />
+                                스쿼드
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/post-events?eventId=${desert.desertSeq}`}>
+                                <ClipboardList className="h-4 w-4 mr-2" />
+                                사후관리
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/events/${desert.desertSeq}`}>
+                                <ArrowRight className="h-4 w-4 mr-2" />
+                                상세보기
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/surveys?eventId=${desert.desertSeq}`}>
+                              <FileSpreadsheet className="h-4 w-4 mr-1" />
+                              사전조사
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/squads?eventId=${desert.desertSeq}`}>
+                              <UserSquare className="h-4 w-4 mr-1" />
+                              스쿼드
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/post-events?eventId=${desert.desertSeq}`}>
+                              <ClipboardList className="h-4 w-4 mr-1" />
+                              사후관리
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/events/${desert.desertSeq}`}>
+                              <ArrowRight className="h-4 w-4 mr-1" />
+                              상세보기
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
 
           {/* 페이지네이션 */}

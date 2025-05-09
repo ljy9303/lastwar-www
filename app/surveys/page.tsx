@@ -42,6 +42,12 @@ import { getDesertById } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
 import { UserForm } from "@/components/user/user-form"
 import type { User } from "@/types/user"
+import { cn } from "@/lib/utils"
+import { useMediaQuery } from "@/hooks/use-media-query"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useMobile } from "@/hooks/use-mobile"
+import { Badge } from "@/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 // 투표 옵션
 const preferenceOptions = [
@@ -86,6 +92,18 @@ export default function SurveysPage() {
     direction: null,
   })
 
+  const { isMobile } = useMediaQuery()
+  const isMobileDevice = useMobile()
+
+  // 상태 변수 추가 - useState 부분 아래에 추가
+  const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
+  const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
+
+  // 컴포넌트 내부에 useMobile 훅 추가
+  // 다른 상태 변수들 아래에 추가:
+
+  // const isMobile = useMobile()
+
   // 이벤트 ID가 없으면 이벤트 목록 페이지로 리다이렉트
   useEffect(() => {
     if (!eventId) {
@@ -121,6 +139,43 @@ export default function SurveysPage() {
 
     loadData()
   }, [eventId, toast])
+
+  // intentType별 집계 계산 함수
+  const getIntentTypeCounts = () => {
+    const counts = {
+      A_TEAM: 0,
+      B_TEAM: 0,
+      A_RESERVE: 0,
+      B_RESERVE: 0,
+      AB_POSSIBLE: 0,
+      NONE: 0,
+    }
+
+    // 변경 사항이 있는 경우 변경된 값으로 계산
+    const effectiveRosters = rosters.map((roster) => ({
+      ...roster,
+      intentType: pendingChanges[roster.userSeq] || roster.intentType,
+    }))
+
+    effectiveRosters.forEach((roster) => {
+      if (counts.hasOwnProperty(roster.intentType)) {
+        counts[roster.intentType]++
+      }
+    })
+
+    return counts
+  }
+
+  // intentType별 소속 유저 목록 가져오는 함수 추가 - getIntentTypeCounts 함수 아래에 추가
+  const getTeamMembers = (teamType: string) => {
+    // 변경 사항이 있는 경우 변경된 값으로 계산
+    const effectiveRosters = rosters.map((roster) => ({
+      ...roster,
+      intentType: pendingChanges[roster.userSeq] || roster.intentType,
+    }))
+
+    return effectiveRosters.filter((roster) => roster.intentType === teamType)
+  }
 
   // 정렬 요청 처리 함수
   const requestSort = (key: string) => {
@@ -492,18 +547,29 @@ export default function SurveysPage() {
                 CSV 내보내기
               </Button>
 
-              {Object.keys(pendingChanges).length > 0 && (
-                <Button onClick={saveChanges} disabled={isSaving} size="sm" className="flex-1 sm:flex-auto">
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      저장 중...
-                    </>
-                  ) : (
-                    "변경사항 저장"
-                  )}
-                </Button>
-              )}
+              <div className="relative flex-1 sm:flex-auto">
+                {Object.keys(pendingChanges).length > 0 && (
+                  <Button onClick={saveChanges} disabled={isSaving} size="sm" className="w-full group">
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        저장 중...
+                      </>
+                    ) : (
+                      <>
+                        변경사항 저장
+                        <Badge
+                          className="absolute -top-2 -right-2 bg-primary text-primary-foreground transition-all group-hover:scale-110"
+                          variant="outline"
+                        >
+                          {Object.keys(pendingChanges).length}
+                        </Badge>
+                        <span className="sr-only">{Object.keys(pendingChanges).length}개의 변경사항</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -518,14 +584,109 @@ export default function SurveysPage() {
             />
           </div>
 
-          {Object.keys(pendingChanges).length > 0 && (
-            <Alert className="mb-4">
-              <AlertDescription>
-                {Object.keys(pendingChanges).length}개의 변경사항이 있습니다. 저장 버튼을 클릭하여 변경사항을
-                저장하세요.
-              </AlertDescription>
-            </Alert>
-          )}
+          <div className="sticky top-0 z-10 pt-2 pb-4 bg-background border-b mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              {Object.entries(getIntentTypeCounts()).map(([type, count]) => {
+                const option = preferenceOptions.find((opt) => opt.value === type)
+                const label = option ? option.label : type
+                const teamMembers = getTeamMembers(type)
+
+                // 팀별 색상 설정
+                let bgColor = "bg-muted"
+                let textColor = "text-foreground"
+                let isOverLimit = false
+
+                // 팀별 정원 체크 및 색상 설정
+                if (type === "A_TEAM" || type === "B_TEAM") {
+                  isOverLimit = count > 20
+                  if (isOverLimit) {
+                    // 정원 초과
+                    bgColor = "bg-red-100 dark:bg-red-900"
+                    textColor = "text-red-700 dark:text-red-300"
+                  } else {
+                    // 정원 이하
+                    if (type === "A_TEAM") {
+                      bgColor = "bg-blue-100 dark:bg-blue-900"
+                      textColor = "text-blue-700 dark:text-blue-300"
+                    } else {
+                      bgColor = "bg-green-100 dark:bg-green-900"
+                      textColor = "text-green-700 dark:text-green-300"
+                    }
+                  }
+                } else if (type === "A_RESERVE" || type === "B_RESERVE") {
+                  isOverLimit = count > 10
+                  if (isOverLimit) {
+                    // 정원 초과
+                    bgColor = "bg-red-100 dark:bg-red-900"
+                    textColor = "text-red-700 dark:text-red-300"
+                  } else {
+                    // 정원 이하
+                    if (type === "A_RESERVE") {
+                      bgColor = "bg-blue-50 dark:bg-blue-800"
+                      textColor = "text-blue-600 dark:text-blue-200"
+                    } else {
+                      bgColor = "bg-green-50 dark:bg-green-800"
+                      textColor = "text-green-600 dark:text-green-200"
+                    }
+                  }
+                } else if (type === "AB_POSSIBLE") {
+                  bgColor = "bg-purple-100 dark:bg-purple-900"
+                  textColor = "text-purple-700 dark:text-purple-300"
+                } else if (type === "NONE") {
+                  bgColor = "bg-gray-100 dark:bg-gray-800"
+                  textColor = "text-gray-700 dark:text-gray-300"
+                }
+
+                return (
+                  <Popover key={type}>
+                    <PopoverTrigger asChild>
+                      <div
+                        className={`rounded-lg p-3 ${bgColor} transition-all hover:shadow-md cursor-pointer`}
+                        onClick={() => {
+                          setSelectedTeamType(type)
+                          setIsTeamMembersDialogOpen(true)
+                        }}
+                      >
+                        <div className="text-xs font-medium mb-1">{label}</div>
+                        <div className={`text-xl font-bold ${textColor} flex items-center`}>
+                          {count}명
+                          {isOverLimit && (
+                            <span className="ml-2 text-xs font-normal bg-red-200 dark:bg-red-700 text-red-800 dark:text-red-200 px-1.5 py-0.5 rounded-full">
+                              정원초과
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-60 p-0" align="center">
+                      <div className="p-3">
+                        <h4 className="font-medium mb-2">{label} 멤버 목록</h4>
+                        <div className="max-h-[200px] overflow-y-auto">
+                          {teamMembers.length > 0 ? (
+                            <ul className="space-y-1">
+                              {teamMembers.slice(0, 10).map((member) => (
+                                <li key={member.userSeq} className="text-sm">
+                                  {member.userName}{" "}
+                                  <span className="text-xs text-muted-foreground">Lv.{member.userLevel}</span>
+                                </li>
+                              ))}
+                              {teamMembers.length > 10 && (
+                                <li className="text-sm text-muted-foreground pt-1 border-t">
+                                  외 {teamMembers.length - 10}명 더 있음...
+                                </li>
+                              )}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">멤버가 없습니다</p>
+                          )}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )
+              })}
+            </div>
+          </div>
 
           <div className="rounded-md border">
             <Table>
@@ -593,7 +754,7 @@ export default function SurveysPage() {
               <TableBody>
                 {filteredRosters.length > 0 ? (
                   filteredRosters.map((roster) => (
-                    <TableRow key={roster.userSeq}>
+                    <TableRow key={roster.userSeq} id={`user-${roster.userSeq}`}>
                       <TableCell className="hidden md:table-cell">{roster.userSeq}</TableCell>
                       <TableCell>
                         <div>
@@ -606,26 +767,41 @@ export default function SurveysPage() {
                       <TableCell className="hidden sm:table-cell">{roster.userLevel}</TableCell>
                       <TableCell className="hidden sm:table-cell">{roster.userPower.toLocaleString()}</TableCell>
                       <TableCell>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-                          {preferenceOptions.map((option) => (
-                            <div key={option.value} className="flex items-center space-x-1">
-                              <input
-                                type="radio"
-                                id={`${roster.userSeq}-${option.value}`}
-                                name={`preference-${roster.userSeq}`}
-                                className="h-3 w-3 text-primary border-gray-300 focus:ring-primary"
-                                checked={(pendingChanges[roster.userSeq] || roster.intentType) === option.value}
-                                onChange={() => handlePreferenceChange(roster.userSeq, option.value)}
-                              />
-                              <label
-                                htmlFor={`${roster.userSeq}-${option.value}`}
-                                className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 truncate"
+                        {isMobileDevice ? (
+                          <Select
+                            value={pendingChanges[roster.userSeq] || roster.intentType}
+                            onValueChange={(value) => handlePreferenceChange(roster.userSeq, value)}
+                          >
+                            <SelectTrigger className="w-full h-8 text-xs">
+                              <SelectValue placeholder="선호팀 선택" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {preferenceOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="text-xs">
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex flex-wrap gap-1.5">
+                            {preferenceOptions.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                className={cn(
+                                  "px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                                  (pendingChanges[roster.userSeq] || roster.intentType) === option.value
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted hover:bg-muted/80",
+                                )}
+                                onClick={() => handlePreferenceChange(roster.userSeq, option.value)}
                               >
                                 {option.label}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -678,6 +854,56 @@ export default function SurveysPage() {
           </DialogContent>
         </Dialog>
       )}
+      {/* 팀 멤버 목록 다이얼로그 */}
+      <Dialog open={isTeamMembersDialogOpen} onOpenChange={setIsTeamMembersDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedTeamType && preferenceOptions.find((opt) => opt.value === selectedTeamType)?.label} 멤버 목록
+            </DialogTitle>
+            <DialogDescription>
+              {selectedTeamType && `총 ${getTeamMembers(selectedTeamType).length}명의 멤버가 있습니다.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto">
+            {selectedTeamType && getTeamMembers(selectedTeamType).length > 0 ? (
+              <div className="space-y-2">
+                {getTeamMembers(selectedTeamType).map((member) => (
+                  <div key={member.userSeq} className="flex justify-between items-center p-2 border-b">
+                    <div>
+                      <div className="font-medium">{member.userName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Lv.{member.userLevel} | {member.userPower.toLocaleString()}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsTeamMembersDialogOpen(false)
+                        // 테이블에서 해당 유저로 스크롤
+                        const userRow = document.getElementById(`user-${member.userSeq}`)
+                        if (userRow) {
+                          userRow.scrollIntoView({ behavior: "smooth", block: "center" })
+                          // 하이라이트 효과
+                          userRow.classList.add("bg-accent")
+                          setTimeout(() => {
+                            userRow.classList.remove("bg-accent")
+                          }, 2000)
+                        }
+                      }}
+                    >
+                      찾기
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">멤버가 없습니다</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

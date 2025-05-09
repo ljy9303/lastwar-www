@@ -32,11 +32,6 @@ const navItems = [
     icon: Users,
   },
   {
-    title: "열차장 랜덤뽑기",
-    href: "/lottery",
-    icon: Shuffle,
-  },
-  {
     title: "이벤트 관리",
     href: "/events",
     icon: CalendarDays,
@@ -55,6 +50,11 @@ const navItems = [
     title: "설정",
     href: "/settings",
     icon: Settings,
+  },
+  {
+    title: "열차장 랜덤뽑기",
+    href: "/lottery",
+    icon: Shuffle,
   },
 ]
 
