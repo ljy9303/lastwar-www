@@ -1,6 +1,6 @@
 "use server"
 
-import { fetchFromAPI, buildQueryString } from "@/lib/api-service"
+import { fetchFromAPI, buildQueryString } from "@/lib/api-service-hybrid"
 import type { User, UserCreateRequest, UserSearchParams, UserUpdateRequest } from "@/types/user"
 import { revalidatePath } from "next/cache"
 
