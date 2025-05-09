@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, ArrowLeft, Save, AlertTriangle } from "lucide-react"
+import { Search, ArrowLeft, Save, AlertTriangle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import {
   AlertDialog,
@@ -21,15 +21,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-
-// 임시 유저 데이터 (사전조사 데이터에서 가져온 것으로 가정)
-const initialUsers = [
-  { id: 1, nickname: "용사1", level: 30, power: 1500000, isLeft: false, preference: "A_TEAM" },
-  { id: 2, nickname: "용사2", level: 28, power: 1350000, isLeft: false, preference: "B_TEAM" },
-  { id: 3, nickname: "용사3", level: 32, power: 1650000, isLeft: true, preference: "AB_POSSIBLE" },
-  { id: 4, nickname: "용사4", level: 25, power: 1200000, isLeft: false, preference: "A_RESERVE" },
-  { id: 5, nickname: "용사5", level: 35, power: 1800000, isLeft: false, preference: "B_RESERVE" },
-]
+import { getSquads, saveSquads, type SquadMember } from "@/app/actions/squad-actions"
+import { getDesertById } from "@/app/actions/event-actions"
+import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 // 팀 상수
 const TEAM = {
@@ -41,85 +36,135 @@ const TEAM = {
   EXCLUDED: "EXCLUDED",
 }
 
-// 임시 이벤트 데이터
-const events = [
-  { id: "1", name: "4월 4주차 사막전" },
-  { id: "2", name: "5월 1주차 사막전" },
-]
-
 export default function SquadsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { toast } = useToast()
   const eventId = searchParams.get("eventId")
 
-  const [users] = useState(initialUsers)
+  const [squadMembers, setSquadMembers] = useState<SquadMember[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({})
+  const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
+  const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
 
   // 팀 배정 상태
   const [squads, setSquads] = useState({
-    [TEAM.A_TEAM]: [],
-    [TEAM.B_TEAM]: [],
-    [TEAM.RESERVE_A]: [],
-    [TEAM.RESERVE_B]: [],
-    [TEAM.UNASSIGNED]: [],
-    [TEAM.EXCLUDED]: [],
+    [TEAM.A_TEAM]: [] as SquadMember[],
+    [TEAM.B_TEAM]: [] as SquadMember[],
+    [TEAM.RESERVE_A]: [] as SquadMember[],
+    [TEAM.RESERVE_B]: [] as SquadMember[],
+    [TEAM.UNASSIGNED]: [] as SquadMember[],
+    [TEAM.EXCLUDED]: [] as SquadMember[],
   })
 
-  // 이벤트 ID가 있으면 해당 이벤트 선택
+  // 이벤트 ID가 없으면 이벤트 목록 페이지로 리다이렉트
   useEffect(() => {
-    if (eventId) {
-      const event = events.find((e) => e.id === eventId)
-      if (event) {
-        setSelectedEvent(event)
+    if (!eventId) {
+      router.push("/events")
+    }
+  }, [eventId, router])
+
+  // 이벤트 정보와 스쿼드 데이터 로드
+  useEffect(() => {
+    const loadData = async () => {
+      if (!eventId) return
+
+      setIsLoading(true)
+      try {
+        // 이벤트 정보 로드
+        const eventData = await getDesertById(Number(eventId))
+        setSelectedEvent(eventData)
+
+        // 스쿼드 데이터 로드
+        const squadData = await getSquads(Number(eventId))
+        setSquadMembers(squadData)
+
+        // 스쿼드 데이터 기반으로 팀 배정
+        organizeSquadsByTeam(squadData)
+      } catch (error) {
+        console.error("데이터 로드 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "데이터를 불러오는 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
       }
     }
-  }, [eventId])
 
-  // 초기 데이터 로드
-  useEffect(() => {
-    // 사전조사 데이터 기반으로 초기 배정
+    loadData()
+  }, [eventId, toast])
+
+  // 스쿼드 데이터를 팀별로 정리
+  const organizeSquadsByTeam = (members: SquadMember[]) => {
     const initialSquads = {
-      [TEAM.A_TEAM]: [],
-      [TEAM.B_TEAM]: [],
-      [TEAM.RESERVE_A]: [],
-      [TEAM.RESERVE_B]: [],
-      [TEAM.UNASSIGNED]: [],
-      [TEAM.EXCLUDED]: [],
+      [TEAM.A_TEAM]: [] as SquadMember[],
+      [TEAM.B_TEAM]: [] as SquadMember[],
+      [TEAM.RESERVE_A]: [] as SquadMember[],
+      [TEAM.RESERVE_B]: [] as SquadMember[],
+      [TEAM.UNASSIGNED]: [] as SquadMember[],
+      [TEAM.EXCLUDED]: [] as SquadMember[],
     }
 
     // 사전조사 기반 배정
-    users.forEach((user) => {
-      switch (user.preference) {
-        case "A_TEAM":
-          initialSquads[TEAM.A_TEAM].push(user)
-          break
-        case "B_TEAM":
-          initialSquads[TEAM.B_TEAM].push(user)
-          break
-        case "A_RESERVE":
-          initialSquads[TEAM.RESERVE_A].push(user)
-          break
-        case "B_RESERVE":
-          initialSquads[TEAM.RESERVE_B].push(user)
-          break
-        case "AB_POSSIBLE":
-          initialSquads[TEAM.UNASSIGNED].push(user)
-          break
-        case "NONE":
-          initialSquads[TEAM.EXCLUDED].push(user)
-          break
-        default:
-          initialSquads[TEAM.UNASSIGNED].push(user)
+    members.forEach((member) => {
+      // 이미 팀이 배정된 경우
+      if (member.desertType) {
+        switch (member.desertType) {
+          case TEAM.A_TEAM:
+            initialSquads[TEAM.A_TEAM].push(member)
+            break
+          case TEAM.B_TEAM:
+            initialSquads[TEAM.B_TEAM].push(member)
+            break
+          case TEAM.RESERVE_A:
+            initialSquads[TEAM.RESERVE_A].push(member)
+            break
+          case TEAM.RESERVE_B:
+            initialSquads[TEAM.RESERVE_B].push(member)
+            break
+          case TEAM.EXCLUDED:
+            initialSquads[TEAM.EXCLUDED].push(member)
+            break
+          default:
+            initialSquads[TEAM.UNASSIGNED].push(member)
+        }
+      } else {
+        // 팀이 배정되지 않은 경우, 사전조사 데이터 기반으로 초기 배정
+        switch (member.intentType) {
+          case "A_TEAM":
+            initialSquads[TEAM.A_TEAM].push(member)
+            break
+          case "B_TEAM":
+            initialSquads[TEAM.B_TEAM].push(member)
+            break
+          case "A_RESERVE":
+            initialSquads[TEAM.RESERVE_A].push(member)
+            break
+          case "B_RESERVE":
+            initialSquads[TEAM.RESERVE_B].push(member)
+            break
+          case "NONE":
+            initialSquads[TEAM.EXCLUDED].push(member)
+            break
+          case "AB_POSSIBLE":
+          default:
+            initialSquads[TEAM.UNASSIGNED].push(member)
+        }
       }
     })
 
     setSquads(initialSquads)
-  }, [users])
+  }
 
   // 팀 이름 표시
-  const getTeamName = (team) => {
+  const getTeamName = (team: string) => {
     switch (team) {
       case TEAM.A_TEAM:
         return "A팀"
@@ -139,7 +184,7 @@ export default function SquadsPage() {
   }
 
   // 선호도 표시
-  const getPreferenceLabel = (preference) => {
+  const getPreferenceLabel = (preference: string) => {
     switch (preference) {
       case "A_TEAM":
         return "A팀"
@@ -161,9 +206,13 @@ export default function SquadsPage() {
   }
 
   // 유저 이동 함수
-  const moveUser = (userId, fromTeam, toTeam) => {
+  const moveUser = (userId: number, fromTeam: string, toTeam: string) => {
     if (isConfirmed) {
-      alert("이미 확정된 팀은 수정할 수 없습니다.")
+      toast({
+        title: "팀 확정됨",
+        description: "이미 확정된 팀은 수정할 수 없습니다.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -172,7 +221,11 @@ export default function SquadsPage() {
       (toTeam === TEAM.A_TEAM && squads[TEAM.A_TEAM].length >= 20) ||
       (toTeam === TEAM.B_TEAM && squads[TEAM.B_TEAM].length >= 20)
     ) {
-      alert("주전 인원은 20명을 초과할 수 없습니다.")
+      toast({
+        title: "인원 초과",
+        description: "주전 인원은 20명을 초과할 수 없습니다.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -181,53 +234,123 @@ export default function SquadsPage() {
       (toTeam === TEAM.RESERVE_A && squads[TEAM.RESERVE_A].length >= 10) ||
       (toTeam === TEAM.RESERVE_B && squads[TEAM.RESERVE_B].length >= 10)
     ) {
-      alert("예비 인원은 10명을 초과할 수 없습니다.")
+      toast({
+        title: "인원 초과",
+        description: "예비 인원은 10명을 초과할 수 없습니다.",
+        variant: "destructive",
+      })
       return
     }
 
     const newSquads = { ...squads }
-    const userIndex = newSquads[fromTeam].findIndex((u) => u.id === userId)
+    const userIndex = newSquads[fromTeam].findIndex((u) => u.userSeq === userId)
 
     if (userIndex !== -1) {
       const user = newSquads[fromTeam][userIndex]
       newSquads[fromTeam].splice(userIndex, 1)
       newSquads[toTeam].push(user)
       setSquads(newSquads)
+
+      // 변경 사항 기록
+      setPendingChanges((prev) => ({
+        ...prev,
+        [userId]: toTeam,
+      }))
+    }
+  }
+
+  // 변경 사항 저장
+  const saveChanges = async () => {
+    if (Object.keys(pendingChanges).length === 0) return
+
+    setIsSaving(true)
+    try {
+      const request = {
+        desertSeq: Number(eventId),
+        squads: Object.entries(pendingChanges).map(([userSeq, desertType]) => ({
+          userSeq: Number(userSeq),
+          desertType,
+        })),
+      }
+
+      await saveSquads(request)
+
+      // 로컬 상태 업데이트
+      const updatedSquadMembers = squadMembers.map((member) => {
+        if (pendingChanges[member.userSeq]) {
+          return { ...member, desertType: pendingChanges[member.userSeq] }
+        }
+        return member
+      })
+      setSquadMembers(updatedSquadMembers)
+      organizeSquadsByTeam(updatedSquadMembers)
+
+      // 변경 사항 초기화
+      setPendingChanges({})
+
+      toast({
+        title: "저장 완료",
+        description: "스쿼드 변경 사항이 저장되었습니다.",
+      })
+    } catch (error) {
+      console.error("스쿼드 저장 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "스쿼드 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
   // 팀 확정 함수
-  const confirmSquads = () => {
+  const confirmSquads = async () => {
+    // 먼저 모든 변경사항 저장
+    if (Object.keys(pendingChanges).length > 0) {
+      await saveChanges()
+    }
+
     setIsConfirmed(true)
-    // 여기에 확정 정보 저장 로직 추가
+    toast({
+      title: "팀 확정 완료",
+      description: "스쿼드 구성이 확정되었습니다.",
+    })
+    // 여기에 확정 정보 저장 로직 추가 (필요시)
   }
 
   // 필터링된 유저 목록
-  const getFilteredUsers = (team) => {
-    return squads[team].filter((user) => user.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
+  const getFilteredUsers = (team: string) => {
+    return squads[team].filter((user) => user.userName.toLowerCase().includes(searchTerm.toLowerCase()))
+  }
+
+  // 팀별 멤버 목록 가져오기
+  const getTeamMembers = (teamType: string) => {
+    return squads[teamType] || []
   }
 
   // 유저 카드 렌더링
-  const renderUserCard = (user, team) => {
+  const renderUserCard = (user: SquadMember, team: string) => {
     const isPreferenceMatched =
-      (team === TEAM.A_TEAM && user.preference === "A_TEAM") ||
-      (team === TEAM.B_TEAM && user.preference === "B_TEAM") ||
-      (team === TEAM.RESERVE_A && user.preference === "A_RESERVE") ||
-      (team === TEAM.RESERVE_B && user.preference === "B_RESERVE")
+      (team === TEAM.A_TEAM && user.intentType === "A_TEAM") ||
+      (team === TEAM.B_TEAM && user.intentType === "B_TEAM") ||
+      (team === TEAM.RESERVE_A && user.intentType === "A_RESERVE") ||
+      (team === TEAM.RESERVE_B && user.intentType === "B_RESERVE")
 
     return (
       <div
-        key={user.id}
-        className={`p-3 mb-2 rounded-lg border ${isPreferenceMatched ? "bg-green-50 border-green-200" : "bg-background"}`}
+        key={user.userSeq}
+        className={`p-3 mb-2 rounded-lg border ${isPreferenceMatched ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-background"}`}
+        id={`user-${user.userSeq}`}
       >
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-            <div className="font-medium">{user.nickname}</div>
+            <div className="font-medium">{user.userName}</div>
             <div className="text-sm text-muted-foreground">
-              Lv.{user.level} | {user.power.toLocaleString()}
+              Lv.{user.userLevel} | {user.userPower.toLocaleString()}
             </div>
             <Badge variant={isPreferenceMatched ? "outline" : "secondary"} size="sm">
-              {getPreferenceLabel(user.preference)}
+              {getPreferenceLabel(user.intentType)}
             </Badge>
           </div>
 
@@ -238,7 +361,7 @@ export default function SquadsPage() {
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2"
-                  onClick={() => moveUser(user.id, team, TEAM.A_TEAM)}
+                  onClick={() => moveUser(user.userSeq, team, TEAM.A_TEAM)}
                 >
                   A팀
                 </Button>
@@ -249,7 +372,7 @@ export default function SquadsPage() {
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2"
-                  onClick={() => moveUser(user.id, team, TEAM.B_TEAM)}
+                  onClick={() => moveUser(user.userSeq, team, TEAM.B_TEAM)}
                 >
                   B팀
                 </Button>
@@ -260,7 +383,7 @@ export default function SquadsPage() {
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2"
-                  onClick={() => moveUser(user.id, team, team === TEAM.A_TEAM ? TEAM.RESERVE_A : TEAM.RESERVE_B)}
+                  onClick={() => moveUser(user.userSeq, team, team === TEAM.A_TEAM ? TEAM.RESERVE_A : TEAM.RESERVE_B)}
                 >
                   예비
                 </Button>
@@ -271,7 +394,7 @@ export default function SquadsPage() {
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2 text-destructive"
-                  onClick={() => moveUser(user.id, team, TEAM.EXCLUDED)}
+                  onClick={() => moveUser(user.userSeq, team, TEAM.EXCLUDED)}
                 >
                   제외
                 </Button>
@@ -279,6 +402,26 @@ export default function SquadsPage() {
             </div>
           )}
         </div>
+      </div>
+    )
+  }
+
+  if (!eventId) {
+    return (
+      <div className="container mx-auto">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>스쿼드를 조회할 사막전 ID가 필요합니다. 사막전 관리 페이지로 이동합니다.</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">스쿼드 데이터를 불러오는 중...</p>
       </div>
     )
   }
@@ -291,7 +434,7 @@ export default function SquadsPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">스쿼드 관리 {selectedEvent && `- ${selectedEvent.name}`}</h1>
+        <h1 className="text-3xl font-bold">스쿼드 관리 {selectedEvent && `- ${selectedEvent.title}`}</h1>
       </div>
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -305,30 +448,47 @@ export default function SquadsPage() {
           />
         </div>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button disabled={isConfirmed}>
-              <Save className="mr-2 h-4 w-4" />
-              {isConfirmed ? "확정됨" : "팀 확정"}
+        <div className="flex gap-2 w-full md:w-auto">
+          {Object.keys(pendingChanges).length > 0 && (
+            <Button onClick={saveChanges} disabled={isSaving} className="flex-1 md:flex-auto">
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  저장 중...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  변경사항 저장 ({Object.keys(pendingChanges).length})
+                </>
+              )}
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>팀 확정</AlertDialogTitle>
-              <AlertDialogDescription>팀을 확정하시겠습니까? 확정 후에는 수정할 수 없습니다.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>취소</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmSquads}>확정</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          )}
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button disabled={isConfirmed} className="flex-1 md:flex-auto">
+                {isConfirmed ? "확정됨" : "팀 확정"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>팀 확정</AlertDialogTitle>
+                <AlertDialogDescription>팀을 확정하시겠습니까? 확정 후에는 수정할 수 없습니다.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>취소</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmSquads}>확정</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {isConfirmed && (
         <Alert className="mb-4">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>팀이 확���되었습니다. 더 이상 수정할 수 없습니다.</AlertDescription>
+          <AlertDescription>팀이 확정되었습니다. 더 이상 수정할 수 없습니다.</AlertDescription>
         </Alert>
       )}
 
@@ -433,6 +593,52 @@ export default function SquadsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 팀 멤버 목록 다이얼로그 */}
+      <Dialog open={isTeamMembersDialogOpen} onOpenChange={setIsTeamMembersDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedTeamType && getTeamName(selectedTeamType)} 멤버 목록</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto">
+            {selectedTeamType && getTeamMembers(selectedTeamType).length > 0 ? (
+              <div className="space-y-2">
+                {getTeamMembers(selectedTeamType).map((member) => (
+                  <div key={member.userSeq} className="flex justify-between items-center p-2 border-b">
+                    <div>
+                      <div className="font-medium">{member.userName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Lv.{member.userLevel} | {member.userPower.toLocaleString()}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsTeamMembersDialogOpen(false)
+                        // 테이블에서 해당 유저로 스크롤
+                        const userRow = document.getElementById(`user-${member.userSeq}`)
+                        if (userRow) {
+                          userRow.scrollIntoView({ behavior: "smooth", block: "center" })
+                          // 하이라이트 효과
+                          userRow.classList.add("bg-accent")
+                          setTimeout(() => {
+                            userRow.classList.remove("bg-accent")
+                          }, 2000)
+                        }
+                      }}
+                    >
+                      찾기
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">멤버가 없습니다</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
