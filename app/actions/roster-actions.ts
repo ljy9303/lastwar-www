@@ -27,7 +27,7 @@ export interface RosterSaveRequest {
  */
 export async function getRosters(desertSeq: number): Promise<Roster[]> {
   try {
-    return await fetchFromAPI(`/desert/roster/${desertSeq}`)
+    return await fetchFromAPI(`/desert/roster/survey/${desertSeq}`)
   } catch (error) {
     console.error("사전조사 조회 실패:", error)
     throw error
@@ -39,7 +39,7 @@ export async function getRosters(desertSeq: number): Promise<Roster[]> {
  */
 export async function saveRosters(request: RosterSaveRequest): Promise<void> {
   try {
-    await fetchFromAPI("/desert/roster/save", {
+    await fetchFromAPI("/desert/roster/survey/save", {
       method: "POST",
       body: JSON.stringify(request),
     })

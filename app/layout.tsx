@@ -11,7 +11,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "사막전 이벤트 매치 관리 시스템",
   description: "사막전 이벤트 매치 관리를 위한 웹 서비스",
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
