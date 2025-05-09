@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,16 +23,25 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Plus, Trash } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
+import {
+  getAdmins,
+  createAdmin,
+  deleteAdmin,
+  getSystemSettings,
+  saveSystemSettings,
+} from "@/app/actions/settings-actions"
+import type { Admin, SystemSettings } from "@/app/actions/settings-actions"
 
 // 임시 관리자 데이터
-const initialAdmins = [
-  { id: 1, username: "admin", name: "관리자", role: "ADMIN", canViewHistory: true },
-  { id: 2, username: "moderator", name: "운영자", role: "MODERATOR", canViewHistory: true },
-  { id: 3, username: "viewer", name: "뷰어", role: "VIEWER", canViewHistory: false },
-]
+// const initialAdmins = [
+//   { id: 1, username: "admin", name: "관리자", role: "ADMIN", canViewHistory: true },
+//   { id: 2, username: "moderator", name: "운영자", role: "MODERATOR", canViewHistory: true },
+//   { id: 3, username: "viewer", name: "뷰어", role: "VIEWER", canViewHistory: false },
+// ]
 
 export default function SettingsPage() {
-  const [admins, setAdmins] = useState(initialAdmins)
+  const [admins, setAdmins] = useState<Admin[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newAdmin, setNewAdmin] = useState({
     username: "",
@@ -40,9 +49,10 @@ export default function SettingsPage() {
     role: "",
     canViewHistory: false,
   })
+  const [isLoading, setIsLoading] = useState(true)
 
   // 시스템 설정
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<SystemSettings>({
     voteDeadline: new Date(new Date().setDate(new Date().getDate() + 7)),
     allowUserEdit: true,
     allowVoteEdit: true,
@@ -52,34 +62,91 @@ export default function SettingsPage() {
     backupFrequency: "daily",
   })
 
-  // 관리자 추가 함수
-  const handleAddAdmin = () => {
-    const id = admins.length > 0 ? Math.max(...admins.map((a) => a.id)) + 1 : 1
-    const newAdminWithId = {
-      id,
-      username: newAdmin.username,
-      name: newAdmin.name,
-      role: newAdmin.role,
-      canViewHistory: newAdmin.canViewHistory,
+  const { toast } = useToast()
+
+  // 설정 데이터 로드
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true)
+      try {
+        // 관리자 목록 로드
+        const adminsData = await getAdmins()
+        setAdmins(adminsData)
+
+        // 시스템 설정 로드
+        const settingsData = await getSystemSettings()
+        setSettings(settingsData)
+      } catch (error) {
+        console.error("설정 데이터 로드 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "설정 데이터를 불러오는 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    setAdmins([...admins, newAdminWithId])
+    loadData()
+  }, [toast])
 
-    // 폼 초기화
-    setNewAdmin({
-      username: "",
-      name: "",
-      role: "",
-      canViewHistory: false,
-    })
+  // 관리자 추가 함수
+  const handleAddAdmin = async () => {
+    try {
+      const createdAdmin = await createAdmin({
+        username: newAdmin.username,
+        name: newAdmin.name,
+        role: newAdmin.role,
+        canViewHistory: newAdmin.canViewHistory,
+      })
 
-    setIsAddDialogOpen(false)
+      setAdmins([...admins, createdAdmin])
+
+      // 폼 초기화
+      setNewAdmin({
+        username: "",
+        name: "",
+        role: "",
+        canViewHistory: false,
+      })
+
+      setIsAddDialogOpen(false)
+
+      toast({
+        title: "관리자 추가 성공",
+        description: "관리자가 성공적으로 추가되었습니다.",
+      })
+    } catch (error) {
+      console.error("관리자 추가 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "관리자 추가 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    }
   }
 
   // 관리자 삭제 함수
-  const handleDeleteAdmin = (id) => {
+  const handleDeleteAdmin = async (id) => {
     if (window.confirm("정말로 이 관리자를 삭제하시겠습니까?")) {
-      setAdmins(admins.filter((admin) => admin.id !== id))
+      try {
+        await deleteAdmin(id)
+
+        setAdmins(admins.filter((admin) => admin.id !== id))
+
+        toast({
+          title: "관리자 삭제 성공",
+          description: "관리자가 성공적으로 삭제되었습니다.",
+        })
+      } catch (error) {
+        console.error("관리자 삭제 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "관리자 삭제 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -98,9 +165,22 @@ export default function SettingsPage() {
   }
 
   // 설정 저장 함수
-  const saveSettings = () => {
-    // 여기에 설정 저장 로직 추가
-    alert("설정이 저장되었습니다.")
+  const saveSettings = async () => {
+    try {
+      await saveSystemSettings(settings)
+
+      toast({
+        title: "설정 저장 성공",
+        description: "설정이 성공적으로 저장되었습니다.",
+      })
+    } catch (error) {
+      console.error("설정 저장 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "설정 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (

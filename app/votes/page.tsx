@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -19,30 +19,37 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useToast } from "@/components/ui/use-toast"
+import { getVotes, createVote, updateVote, deleteVote } from "@/app/actions/vote-actions"
+import { getUsers } from "@/app/actions/user-actions"
+import type { Vote } from "@/app/actions/vote-actions"
+import type { User } from "@/types/user"
 
 // 임시 유저 데이터
-const initialUsers = [
-  { id: 1, nickname: "용사1", level: 30, power: 1500000, isLeft: false },
-  { id: 2, nickname: "용사2", level: 28, power: 1350000, isLeft: false },
-  { id: 3, nickname: "용사3", level: 32, power: 1650000, isLeft: true },
-  { id: 4, nickname: "용사4", level: 25, power: 1200000, isLeft: false },
-  { id: 5, nickname: "용사5", level: 35, power: 1800000, isLeft: false },
-]
+// const initialUsers = [
+//   { id: 1, nickname: "용사1", level: 30, power: 1500000, isLeft: false },
+//   { id: 2, nickname: "용사2", level: 28, power: 1350000, isLeft: false },
+//   { id: 3, nickname: "용사3", level: 32, power: 1650000, isLeft: true },
+//   { id: 4, nickname: "용사4", level: 25, power: 1200000, isLeft: false },
+//   { id: 5, nickname: "용사5", level: 35, power: 1800000, isLeft: false },
+// ]
 
 // 임시 투표 데이터
-const initialVotes = [
-  { id: 1, userId: 1, preference: "A_TEAM" },
-  { id: 2, userId: 2, preference: "B_TEAM" },
-  { id: 3, userId: 4, preference: "AB_POSSIBLE" },
-]
+// const initialVotes = [
+//   { id: 1, userId: 1, preference: "A_TEAM" },
+//   { id: 2, userId: 2, preference: "B_TEAM" },
+//   { id: 3, userId: 4, preference: "AB_POSSIBLE" },
+// ]
 
 export default function VotesPage() {
-  const [users] = useState(initialUsers)
-  const [votes, setVotes] = useState(initialVotes)
+  const [users, setUsers] = useState<User[]>([])
+  const [votes, setVotes] = useState<Vote[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isVoteDialogOpen, setIsVoteDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [currentVote, setCurrentVote] = useState(null)
+  const [currentVote, setCurrentVote] = useState<Vote | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
 
   // 새 투표 폼 상태
   const [newVote, setNewVote] = useState({
@@ -68,7 +75,7 @@ export default function VotesPage() {
   ]
 
   // 투표 추가 함수
-  const handleAddVote = () => {
+  const handleAddVote = async () => {
     // 이미 투표한 유저인지 확인
     const existingVote = votes.find((v) => v.userId === Number.parseInt(newVote.userId))
 
@@ -77,36 +84,84 @@ export default function VotesPage() {
       return
     }
 
-    const id = votes.length > 0 ? Math.max(...votes.map((v) => v.id)) + 1 : 1
-    const newVoteWithId = {
-      id,
-      userId: Number.parseInt(newVote.userId),
-      preference: newVote.preference,
+    try {
+      const createdVote = await createVote({
+        userId: Number.parseInt(newVote.userId),
+        preference: newVote.preference,
+      })
+
+      setVotes([...votes, createdVote])
+
+      // 폼 초기화
+      setNewVote({
+        userId: "",
+        preference: "",
+      })
+
+      setIsVoteDialogOpen(false)
+
+      toast({
+        title: "투표 등록 성공",
+        description: "투표가 성공적으로 등록되었습니다.",
+      })
+    } catch (error) {
+      console.error("투표 등록 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "투표 등록 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
     }
-
-    setVotes([...votes, newVoteWithId])
-
-    // 폼 초기화
-    setNewVote({
-      userId: "",
-      preference: "",
-    })
-
-    setIsVoteDialogOpen(false)
   }
 
   // 투표 수정 함수
-  const handleEditVote = () => {
-    const updatedVotes = votes.map((vote) => (vote.id === currentVote.id ? currentVote : vote))
+  const handleEditVote = async () => {
+    if (!currentVote) return
 
-    setVotes(updatedVotes)
-    setIsEditDialogOpen(false)
+    try {
+      const updatedVote = await updateVote(currentVote.id, {
+        preference: currentVote.preference,
+      })
+
+      const updatedVotes = votes.map((vote) => (vote.id === currentVote.id ? updatedVote : vote))
+      setVotes(updatedVotes)
+
+      setIsEditDialogOpen(false)
+
+      toast({
+        title: "투표 수정 성공",
+        description: "투표가 성공적으로 수정되었습니다.",
+      })
+    } catch (error) {
+      console.error("투표 수정 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "투표 수정 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    }
   }
 
   // 투표 삭제 함수
-  const handleDeleteVote = (id) => {
+  const handleDeleteVote = async (id) => {
     if (window.confirm("정말로 이 투표를 삭제하시겠습니까?")) {
-      setVotes(votes.filter((vote) => vote.id !== id))
+      try {
+        await deleteVote(id)
+
+        setVotes(votes.filter((vote) => vote.id !== id))
+
+        toast({
+          title: "투표 삭제 성공",
+          description: "투표가 성공적으로 삭제되었습니다.",
+        })
+      } catch (error) {
+        console.error("투표 삭제 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "투표 삭제 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -146,6 +201,33 @@ export default function VotesPage() {
     link.click()
     document.body.removeChild(link)
   }
+
+  // 유저 및 투표 데이터 로드
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true)
+      try {
+        // 유저 데이터 로드
+        const userData = await getUsers()
+        setUsers(userData)
+
+        // 투표 데이터 로드
+        const votesData = await getVotes()
+        setVotes(votesData)
+      } catch (error) {
+        console.error("데이터 로드 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "데이터를 불러오는 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
+  }, [toast])
 
   return (
     <div className="container mx-auto">

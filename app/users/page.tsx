@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, FileDown, FileUp } from "lucide-react"
+import { Plus, FileDown, FileUp, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import type { User, UserSearchParams } from "@/types/user"
 import { getUsers } from "@/app/actions/user-actions"
@@ -13,6 +13,7 @@ import { UserList } from "@/components/user/user-list"
 import { UserFilter } from "@/components/user/user-filter"
 import { UserHistoryList } from "@/components/user/user-history-list"
 import { useToast } from "@/hooks/use-toast"
+import { ApiErrorAlert } from "@/app/components/api-error-alert"
 
 export default function UsersPage() {
   const { toast } = useToast()
@@ -22,15 +23,18 @@ export default function UsersPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [apiError, setApiError] = useState<string | null>(null)
 
   // 유저 목록 로드
   const loadUsers = async (params: UserSearchParams = {}) => {
     setIsLoading(true)
+    setApiError(null)
     try {
       const data = await getUsers(params)
       setUsers(data)
     } catch (error) {
       console.error("유저 목록 로드 실패:", error)
+      setApiError(error instanceof Error ? error.message : "유저 목록을 불러오는 중 오류가 발생했습니다.")
       toast({
         title: "오류 발생",
         description: "유저 목록을 불러오는 중 오류가 발생했습니다.",
@@ -94,6 +98,8 @@ export default function UsersPage() {
     <div className="container mx-auto">
       <h1 className="text-3xl font-bold mb-6">유저 관리</h1>
 
+      {apiError && <ApiErrorAlert error={apiError} onRetry={() => loadUsers(searchParams)} />}
+
       <Tabs defaultValue="users">
         <TabsList className="mb-4">
           <TabsTrigger value="users">유저 목록</TabsTrigger>
@@ -144,7 +150,10 @@ export default function UsersPage() {
               </div>
 
               {isLoading ? (
-                <div className="text-center py-8">로딩 중...</div>
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+                  <span>로딩 중...</span>
+                </div>
               ) : (
                 <UserList users={users} onEdit={handleEdit} onDeleted={() => loadUsers(searchParams)} />
               )}
