@@ -21,9 +21,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useToast } from "@/components/ui/use-toast"
-import { getSquads, updateSquad, confirmSquad } from "@/app/actions/squad-actions"
-import { getDesertById } from "@/app/actions/event-actions"
 
 // 임시 유저 데이터 (사전조사 데이터에서 가져온 것으로 가정)
 const initialUsers = [
@@ -59,8 +56,6 @@ export default function SquadsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
 
   // 팀 배정 상태
   const [squads, setSquads] = useState({
@@ -84,69 +79,44 @@ export default function SquadsPage() {
 
   // 초기 데이터 로드
   useEffect(() => {
-    const loadData = async () => {
-      if (!eventId) return
-
-      setIsLoading(true)
-      try {
-        // 이벤트 정보 로드
-        const event = await getDesertById(Number(eventId))
-        setSelectedEvent(event)
-
-        // 스쿼드 데이터 로드
-        const squadData = await getSquads(Number(eventId))
-
-        // 스쿼드 데이터를 기반으로 초기 상태 설정
-        const initialSquads = {
-          [TEAM.A_TEAM]: [],
-          [TEAM.B_TEAM]: [],
-          [TEAM.RESERVE_A]: [],
-          [TEAM.RESERVE_B]: [],
-          [TEAM.UNASSIGNED]: [],
-          [TEAM.EXCLUDED]: [],
-        }
-
-        // 스쿼드 데이터 기반 배정
-        squadData.forEach((squad) => {
-          switch (squad.teamType) {
-            case "A_TEAM":
-              initialSquads[TEAM.A_TEAM].push(squad)
-              break
-            case "B_TEAM":
-              initialSquads[TEAM.B_TEAM].push(squad)
-              break
-            case "A_RESERVE":
-              initialSquads[TEAM.RESERVE_A].push(squad)
-              break
-            case "B_RESERVE":
-              initialSquads[TEAM.RESERVE_B].push(squad)
-              break
-            case "UNASSIGNED":
-              initialSquads[TEAM.UNASSIGNED].push(squad)
-              break
-            case "EXCLUDED":
-              initialSquads[TEAM.EXCLUDED].push(squad)
-              break
-            default:
-              initialSquads[TEAM.UNASSIGNED].push(squad)
-          }
-        })
-
-        setSquads(initialSquads)
-      } catch (error) {
-        console.error("데이터 로드 실패:", error)
-        toast({
-          title: "오류 발생",
-          description: "데이터를 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
+    // 사전조사 데이터 기반으로 초기 배정
+    const initialSquads = {
+      [TEAM.A_TEAM]: [],
+      [TEAM.B_TEAM]: [],
+      [TEAM.RESERVE_A]: [],
+      [TEAM.RESERVE_B]: [],
+      [TEAM.UNASSIGNED]: [],
+      [TEAM.EXCLUDED]: [],
     }
 
-    loadData()
-  }, [eventId, toast])
+    // 사전조사 기반 배정
+    users.forEach((user) => {
+      switch (user.preference) {
+        case "A_TEAM":
+          initialSquads[TEAM.A_TEAM].push(user)
+          break
+        case "B_TEAM":
+          initialSquads[TEAM.B_TEAM].push(user)
+          break
+        case "A_RESERVE":
+          initialSquads[TEAM.RESERVE_A].push(user)
+          break
+        case "B_RESERVE":
+          initialSquads[TEAM.RESERVE_B].push(user)
+          break
+        case "AB_POSSIBLE":
+          initialSquads[TEAM.UNASSIGNED].push(user)
+          break
+        case "NONE":
+          initialSquads[TEAM.EXCLUDED].push(user)
+          break
+        default:
+          initialSquads[TEAM.UNASSIGNED].push(user)
+      }
+    })
+
+    setSquads(initialSquads)
+  }, [users])
 
   // 팀 이름 표시
   const getTeamName = (team) => {
@@ -191,7 +161,7 @@ export default function SquadsPage() {
   }
 
   // 유저 이동 함수
-  const moveUser = async (userId, fromTeam, toTeam) => {
+  const moveUser = (userId, fromTeam, toTeam) => {
     if (isConfirmed) {
       alert("이미 확정된 팀은 수정할 수 없습니다.")
       return
@@ -216,53 +186,20 @@ export default function SquadsPage() {
     }
 
     const newSquads = { ...squads }
-    const userIndex = newSquads[fromTeam].findIndex((u) => u.userSeq === userId)
+    const userIndex = newSquads[fromTeam].findIndex((u) => u.id === userId)
 
     if (userIndex !== -1) {
       const user = newSquads[fromTeam][userIndex]
       newSquads[fromTeam].splice(userIndex, 1)
       newSquads[toTeam].push(user)
       setSquads(newSquads)
-
-      // API 호출
-      if (eventId) {
-        try {
-          await updateSquad(Number(eventId), userId, toTeam)
-        } catch (error) {
-          console.error("스쿼드 업데이트 실패:", error)
-          toast({
-            title: "오류 발생",
-            description: "스쿼드 업데이트 중 오류가 발생했습니다.",
-            variant: "destructive",
-          })
-        }
-      }
     }
   }
 
   // 팀 확정 함수
-  const confirmSquads = async () => {
-    if (!eventId) return
-
-    try {
-      await confirmSquad({
-        desertSeq: Number(eventId),
-        confirmed: true,
-      })
-
-      setIsConfirmed(true)
-      toast({
-        title: "팀 확정 성공",
-        description: "팀이 성공적으로 확정되었습니다.",
-      })
-    } catch (error) {
-      console.error("팀 확정 실패:", error)
-      toast({
-        title: "오류 발생",
-        description: "팀 확정 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
-    }
+  const confirmSquads = () => {
+    setIsConfirmed(true)
+    // 여기에 확정 정보 저장 로직 추가
   }
 
   // 필터링된 유저 목록
@@ -391,7 +328,7 @@ export default function SquadsPage() {
       {isConfirmed && (
         <Alert className="mb-4">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>팀이 확정되었습니다. 더 이상 수정할 수 없습니다.</AlertDescription>
+          <AlertDescription>팀이 확���되었습니다. 더 이상 수정할 수 없습니다.</AlertDescription>
         </Alert>
       )}
 

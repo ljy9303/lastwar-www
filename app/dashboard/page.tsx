@@ -1,14 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Users, History, CheckCircle, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { useToast } from "@/components/ui/use-toast"
-import { getDashboardStats, getRecentEvents, getActivityLogs, getTopUsers } from "@/app/actions/dashboard-actions"
-import type { DashboardStats, RecentEvent, ActivityLog, TopUser } from "@/app/actions/dashboard-actions"
 
 // 임시 이벤트 데이터
 const initialEvents = [
@@ -51,64 +48,19 @@ const initialLogs = [
 ]
 
 export default function DashboardPage() {
-  const [events, setEvents] = useState<RecentEvent[]>(initialEvents)
-  const [users, setUsers] = useState<TopUser[]>(initialUsers)
-  const [logs, setLogs] = useState<ActivityLog[]>(initialLogs)
-  const [stats, setStats] = useState<DashboardStats>({
-    totalUsers: 0,
-    activeUsers: 0,
-    totalEvents: 0,
-    completedEvents: 0,
-    aTeamWins: 0,
-    bTeamWins: 0,
-  })
-  const [isLoading, setIsLoading] = useState(true)
-  const { toast } = useToast()
-
-  // 대시보드 데이터 로드
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true)
-      try {
-        // 통계 데이터 로드
-        const statsData = await getDashboardStats()
-        setStats(statsData)
-
-        // 최근 이벤트 로드
-        const eventsData = await getRecentEvents()
-        setEvents(eventsData)
-
-        // 활동 로그 로드
-        const logsData = await getActivityLogs()
-        setLogs(logsData)
-
-        // 참여율 높은 유저 로드
-        const usersData = await getTopUsers()
-        setUsers(usersData)
-      } catch (error) {
-        console.error("대시보드 데이터 로드 실패:", error)
-        toast({
-          title: "오류 발생",
-          description: "대시보드 데이터를 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadData()
-  }, [toast])
+  const [events] = useState(initialEvents)
+  const [users] = useState(initialUsers)
+  const [logs] = useState(initialLogs)
 
   // 통계 계산
-  // const stats = {
-  //   totalUsers: users.length,
-  //   activeUsers: users.filter((u) => !u.isLeft).length,
-  //   totalEvents: events.length,
-  //   completedEvents: events.filter((e) => e.status === "completed").length,
-  //   aTeamWins: events.filter((e) => e.winner === "A_TEAM").length,
-  //   bTeamWins: events.filter((e) => e.winner === "B_TEAM").length,
-  // }
+  const stats = {
+    totalUsers: users.length,
+    activeUsers: users.filter((u) => !u.isLeft).length,
+    totalEvents: events.length,
+    completedEvents: events.filter((e) => e.status === "completed").length,
+    aTeamWins: events.filter((e) => e.winner === "A_TEAM").length,
+    bTeamWins: events.filter((e) => e.winner === "B_TEAM").length,
+  }
 
   return (
     <div className="container mx-auto">

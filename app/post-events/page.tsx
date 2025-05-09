@@ -9,9 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Search, ArrowLeft, FileDown, CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
-import { useToast } from "@/components/ui/use-toast"
-import { getPostEventResults, saveEventResult } from "@/app/actions/post-event-actions"
-import { getDesertById } from "@/app/actions/event-actions"
 
 // 임시 이벤트 데이터
 const events = [
@@ -37,48 +34,16 @@ export default function PostEventsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [eventResult, setEventResult] = useState({ winner: "A_TEAM", notes: "A팀 승리, 총 45명 참여" })
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const { toast } = useToast()
-
-  // 이벤트 정보와 사후 관리 데이터 로드
-  useEffect(() => {
-    const loadData = async () => {
-      if (!eventId) return
-
-      setIsLoading(true)
-      try {
-        // 이벤트 정보 로드
-        const event = await getDesertById(Number(eventId))
-        setSelectedEvent(event)
-
-        // 사후 관리 데이터 로드
-        const resultsData = await getPostEventResults(Number(eventId))
-        setResults(resultsData)
-      } catch (error) {
-        console.error("데이터 로드 실패:", error)
-        toast({
-          title: "오류 발생",
-          description: "데이터를 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadData()
-  }, [eventId, toast])
 
   // 이벤트 ID가 있으면 해당 이벤트 선택
-  // useEffect(() => {
-  //   if (eventId) {
-  //     const event = events.find((e) => e.id === eventId)
-  //     if (event) {
-  //       setSelectedEvent(event)
-  //     }
-  //   }
-  // }, [eventId])
+  useEffect(() => {
+    if (eventId) {
+      const event = events.find((e) => e.id === eventId)
+      if (event) {
+        setSelectedEvent(event)
+      }
+    }
+  }, [eventId])
 
   // 필터링된 결과 목록
   const filteredResults = results.filter((result) => result.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -167,34 +132,6 @@ export default function PostEventsPage() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  }
-
-  // 이벤트 결과 저장
-  const saveResults = async () => {
-    if (!eventId) return
-
-    setIsSaving(true)
-    try {
-      await saveEventResult({
-        desertSeq: Number(eventId),
-        winner: eventResult.winner,
-        notes: eventResult.notes,
-      })
-
-      toast({
-        title: "결과 저장 성공",
-        description: "이벤트 결과가 성공적으로 저장되었습니다.",
-      })
-    } catch (error) {
-      console.error("결과 저장 실패:", error)
-      toast({
-        title: "오류 발생",
-        description: "결과 저장 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
   }
 
   return (
@@ -361,9 +298,7 @@ export default function PostEventsPage() {
                 />
               </div>
 
-              <Button className="w-full" onClick={saveResults}>
-                결과 저장
-              </Button>
+              <Button className="w-full">결과 저장</Button>
             </div>
           </CardContent>
         </Card>

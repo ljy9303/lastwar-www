@@ -15,7 +15,6 @@ import type { User } from "@/types/user"
 import { UserSelection } from "@/components/lottery/user-selection"
 import { LotteryAnimation } from "@/components/lottery/lottery-animation"
 import { LotteryResult } from "@/components/lottery/lottery-result"
-import { saveLotteryResult } from "@/app/actions/lottery-actions"
 
 export default function LotteryPage() {
   const { toast } = useToast()
@@ -52,27 +51,6 @@ export default function LotteryPage() {
     loadUsers()
   }, [toast])
 
-  // 추첨 결과 저장
-  const saveResults = async () => {
-    if (winners.length === 0) return
-
-    try {
-      await saveLotteryResult(selectedUsers, winners, `${selectedUsers.length}명 중 ${drawCount}명 추첨`)
-
-      toast({
-        title: "추첨 결과 저장 성공",
-        description: "추첨 결과가 성공적으로 저장되었습니다.",
-      })
-    } catch (error) {
-      console.error("추첨 결과 저장 실패:", error)
-      toast({
-        title: "오류 발생",
-        description: "추첨 결과 저장 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
-    }
-  }
-
   // 추첨 시작
   const startLottery = () => {
     if (selectedUsers.length === 0) {
@@ -102,7 +80,6 @@ export default function LotteryPage() {
     setWinners(winners)
     setIsAnimating(false)
     setActiveTab("result")
-    saveResults()
   }
 
   // 새로운 추첨 시작
