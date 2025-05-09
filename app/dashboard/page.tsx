@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 // 임시 이벤트 데이터
+// 이거 기준
 const initialEvents = [
   {
     id: 1,
