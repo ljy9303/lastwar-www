@@ -105,7 +105,7 @@ export default function LotteryPage() {
 
   return (
     <div className="container mx-auto">
-      <h1 className="text-3xl font-bold mb-6">열차장 랜덤뽑기</h1>
+      <h1 className="text-3xl font-bold mb-6">연맹원 랜덤뽑기</h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
