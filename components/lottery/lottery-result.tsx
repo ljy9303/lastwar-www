@@ -27,19 +27,27 @@ export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResu
   const exportResults = () => {
     setIsExporting(true)
     try {
-      const headers = ["순위", "닉네임", "레벨", "전투력", "연맹 상태"]
+      const headers = ["순위", "닉네임", "레벨", "전투력", "연맹 상태", "확률"]
       const csvContent = [
         headers.join(","),
-        ...winners.map((winner, index) =>
-          [index + 1, winner.name, winner.level, winner.power, winner.leave ? "탈퇴" : "활동중"].join(","),
-        ),
+        ...winners.map((winner, index) => {
+          const probability = drawCount / totalSelected
+          return [
+            index + 1,
+            winner.name,
+            winner.level,
+            winner.power,
+            winner.leave ? "탈퇴" : "활동중",
+            (probability * 100).toFixed(2) + "%",
+          ].join(",")
+        }),
       ].join("\n")
 
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.setAttribute("href", url)
-      link.setAttribute("download", `열차장_랜덤뽑기_결과_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`)
+      link.setAttribute("download", `연맹원_랜덤뽑기_결과_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`)
       link.style.visibility = "hidden"
       document.body.appendChild(link)
       link.click()
@@ -65,13 +73,20 @@ export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResu
   const shareResults = async () => {
     try {
       const text =
-        `열차장 랜덤뽑기 결과 (${format(new Date(), "yyyy년 MM월 dd일", { locale: ko })})\n\n` +
+        `연맹원 랜덤뽑기 결과 (${format(new Date(), "yyyy년 MM월 dd일", { locale: ko })})\n\n` +
         `${totalSelected}명 중 ${drawCount}명 추첨\n\n` +
-        winners.map((winner, index) => `${index + 1}. ${winner.name} (Lv.${winner.level})`).join("\n")
+        winners
+          .map(
+            (winner, index) =>
+              `${index + 1}. ${winner.name} (Lv.${winner.level}) - 확률: ${((drawCount / totalSelected) * 100).toFixed(
+                2,
+              )}%`,
+          )
+          .join("\n")
 
       if (navigator.share) {
         await navigator.share({
-          title: "열차장 랜덤뽑기 결과",
+          title: "연맹원 랜덤뽑기 결과",
           text: text,
         })
       } else {
@@ -91,12 +106,25 @@ export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResu
     }
   }
 
+  // 확률 계산 (단순 확률: 당첨자 수 / 전체 선택된 수)
+  const calculateProbability = () => {
+    return drawCount / totalSelected
+  }
+
+  // 확률을 퍼센트로 표시하는 함수
+  const formatProbability = (probability: number) => {
+    return `${(probability * 100).toFixed(2)}%`
+  }
+
+  const probability = calculateProbability()
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>추첨 결과</CardTitle>
         <CardDescription>
-          {format(new Date(), "yyyy년 MM월 dd일 HH:mm", { locale: ko })} | {totalSelected}명 중 {drawCount}명 추첨
+          {format(new Date(), "yyyy년 MM월 dd일 HH:mm", { locale: ko })} | {totalSelected}명 중 {drawCount}명 추첨 |
+          확률: {formatProbability(probability)}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -114,7 +142,10 @@ export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResu
                   </div>
                 </div>
               </div>
-              <div className="text-sm font-medium">{winner.leave ? "탈퇴" : "활동중"}</div>
+              <div className="flex flex-col items-end">
+                <div className="text-sm font-medium">{winner.leave ? "탈퇴" : "활동중"}</div>
+                <div className="text-xs text-muted-foreground">확률: {formatProbability(probability)}</div>
+              </div>
             </div>
           ))}
         </div>
