@@ -9,8 +9,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "사막전 이벤트 매치 관리 시스템",
-  description: "사막전 이벤트 매치 관리를 위한 웹 서비스",
+  title: "1242 ROKK",
+  description: "1242 ROKK",
   generator: "v0.dev",
 }
 

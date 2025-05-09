@@ -65,7 +65,7 @@ export default function Sidebar() {
     <>
       <div className="hidden md:flex h-full w-64 flex-col border-r bg-background">
         <div className="p-4 border-b">
-          <h1 className="text-xl font-bold">사막전 매치 관리</h1>
+          <h1 className="text-xl font-bold">ROKK</h1>
         </div>
         <nav className="flex-1 p-4 space-y-2">
           {navItems.map((item) => (
