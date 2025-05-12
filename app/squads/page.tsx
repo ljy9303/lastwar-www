@@ -39,10 +39,10 @@ import type { User } from "@/types/user"
 const TEAM = {
   A_TEAM: "A_TEAM",
   B_TEAM: "B_TEAM",
-  RESERVE_A: "RESERVE_A",
-  RESERVE_B: "RESERVE_B",
-  UNASSIGNED: "UNASSIGNED",
-  EXCLUDED: "EXCLUDED",
+  A_RESERVE: "A_RESERVE",
+  B_RESERVE: "B_RESERVE",
+  UNASSIGNED: "UNASSIGNED", // This will need special handling
+  EXCLUDED: "NONE", // Map EXCLUDED to NONE for API
 }
 
 // Add position constants at the top of the file, after the TEAM constants
@@ -86,8 +86,8 @@ export default function SquadsPage() {
   const [squads, setSquads] = useState({
     [TEAM.A_TEAM]: [] as SquadMember[],
     [TEAM.B_TEAM]: [] as SquadMember[],
-    [TEAM.RESERVE_A]: [] as SquadMember[],
-    [TEAM.RESERVE_B]: [] as SquadMember[],
+    [TEAM.A_RESERVE]: [] as SquadMember[],
+    [TEAM.B_RESERVE]: [] as SquadMember[],
     [TEAM.UNASSIGNED]: [] as SquadMember[],
     [TEAM.EXCLUDED]: [] as SquadMember[],
   })
@@ -144,8 +144,8 @@ export default function SquadsPage() {
     const initialSquads = {
       [TEAM.A_TEAM]: [] as SquadMember[],
       [TEAM.B_TEAM]: [] as SquadMember[],
-      [TEAM.RESERVE_A]: [] as SquadMember[],
-      [TEAM.RESERVE_B]: [] as SquadMember[],
+      [TEAM.A_RESERVE]: [] as SquadMember[],
+      [TEAM.B_RESERVE]: [] as SquadMember[],
       [TEAM.UNASSIGNED]: [] as SquadMember[],
       [TEAM.EXCLUDED]: [] as SquadMember[],
     }
@@ -161,11 +161,11 @@ export default function SquadsPage() {
           case TEAM.B_TEAM:
             initialSquads[TEAM.B_TEAM].push(member)
             break
-          case TEAM.RESERVE_A:
-            initialSquads[TEAM.RESERVE_A].push(member)
+          case TEAM.A_RESERVE:
+            initialSquads[TEAM.A_RESERVE].push(member)
             break
-          case TEAM.RESERVE_B:
-            initialSquads[TEAM.RESERVE_B].push(member)
+          case TEAM.B_RESERVE:
+            initialSquads[TEAM.B_RESERVE].push(member)
             break
           case TEAM.EXCLUDED:
             initialSquads[TEAM.EXCLUDED].push(member)
@@ -184,10 +184,10 @@ export default function SquadsPage() {
               initialSquads[TEAM.B_TEAM].push(member)
               break
             case "A_RESERVE":
-              initialSquads[TEAM.RESERVE_A].push(member)
+              initialSquads[TEAM.A_RESERVE].push(member)
               break
             case "B_RESERVE":
-              initialSquads[TEAM.RESERVE_B].push(member)
+              initialSquads[TEAM.B_RESERVE].push(member)
               break
             case "AB_POSSIBLE":
               initialSquads[TEAM.UNASSIGNED].push(member)
@@ -217,9 +217,9 @@ export default function SquadsPage() {
         return "A팀"
       case TEAM.B_TEAM:
         return "B팀"
-      case TEAM.RESERVE_A:
+      case TEAM.A_RESERVE:
         return "A팀 예비"
-      case TEAM.RESERVE_B:
+      case TEAM.B_RESERVE:
         return "B팀 예비"
       case TEAM.UNASSIGNED:
         return "미배정"
@@ -278,8 +278,8 @@ export default function SquadsPage() {
 
     // 예비 인원 제한 체크
     if (
-      (toTeam === TEAM.RESERVE_A && squads[TEAM.RESERVE_A].length >= 10) ||
-      (toTeam === TEAM.RESERVE_B && squads[TEAM.RESERVE_B].length >= 10)
+      (toTeam === TEAM.A_RESERVE && squads[TEAM.A_RESERVE].length >= 10) ||
+      (toTeam === TEAM.B_RESERVE && squads[TEAM.B_RESERVE].length >= 10)
     ) {
       toast({
         title: "인원 초과",
@@ -365,7 +365,7 @@ export default function SquadsPage() {
     }
   }
 
-  // Update the saveChanges function to include position information
+  // Update the saveChanges function to include position information and correct desertType values
   const saveChanges = async () => {
     if (Object.keys(pendingChanges).length === 0) return
 
@@ -373,11 +373,19 @@ export default function SquadsPage() {
     try {
       const request = {
         desertSeq: Number(eventId),
-        rosters: Object.entries(pendingChanges).map(([userSeq, change]) => ({
-          userSeq: Number(userSeq),
-          desertType: change.desertType,
-          position: change.position,
-        })),
+        rosters: Object.entries(pendingChanges).map(([userSeq, change]) => {
+          // Map UNASSIGNED to an appropriate value for the API
+          let apiDesertType = change.desertType
+          if (apiDesertType === TEAM.UNASSIGNED) {
+            apiDesertType = "NONE" // or another appropriate value
+          }
+
+          return {
+            userSeq: Number(userSeq),
+            desertType: apiDesertType,
+            position: change.position,
+          }
+        }),
       }
 
       await saveSquads(request)
@@ -450,8 +458,8 @@ export default function SquadsPage() {
     const isPreferenceMatched =
       (team === TEAM.A_TEAM && user.intentType === "A_TEAM") ||
       (team === TEAM.B_TEAM && user.intentType === "B_TEAM") ||
-      (team === TEAM.RESERVE_A && user.intentType === "A_RESERVE") ||
-      (team === TEAM.RESERVE_B && user.intentType === "B_RESERVE")
+      (team === TEAM.A_RESERVE && user.intentType === "A_RESERVE") ||
+      (team === TEAM.B_RESERVE && user.intentType === "B_RESERVE")
 
     // Check if desertType exists and is not "NONE" to apply green highlighting
     const hasDesertType = !!user.desertType && user.desertType !== "NONE"
@@ -515,13 +523,13 @@ export default function SquadsPage() {
                   {team !== TEAM.B_TEAM && (
                     <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.B_TEAM)}>B팀</DropdownMenuItem>
                   )}
-                  {team !== TEAM.RESERVE_A && (
-                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.RESERVE_A)}>
+                  {team !== TEAM.A_RESERVE && (
+                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.A_RESERVE)}>
                       A팀 예비
                     </DropdownMenuItem>
                   )}
-                  {team !== TEAM.RESERVE_B && (
-                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.RESERVE_B)}>
+                  {team !== TEAM.B_RESERVE && (
+                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.B_RESERVE)}>
                       B팀 예비
                     </DropdownMenuItem>
                   )}
@@ -754,14 +762,14 @@ export default function SquadsPage() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
-              <CardTitle>A팀 예비 ({squads[TEAM.RESERVE_A].length}/10)</CardTitle>
-              {squads[TEAM.RESERVE_A].length > 10 && <Badge variant="destructive">초과</Badge>}
+              <CardTitle>A팀 예비 ({squads[TEAM.A_RESERVE].length}/10)</CardTitle>
+              {squads[TEAM.A_RESERVE].length > 10 && <Badge variant="destructive">초과</Badge>}
             </div>
             <CardDescription>A팀 예비 멤버</CardDescription>
           </CardHeader>
           <CardContent className="max-h-[300px] overflow-y-auto">
-            {getFilteredUsers(TEAM.RESERVE_A).length > 0 ? (
-              getFilteredUsers(TEAM.RESERVE_A).map((user) => renderUserCard(user, TEAM.RESERVE_A))
+            {getFilteredUsers(TEAM.A_RESERVE).length > 0 ? (
+              getFilteredUsers(TEAM.A_RESERVE).map((user) => renderUserCard(user, TEAM.A_RESERVE))
             ) : (
               <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
             )}
@@ -772,14 +780,14 @@ export default function SquadsPage() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
-              <CardTitle>B팀 예비 ({squads[TEAM.RESERVE_B].length}/10)</CardTitle>
-              {squads[TEAM.RESERVE_B].length > 10 && <Badge variant="destructive">초과</Badge>}
+              <CardTitle>B팀 예비 ({squads[TEAM.B_RESERVE].length}/10)</CardTitle>
+              {squads[TEAM.B_RESERVE].length > 10 && <Badge variant="destructive">초과</Badge>}
             </div>
             <CardDescription>B팀 예비 멤버</CardDescription>
           </CardHeader>
           <CardContent className="max-h-[300px] overflow-y-auto">
-            {getFilteredUsers(TEAM.RESERVE_B).length > 0 ? (
-              getFilteredUsers(TEAM.RESERVE_B).map((user) => renderUserCard(user, TEAM.RESERVE_B))
+            {getFilteredUsers(TEAM.B_RESERVE).length > 0 ? (
+              getFilteredUsers(TEAM.B_RESERVE).map((user) => renderUserCard(user, TEAM.B_RESERVE))
             ) : (
               <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
             )}
@@ -878,12 +886,12 @@ export default function SquadsPage() {
                                       B팀
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.RESERVE_A)}
+                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.A_RESERVE)}
                                     >
                                       A팀 예비
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.RESERVE_B)}
+                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.B_RESERVE)}
                                     >
                                       B팀 예비
                                     </DropdownMenuItem>
