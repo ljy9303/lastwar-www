@@ -8,17 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Search, ArrowLeft, Save, AlertTriangle, Loader2, Pencil, ChevronDown, X } from "lucide-react"
 import Link from "next/link"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getSquads, saveSquads, type SquadMember } from "@/app/actions/squad-actions"
 import { getDesertById } from "@/app/actions/event-actions"
@@ -254,15 +243,6 @@ export default function SquadsPage() {
 
   // Update the moveUser function to include position information
   const moveUser = (userId: number, fromTeam: string, toTeam: string) => {
-    if (isConfirmed) {
-      toast({
-        title: "팀 확정됨",
-        description: "이미 확정된 팀은 수정할 수 없습니다.",
-        variant: "destructive",
-      })
-      return
-    }
-
     // 주전 인원 제한 체크
     if (
       (toTeam === TEAM.A_TEAM && squads[TEAM.A_TEAM].length >= 20) ||
@@ -313,15 +293,6 @@ export default function SquadsPage() {
 
   // Add a function to update user position
   const updateUserPosition = (userId: number, position: number) => {
-    if (isConfirmed) {
-      toast({
-        title: "팀 확정됨",
-        description: "이미 확정된 팀은 수정할 수 없습니다.",
-        variant: "destructive",
-      })
-      return
-    }
-
     // Find the user in all squads
     let userTeam = ""
     let user: SquadMember | null = null
@@ -430,12 +401,10 @@ export default function SquadsPage() {
       await saveChanges()
     }
 
-    setIsConfirmed(true)
     toast({
-      title: "팀 확정 완료",
-      description: "스쿼드 구성이 확정되었습니다.",
+      title: "팀 저장 완료",
+      description: "스쿼드 구성이 저장되었습니다.",
     })
-    // 여기에 확정 정보 저장 로직 추가 (필요시)
   }
 
   // 필터링된 유저 목록
@@ -450,8 +419,17 @@ export default function SquadsPage() {
 
   // Update the getPositionLabel function to display position names
   const getPositionLabel = (position: number) => {
-    const positionItem = POSITIONS.find((p) => p.value === position)
-    return positionItem ? positionItem.label : "포지션 없음"
+    if (position === -1) return "" // 포지션 값이 -1이면 빈 문자열 반환
+    if (position === 0) return "공격지원"
+    if (position === 1) return "1시"
+    if (position === 2) return "2시"
+    if (position === 4) return "4시"
+    if (position === 5) return "5시"
+    if (position === 7) return "7시"
+    if (position === 8) return "8시"
+    if (position === 10) return "10시"
+    if (position === 11) return "11시"
+    return "포지션 없음"
   }
 
   const renderUserCard = (user: SquadMember, team: string) => {
@@ -489,88 +467,86 @@ export default function SquadsPage() {
             )}
           </div>
 
-          {!isConfirmed && (
-            <div className="flex flex-wrap gap-1 mt-2 sm:mt-0">
-              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditDialog(user)}>
-                <Pencil className="h-3 w-3" />
-                <span className="sr-only">수정</span>
+          <div className="flex flex-wrap gap-1 mt-2 sm:mt-0">
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditDialog(user)}>
+              <Pencil className="h-3 w-3" />
+              <span className="sr-only">수정</span>
+            </Button>
+
+            {/* Add X button to move user to unassigned section */}
+            {hasDesertType && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                onClick={() => moveUser(user.userSeq, team, TEAM.UNASSIGNED)}
+              >
+                <X className="h-3 w-3" />
+                <span className="sr-only">미배정으로 이동</span>
               </Button>
+            )}
 
-              {/* Add X button to move user to unassigned section */}
-              {hasDesertType && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
-                  onClick={() => moveUser(user.userSeq, team, TEAM.UNASSIGNED)}
-                >
-                  <X className="h-3 w-3" />
-                  <span className="sr-only">미배정으로 이동</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-7">
+                  팀 변경
+                  <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
-              )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {team !== TEAM.A_TEAM && (
+                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.A_TEAM)}>A팀</DropdownMenuItem>
+                )}
+                {team !== TEAM.B_TEAM && (
+                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.B_TEAM)}>B팀</DropdownMenuItem>
+                )}
+                {team !== TEAM.A_RESERVE && (
+                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.A_RESERVE)}>
+                    A팀 예비
+                  </DropdownMenuItem>
+                )}
+                {team !== TEAM.B_RESERVE && (
+                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.B_RESERVE)}>
+                    B팀 예비
+                  </DropdownMenuItem>
+                )}
+                {team !== TEAM.UNASSIGNED && (
+                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.UNASSIGNED)}>
+                    모두 가능
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {team !== TEAM.EXCLUDED && (
+                  <DropdownMenuItem
+                    onClick={() => moveUser(user.userSeq, team, TEAM.EXCLUDED)}
+                    className="text-destructive"
+                  >
+                    제외
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-7">
-                    팀 변경
-                    <ChevronDown className="ml-1 h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {team !== TEAM.A_TEAM && (
-                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.A_TEAM)}>A팀</DropdownMenuItem>
-                  )}
-                  {team !== TEAM.B_TEAM && (
-                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.B_TEAM)}>B팀</DropdownMenuItem>
-                  )}
-                  {team !== TEAM.A_RESERVE && (
-                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.A_RESERVE)}>
-                      A팀 예비
-                    </DropdownMenuItem>
-                  )}
-                  {team !== TEAM.B_RESERVE && (
-                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.B_RESERVE)}>
-                      B팀 예비
-                    </DropdownMenuItem>
-                  )}
-                  {team !== TEAM.UNASSIGNED && (
-                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.UNASSIGNED)}>
-                      모두 가능
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  {team !== TEAM.EXCLUDED && (
-                    <DropdownMenuItem
-                      onClick={() => moveUser(user.userSeq, team, TEAM.EXCLUDED)}
-                      className="text-destructive"
-                    >
-                      제외
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-7">
-                    포지션
-                    <ChevronDown className="ml-1 h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {POSITIONS.map((position) => (
-                    <DropdownMenuItem
-                      key={position.value}
-                      onClick={() => updateUserPosition(user.userSeq, position.value)}
-                      className={currentPosition === position.value ? "bg-accent" : ""}
-                    >
-                      {position.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" className="h-7">
+                  포지션
+                  <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {POSITIONS.map((position) => (
+                  <DropdownMenuItem
+                    key={position.value}
+                    onClick={() => updateUserPosition(user.userSeq, position.value)}
+                    className={currentPosition === position.value ? "bg-accent" : ""}
+                  >
+                    {position.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     )
@@ -693,33 +669,8 @@ export default function SquadsPage() {
               )}
             </Button>
           )}
-
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button disabled={isConfirmed} className="flex-1 md:flex-auto">
-                {isConfirmed ? "확정됨" : "팀 확정"}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>팀 확정</AlertDialogTitle>
-                <AlertDialogDescription>팀을 확정하시겠습니까? 확정 후에는 수정할 수 없습니다.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>취소</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmSquads}>확정</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
-
-      {isConfirmed && (
-        <Alert className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>팀이 확정되었습니다. 더 이상 수정할 수 없습니다.</AlertDescription>
-        </Alert>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* A팀 */}
@@ -825,7 +776,7 @@ export default function SquadsPage() {
                     <TableHead className="hidden sm:table-cell">전투력</TableHead>
                     <TableHead>선호</TableHead>
                     <TableHead className="hidden md:table-cell">포지션</TableHead>
-                    {!isConfirmed && <TableHead className="text-right">관리</TableHead>}
+                    <TableHead className="text-right">관리</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -855,82 +806,76 @@ export default function SquadsPage() {
                           <TableCell className="hidden md:table-cell">
                             {userPosition !== -1 ? getPositionLabel(userPosition) : "-"}
                           </TableCell>
-                          {!isConfirmed && (
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => openEditDialog(user)}
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                  <span className="sr-only">수정</span>
-                                </Button>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button size="sm" variant="outline" className="h-7">
-                                      팀 변경
-                                      <ChevronDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.A_TEAM)}
-                                    >
-                                      A팀
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.B_TEAM)}
-                                    >
-                                      B팀
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.A_RESERVE)}
-                                    >
-                                      A팀 예비
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.B_RESERVE)}
-                                    >
-                                      B팀 예비
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.UNASSIGNED)}
-                                    >
-                                      모두 가능
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => openEditDialog(user)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                                <span className="sr-only">수정</span>
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-7">
+                                    팀 변경
+                                    <ChevronDown className="ml-1 h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.A_TEAM)}>
+                                    A팀
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.B_TEAM)}>
+                                    B팀
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.A_RESERVE)}
+                                  >
+                                    A팀 예비
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.B_RESERVE)}
+                                  >
+                                    B팀 예비
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.UNASSIGNED)}
+                                  >
+                                    모두 가능
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
 
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button size="sm" variant="outline" className="h-7">
-                                      포지션
-                                      <ChevronDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {POSITIONS.map((position) => (
-                                      <DropdownMenuItem
-                                        key={position.value}
-                                        onClick={() => updateUserPosition(user.userSeq, position.value)}
-                                        className={userPosition === position.value ? "bg-accent" : ""}
-                                      >
-                                        {position.label}
-                                      </DropdownMenuItem>
-                                    ))}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </TableCell>
-                          )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-7">
+                                    포지션
+                                    <ChevronDown className="ml-1 h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {POSITIONS.map((position) => (
+                                    <DropdownMenuItem
+                                      key={position.value}
+                                      onClick={() => updateUserPosition(user.userSeq, position.value)}
+                                      className={userPosition === position.value ? "bg-accent" : ""}
+                                    >
+                                      {position.label}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       )
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={!isConfirmed ? 6 : 5} className="text-center py-4">
+                      <TableCell colSpan={6} className="text-center py-4">
                         미배정 유저가 없습니다.
                       </TableCell>
                     </TableRow>
