@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, ArrowLeft, Save, AlertTriangle, Loader2, Pencil } from "lucide-react"
+import { Search, ArrowLeft, Save, AlertTriangle, Loader2, Pencil, ChevronDown, X } from "lucide-react"
 import Link from "next/link"
 import {
   AlertDialog,
@@ -32,7 +32,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ChevronDown } from "lucide-react"
 import { UserForm } from "@/components/user/user-form"
 import type { User } from "@/types/user"
 
@@ -78,6 +77,10 @@ export default function SquadsPage() {
   const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+
+  // Sort direction states
+  const [sortNameDirection, setSortNameDirection] = useState<"asc" | "desc">("asc")
+  const [sortLevelDirection, setSortLevelDirection] = useState<"asc" | "desc">("desc")
 
   // 팀 배정 상태
   const [squads, setSquads] = useState({
@@ -128,6 +131,14 @@ export default function SquadsPage() {
     loadData()
   }, [eventId, toast])
 
+  // Function to sort users based on current sort directions
+  const sortUsers = (users: SquadMember[]) => {
+    return [...users].sort((a, b) => {
+      // Sort by level according to current direction
+      return sortLevelDirection === "asc" ? a.userLevel - b.userLevel : b.userLevel - a.userLevel
+    })
+  }
+
   // 스쿼드 데이터를 팀별로 정리
   const organizeSquadsByTeam = (members: SquadMember[]) => {
     const initialSquads = {
@@ -139,10 +150,10 @@ export default function SquadsPage() {
       [TEAM.EXCLUDED]: [] as SquadMember[],
     }
 
-    // 사전조사 기반 배정
+    // 배정 로직
     members.forEach((member) => {
-      // 이미 팀이 배정된 경우
-      if (member.desertType) {
+      // 이미 팀이 배정된 경우 (desertType이 있는 경우)
+      if (member.desertType && member.desertType !== "NONE") {
         switch (member.desertType) {
           case TEAM.A_TEAM:
             initialSquads[TEAM.A_TEAM].push(member)
@@ -163,28 +174,37 @@ export default function SquadsPage() {
             initialSquads[TEAM.UNASSIGNED].push(member)
         }
       } else {
-        // 팀이 배정되지 않은 경우, 사전조사 데이터 기반으로 초기 배정
-        switch (member.intentType) {
-          case "A_TEAM":
-            initialSquads[TEAM.A_TEAM].push(member)
-            break
-          case "B_TEAM":
-            initialSquads[TEAM.B_TEAM].push(member)
-            break
-          case "A_RESERVE":
-            initialSquads[TEAM.RESERVE_A].push(member)
-            break
-          case "B_RESERVE":
-            initialSquads[TEAM.RESERVE_B].push(member)
-            break
-          case "NONE":
-            initialSquads[TEAM.EXCLUDED].push(member)
-            break
-          case "AB_POSSIBLE":
-          default:
-            initialSquads[TEAM.UNASSIGNED].push(member)
+        // 팀이 배정되지 않은 경우 또는 desertType이 "NONE"인 경우, intentType 기반으로 초기 배정
+        if (member.intentType !== "NONE") {
+          switch (member.intentType) {
+            case "A_TEAM":
+              initialSquads[TEAM.A_TEAM].push(member)
+              break
+            case "B_TEAM":
+              initialSquads[TEAM.B_TEAM].push(member)
+              break
+            case "A_RESERVE":
+              initialSquads[TEAM.RESERVE_A].push(member)
+              break
+            case "B_RESERVE":
+              initialSquads[TEAM.RESERVE_B].push(member)
+              break
+            case "AB_POSSIBLE":
+              initialSquads[TEAM.UNASSIGNED].push(member)
+              break
+            default:
+              initialSquads[TEAM.UNASSIGNED].push(member)
+          }
+        } else {
+          // intentType이 "NONE"인 경우 제외 영역으로
+          initialSquads[TEAM.EXCLUDED].push(member)
         }
       }
+    })
+
+    // 각 팀을 정렬
+    Object.keys(initialSquads).forEach((team) => {
+      initialSquads[team] = sortUsers(initialSquads[team])
     })
 
     setSquads(initialSquads)
@@ -276,6 +296,10 @@ export default function SquadsPage() {
       const user = newSquads[fromTeam][userIndex]
       newSquads[fromTeam].splice(userIndex, 1)
       newSquads[toTeam].push(user)
+
+      // Sort the destination team after adding the user
+      newSquads[toTeam] = sortUsers(newSquads[toTeam])
+
       setSquads(newSquads)
 
       // 변경 사항 기록 - 현재 포지션 유지
@@ -316,6 +340,10 @@ export default function SquadsPage() {
       const userIndex = newSquads[userTeam].findIndex((u) => u.userSeq === userId)
       if (userIndex !== -1) {
         newSquads[userTeam][userIndex] = { ...newSquads[userTeam][userIndex], position }
+
+        // Re-sort the team to maintain order
+        newSquads[userTeam] = sortUsers(newSquads[userTeam])
+
         setSquads(newSquads)
       }
 
@@ -418,7 +446,6 @@ export default function SquadsPage() {
     return positionItem ? positionItem.label : "포지션 없음"
   }
 
-  // 유저 카드 렌더링
   const renderUserCard = (user: SquadMember, team: string) => {
     const isPreferenceMatched =
       (team === TEAM.A_TEAM && user.intentType === "A_TEAM") ||
@@ -426,13 +453,16 @@ export default function SquadsPage() {
       (team === TEAM.RESERVE_A && user.intentType === "A_RESERVE") ||
       (team === TEAM.RESERVE_B && user.intentType === "B_RESERVE")
 
+    // Check if desertType exists and is not "NONE" to apply green highlighting
+    const hasDesertType = !!user.desertType && user.desertType !== "NONE"
+
     // Get the current position (from pending changes or user data)
     const currentPosition = pendingChanges[user.userSeq] ? pendingChanges[user.userSeq].position : user.position || -1
 
     return (
       <div
         key={user.userSeq}
-        className={`p-3 mb-2 rounded-lg border ${isPreferenceMatched ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-background"}`}
+        className={`p-3 mb-2 rounded-lg border ${hasDesertType ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-background"}`}
         id={`user-${user.userSeq}`}
       >
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
@@ -457,6 +487,20 @@ export default function SquadsPage() {
                 <Pencil className="h-3 w-3" />
                 <span className="sr-only">수정</span>
               </Button>
+
+              {/* Add X button to move user to unassigned section */}
+              {hasDesertType && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                  onClick={() => moveUser(user.userSeq, team, TEAM.UNASSIGNED)}
+                >
+                  <X className="h-3 w-3" />
+                  <span className="sr-only">미배정으로 이동</span>
+                </Button>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" className="h-7">
@@ -601,6 +645,28 @@ export default function SquadsPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+
+        <div className="flex gap-2">
+          <div className="flex items-center gap-1">
+            <span className="text-sm whitespace-nowrap">레벨:</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSortLevelDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+                // Re-sort all teams with the new direction
+                const newSquads = { ...squads }
+                Object.keys(newSquads).forEach((team) => {
+                  newSquads[team] = sortUsers([...newSquads[team]])
+                })
+                setSquads(newSquads)
+              }}
+              className="h-8 px-2"
+            >
+              {sortLevelDirection === "asc" ? "↑" : "↓"}
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-2 w-full md:w-auto">

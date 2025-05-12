@@ -67,6 +67,7 @@ export default function SurveysPage() {
 
   const [rosters, setRosters] = useState<Roster[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [teamFilter, setTeamFilter] = useState<string>("all")
   const [leftFilter, setLeftFilter] = useState("all")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentRoster, setCurrentRoster] = useState<
@@ -85,11 +86,9 @@ export default function SurveysPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({})
   const [sortConfig, setSortConfig] = useState<{
-    key: string
-    direction: "ascending" | "descending" | null
+    keys: { key: string; direction: "ascending" | "descending" }[]
   }>({
-    key: "",
-    direction: null,
+    keys: [],
   })
 
   const { isMobile } = useMediaQuery()
@@ -179,56 +178,54 @@ export default function SurveysPage() {
 
   // 정렬 요청 처리 함수
   const requestSort = (key: string) => {
-    let direction: "ascending" | "descending" | null = "ascending"
+    const newSortConfig = { ...sortConfig }
+    const existingKeyIndex = newSortConfig.keys.findIndex((item) => item.key === key)
 
-    if (sortConfig.key === key) {
-      if (sortConfig.direction === "ascending") {
-        direction = "descending"
-      } else if (sortConfig.direction === "descending") {
-        direction = null
+    if (existingKeyIndex > -1) {
+      // Key already exists in sort config, toggle direction or remove
+      if (newSortConfig.keys[existingKeyIndex].direction === "ascending") {
+        newSortConfig.keys[existingKeyIndex].direction = "descending"
+      } else {
+        // Remove this key from sort config
+        newSortConfig.keys.splice(existingKeyIndex, 1)
       }
+    } else {
+      // Add new key to sort config
+      newSortConfig.keys.push({ key, direction: "ascending" })
     }
 
-    setSortConfig({ key, direction })
+    setSortConfig(newSortConfig)
   }
 
   // 정렬된 로스터 목록 가져오기
   const getSortedRosters = (rosters: Roster[]) => {
     const sortableRosters = [...rosters]
 
-    if (sortConfig.direction === null) {
+    if (sortConfig.keys.length === 0) {
       return sortableRosters
     }
 
     return sortableRosters.sort((a, b) => {
-      if (sortConfig.key === "userLevel") {
-        if (a.userLevel < b.userLevel) {
-          return sortConfig.direction === "ascending" ? -1 : 1
-        }
-        if (a.userLevel > b.userLevel) {
-          return sortConfig.direction === "ascending" ? 1 : -1
-        }
-        return 0
-      }
+      // Apply each sort key in order
+      for (const { key, direction } of sortConfig.keys) {
+        let comparison = 0
 
-      if (sortConfig.key === "userPower") {
-        if (a.userPower < b.userPower) {
-          return sortConfig.direction === "ascending" ? -1 : 1
+        if (key === "userName") {
+          comparison = a.userName.localeCompare(b.userName)
+        } else if (key === "userLevel") {
+          comparison = a.userLevel - b.userLevel
+        } else if (key === "userPower") {
+          comparison = a.userPower - b.userPower
+        } else if (key === "intentType") {
+          comparison = a.intentType.localeCompare(b.intentType)
         }
-        if (a.userPower > b.userPower) {
-          return sortConfig.direction === "ascending" ? 1 : -1
-        }
-        return 0
-      }
 
-      if (sortConfig.key === "intentType") {
-        if (a.intentType < b.intentType) {
-          return sortConfig.direction === "ascending" ? -1 : 1
+        // If this key gives us a non-zero comparison, return it
+        if (comparison !== 0) {
+          return direction === "ascending" ? comparison : -comparison
         }
-        if (a.intentType > b.intentType) {
-          return sortConfig.direction === "ascending" ? 1 : -1
-        }
-        return 0
+
+        // Otherwise, continue to the next sort key
       }
 
       return 0
@@ -239,8 +236,8 @@ export default function SurveysPage() {
   const filteredRosters = getSortedRosters(
     rosters.filter((roster) => {
       const matchesSearch = roster.userName.toLowerCase().includes(searchTerm.toLowerCase())
-      // 연맹 탈퇴 여부는 API에서 제공하지 않으므로 필터링하지 않음
-      return matchesSearch
+      const matchesTeam = teamFilter === "all" || roster.intentType === teamFilter
+      return matchesSearch && matchesTeam
     }),
   )
 
@@ -574,14 +571,31 @@ export default function SurveysPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="relative mb-4">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="닉네임으로 검색..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="닉네임으로 검색..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="w-full sm:w-48">
+              <Select value={teamFilter} onValueChange={setTeamFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="선호팀 필터" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">모든 선호팀</SelectItem>
+                  {preferenceOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="sticky top-0 z-10 pt-2 pb-4 bg-background border-b mb-4">
@@ -693,21 +707,28 @@ export default function SurveysPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="hidden md:table-cell">ID</TableHead>
-                  <TableHead>닉네임</TableHead>
+                  <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => requestSort("userName")}>
+                    <div className="flex items-center">
+                      닉네임
+                      {sortConfig.keys.find((item) => item.key === "userName")?.direction === "ascending" ? (
+                        <ArrowUp className="ml-1 h-4 w-4" />
+                      ) : sortConfig.keys.find((item) => item.key === "userName")?.direction === "descending" ? (
+                        <ArrowDown className="ml-1 h-4 w-4" />
+                      ) : (
+                        <ArrowUpDown className="ml-1 h-4 w-4 opacity-30" />
+                      )}
+                    </div>
+                  </TableHead>
                   <TableHead
                     className="hidden sm:table-cell cursor-pointer hover:bg-muted/50"
                     onClick={() => requestSort("userLevel")}
                   >
                     <div className="flex items-center">
                       본부 레벨
-                      {sortConfig.key === "userLevel" ? (
-                        sortConfig.direction === "ascending" ? (
-                          <ArrowUp className="ml-1 h-4 w-4" />
-                        ) : sortConfig.direction === "descending" ? (
-                          <ArrowDown className="ml-1 h-4 w-4" />
-                        ) : (
-                          <ArrowUpDown className="ml-1 h-4 w-4" />
-                        )
+                      {sortConfig.keys.find((item) => item.key === "userLevel")?.direction === "ascending" ? (
+                        <ArrowUp className="ml-1 h-4 w-4" />
+                      ) : sortConfig.keys.find((item) => item.key === "userLevel")?.direction === "descending" ? (
+                        <ArrowDown className="ml-1 h-4 w-4" />
                       ) : (
                         <ArrowUpDown className="ml-1 h-4 w-4 opacity-30" />
                       )}
@@ -719,14 +740,10 @@ export default function SurveysPage() {
                   >
                     <div className="flex items-center">
                       전투력
-                      {sortConfig.key === "userPower" ? (
-                        sortConfig.direction === "ascending" ? (
-                          <ArrowUp className="ml-1 h-4 w-4" />
-                        ) : sortConfig.direction === "descending" ? (
-                          <ArrowDown className="ml-1 h-4 w-4" />
-                        ) : (
-                          <ArrowUpDown className="ml-1 h-4 w-4" />
-                        )
+                      {sortConfig.keys.find((item) => item.key === "userPower")?.direction === "ascending" ? (
+                        <ArrowUp className="ml-1 h-4 w-4" />
+                      ) : sortConfig.keys.find((item) => item.key === "userPower")?.direction === "descending" ? (
+                        <ArrowDown className="ml-1 h-4 w-4" />
                       ) : (
                         <ArrowUpDown className="ml-1 h-4 w-4 opacity-30" />
                       )}
@@ -735,14 +752,10 @@ export default function SurveysPage() {
                   <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => requestSort("intentType")}>
                     <div className="flex items-center">
                       선호 팀
-                      {sortConfig.key === "intentType" ? (
-                        sortConfig.direction === "ascending" ? (
-                          <ArrowUp className="ml-1 h-4 w-4" />
-                        ) : sortConfig.direction === "descending" ? (
-                          <ArrowDown className="ml-1 h-4 w-4" />
-                        ) : (
-                          <ArrowUpDown className="ml-1 h-4 w-4" />
-                        )
+                      {sortConfig.keys.find((item) => item.key === "intentType")?.direction === "ascending" ? (
+                        <ArrowUp className="ml-1 h-4 w-4" />
+                      ) : sortConfig.keys.find((item) => item.key === "intentType")?.direction === "descending" ? (
+                        <ArrowDown className="ml-1 h-4 w-4" />
                       ) : (
                         <ArrowUpDown className="ml-1 h-4 w-4 opacity-30" />
                       )}
