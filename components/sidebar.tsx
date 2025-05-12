@@ -3,30 +3,19 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import {
-  Users,
-  UserSquare,
-  LayoutDashboard,
-  Settings,
-  Menu,
-  X,
-  CalendarDays,
-  ClipboardList,
-  Shuffle,
-  ChevronRight,
-} from "lucide-react"
+import { Users, UserSquare, LayoutDashboard, Settings, Menu, X, Shuffle, ChevronRight, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 
-// hi yuri 
+// hi yuri
 const navItems = [
-  {
-    title: "대시보드",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
+  //{
+  //  title: "대시보드",
+  //  href: "/dashboard",
+  //  icon: LayoutDashboard,
+  //},
   {
     title: "유저 관리",
     href: "/users",
@@ -35,23 +24,13 @@ const navItems = [
   {
     title: "사막전 관리",
     href: "/events",
-    icon: CalendarDays,
-  },
-  {
-    title: "스쿼드 관리",
-    href: "/squads",
     icon: UserSquare,
   },
-  {
-    title: "사막전 결과",
-    href: "/desert-results",
-    icon: ClipboardList,
-  },
-  {
-    title: "설정",
-    href: "/settings",
-    icon: Settings,
-  },
+  //{
+  //  title: "설정",
+  //  href: "/settings",
+  //  icon: Settings,
+  //},
   {
     title: "연맹원 랜덤뽑기",
     href: "/lottery",
@@ -63,6 +42,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const isMobile = useMobile()
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   // 모바일에서 메뉴 선택 후 자동으로 닫기
   const handleNavigation = () => {
@@ -86,9 +66,19 @@ export default function Sidebar() {
   return (
     <>
       {/* 데스크톱 사이드바 */}
-      <div className="hidden md:flex h-full w-64 flex-col border-r bg-background">
-        <div className="p-4 border-b flex items-center">
-          <h1 className="text-xl font-bold">1242 ROKK</h1>
+      <div
+        className={`hidden md:flex h-full ${isSidebarCollapsed ? "w-16" : "w-64"} flex-col border-r bg-background transition-all duration-300`}
+      >
+        <div className="p-4 border-b flex items-center justify-between">
+          {!isSidebarCollapsed && <h1 className="text-xl font-bold">1242 ROKK</h1>}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className={isSidebarCollapsed ? "mx-auto" : ""}
+          >
+            {isSidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          </Button>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
@@ -99,9 +89,10 @@ export default function Sidebar() {
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent",
                 pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground",
               )}
+              title={item.title}
             >
               <item.icon className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{item.title}</span>
+              {!isSidebarCollapsed && <span className="truncate">{item.title}</span>}
             </Link>
           ))}
         </nav>
