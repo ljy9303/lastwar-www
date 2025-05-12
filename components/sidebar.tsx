@@ -20,6 +20,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 
+// hi yuri 
 const navItems = [
   {
     title: "대시보드",

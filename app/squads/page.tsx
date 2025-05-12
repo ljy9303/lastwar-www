@@ -46,6 +46,20 @@ const TEAM = {
   EXCLUDED: "EXCLUDED",
 }
 
+// Add position constants at the top of the file, after the TEAM constants
+const POSITIONS = [
+  { value: -1, label: "포지션 없음" },
+  { value: 0, label: "공격지원" },
+  { value: 1, label: "1시" },
+  { value: 2, label: "2시" },
+  { value: 4, label: "4시" },
+  { value: 5, label: "5시" },
+  { value: 7, label: "7시" },
+  { value: 8, label: "8시" },
+  { value: 10, label: "10시" },
+  { value: 11, label: "11시" },
+]
+
 export default function SquadsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -58,7 +72,8 @@ export default function SquadsPage() {
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({})
+  // Update the pendingChanges state to include position information
+  const [pendingChanges, setPendingChanges] = useState<Record<number, { desertType: string; position: number }>>({})
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
   const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -217,7 +232,7 @@ export default function SquadsPage() {
     }
   }
 
-  // 유저 이동 함수
+  // Update the moveUser function to include position information
   const moveUser = (userId: number, fromTeam: string, toTeam: string) => {
     if (isConfirmed) {
       toast({
@@ -263,54 +278,66 @@ export default function SquadsPage() {
       newSquads[toTeam].push(user)
       setSquads(newSquads)
 
-      // 변경 사항 기록
+      // 변경 사항 기록 - 현재 포지션 유지
+      const currentPosition = user.position || -1
       setPendingChanges((prev) => ({
         ...prev,
-        [userId]: toTeam,
+        [userId]: { desertType: toTeam, position: currentPosition },
       }))
     }
   }
 
-  // 유저 수정 다이얼로그 열기
-  const openEditDialog = (user: SquadMember) => {
-    setCurrentUser({
-      userSeq: user.userSeq,
-      name: user.userName,
-      level: user.userLevel,
-      power: user.userPower,
-      leave: false, // API에서 제공하지 않으므로 기본값 설정
-      id: 0, // 필요한 경우 적절한 값으로 설정
-      createdAt: "",
-      updatedAt: "",
-    })
-    setIsEditDialogOpen(true)
-  }
-
-  // 유저 수정 성공 처리
-  const handleEditSuccess = async (updatedUser: User) => {
-    setIsEditDialogOpen(false)
-
-    // 데이터 다시 로드
-    try {
-      const squadData = await getSquads(Number(eventId))
-      setSquadMembers(squadData)
-      organizeSquadsByTeam(squadData)
-
+  // Add a function to update user position
+  const updateUserPosition = (userId: number, position: number) => {
+    if (isConfirmed) {
       toast({
-        title: "수정 완료",
-        description: `${updatedUser.name}님의 정보가 수정되었습니다.`,
-      })
-    } catch (error) {
-      console.error("스쿼드 데이터 로드 실패:", error)
-      toast({
-        title: "오류 발생",
-        description: "데이터를 다시 불러오는 중 오류가 발생했습니다.",
+        title: "팀 확정됨",
+        description: "이미 확정된 팀은 수정할 수 없습니다.",
         variant: "destructive",
+      })
+      return
+    }
+
+    // Find the user in all squads
+    let userTeam = ""
+    let user: SquadMember | null = null
+
+    Object.entries(squads).forEach(([team, members]) => {
+      const foundUser = members.find((m) => m.userSeq === userId)
+      if (foundUser) {
+        userTeam = team
+        user = foundUser
+      }
+    })
+
+    if (user && userTeam) {
+      // Update the user's position in the local state
+      const newSquads = { ...squads }
+      const userIndex = newSquads[userTeam].findIndex((u) => u.userSeq === userId)
+      if (userIndex !== -1) {
+        newSquads[userTeam][userIndex] = { ...newSquads[userTeam][userIndex], position }
+        setSquads(newSquads)
+      }
+
+      // Record the change
+      setPendingChanges((prev) => {
+        // If there's already a pending change for this user, update it
+        if (prev[userId]) {
+          return {
+            ...prev,
+            [userId]: { ...prev[userId], position },
+          }
+        }
+        // Otherwise create a new pending change
+        return {
+          ...prev,
+          [userId]: { desertType: userTeam, position },
+        }
       })
     }
   }
 
-  // 변경 사항 저장
+  // Update the saveChanges function to include position information
   const saveChanges = async () => {
     if (Object.keys(pendingChanges).length === 0) return
 
@@ -318,9 +345,10 @@ export default function SquadsPage() {
     try {
       const request = {
         desertSeq: Number(eventId),
-        squads: Object.entries(pendingChanges).map(([userSeq, desertType]) => ({
+        rosters: Object.entries(pendingChanges).map(([userSeq, change]) => ({
           userSeq: Number(userSeq),
-          desertType,
+          desertType: change.desertType,
+          position: change.position,
         })),
       }
 
@@ -329,7 +357,11 @@ export default function SquadsPage() {
       // 로컬 상태 업데이트
       const updatedSquadMembers = squadMembers.map((member) => {
         if (pendingChanges[member.userSeq]) {
-          return { ...member, desertType: pendingChanges[member.userSeq] }
+          return {
+            ...member,
+            desertType: pendingChanges[member.userSeq].desertType,
+            position: pendingChanges[member.userSeq].position,
+          }
         }
         return member
       })
@@ -380,6 +412,12 @@ export default function SquadsPage() {
     return squads[teamType] || []
   }
 
+  // Update the getPositionLabel function to display position names
+  const getPositionLabel = (position: number) => {
+    const positionItem = POSITIONS.find((p) => p.value === position)
+    return positionItem ? positionItem.label : "포지션 없음"
+  }
+
   // 유저 카드 렌더링
   const renderUserCard = (user: SquadMember, team: string) => {
     const isPreferenceMatched =
@@ -387,6 +425,9 @@ export default function SquadsPage() {
       (team === TEAM.B_TEAM && user.intentType === "B_TEAM") ||
       (team === TEAM.RESERVE_A && user.intentType === "A_RESERVE") ||
       (team === TEAM.RESERVE_B && user.intentType === "B_RESERVE")
+
+    // Get the current position (from pending changes or user data)
+    const currentPosition = pendingChanges[user.userSeq] ? pendingChanges[user.userSeq].position : user.position || -1
 
     return (
       <div
@@ -403,6 +444,11 @@ export default function SquadsPage() {
             <Badge variant={isPreferenceMatched ? "outline" : "secondary"} size="sm">
               {getPreferenceLabel(user.intentType)}
             </Badge>
+            {currentPosition !== -1 && (
+              <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
+                {getPositionLabel(currentPosition)}
+              </Badge>
+            )}
           </div>
 
           {!isConfirmed && (
@@ -451,11 +497,68 @@ export default function SquadsPage() {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-7">
+                    포지션
+                    <ChevronDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {POSITIONS.map((position) => (
+                    <DropdownMenuItem
+                      key={position.value}
+                      onClick={() => updateUserPosition(user.userSeq, position.value)}
+                      className={currentPosition === position.value ? "bg-accent" : ""}
+                    >
+                      {position.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
       </div>
     )
+  }
+
+  // Function to open the edit dialog
+  const openEditDialog = (user: User) => {
+    setCurrentUser(user)
+    setIsEditDialogOpen(true)
+  }
+
+  // Function to handle successful edit
+  const handleEditSuccess = () => {
+    setIsEditDialogOpen(false)
+    setCurrentUser(null)
+    // Optionally refresh data or update local state
+    const loadData = async () => {
+      if (!eventId) return
+
+      setIsLoading(true)
+      try {
+        // 스쿼드 데이터 로드
+        const squadData = await getSquads(Number(eventId))
+        setSquadMembers(squadData)
+
+        // 스쿼드 데이터 기반으로 팀 배정
+        organizeSquadsByTeam(squadData)
+      } catch (error) {
+        console.error("데이터 로드 실패:", error)
+        toast({
+          title: "오류 발생",
+          description: "데이터를 불러오는 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
   }
 
   if (!eventId) {
@@ -647,79 +750,113 @@ export default function SquadsPage() {
                     <TableHead className="hidden sm:table-cell">레벨</TableHead>
                     <TableHead className="hidden sm:table-cell">전투력</TableHead>
                     <TableHead>선호</TableHead>
+                    <TableHead className="hidden md:table-cell">포지션</TableHead>
                     {!isConfirmed && <TableHead className="text-right">관리</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {getFilteredUsers(TEAM.EXCLUDED).length > 0 ? (
-                    getFilteredUsers(TEAM.EXCLUDED).map((user) => (
-                      <TableRow key={user.userSeq} id={`user-${user.userSeq}`}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{user.userName}</div>
-                            <div className="sm:hidden text-xs text-muted-foreground">
-                              Lv.{user.userLevel} | {user.userPower.toLocaleString()}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">{user.userLevel}</TableCell>
-                        <TableCell className="hidden sm:table-cell">{user.userPower.toLocaleString()}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" size="sm">
-                            {getPreferenceLabel(user.intentType)}
-                          </Badge>
-                        </TableCell>
-                        {!isConfirmed && (
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0"
-                                onClick={() => openEditDialog(user)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                                <span className="sr-only">수정</span>
-                              </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="outline" className="h-7">
-                                    팀 변경
-                                    <ChevronDown className="ml-1 h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.A_TEAM)}>
-                                    A팀
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.B_TEAM)}>
-                                    B팀
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.RESERVE_A)}
-                                  >
-                                    A팀 예비
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.RESERVE_B)}
-                                  >
-                                    B팀 예비
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.UNASSIGNED)}
-                                  >
-                                    모두 가능
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                    getFilteredUsers(TEAM.EXCLUDED).map((user) => {
+                      const userPosition = pendingChanges[user.userSeq]
+                        ? pendingChanges[user.userSeq].position
+                        : user.position || -1
+
+                      return (
+                        <TableRow key={user.userSeq} id={`user-${user.userSeq}`}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{user.userName}</div>
+                              <div className="sm:hidden text-xs text-muted-foreground">
+                                Lv.{user.userLevel} | {user.userPower.toLocaleString()}
+                              </div>
                             </div>
                           </TableCell>
-                        )}
-                      </TableRow>
-                    ))
+                          <TableCell className="hidden sm:table-cell">{user.userLevel}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{user.userPower.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" size="sm">
+                              {getPreferenceLabel(user.intentType)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {userPosition !== -1 ? getPositionLabel(userPosition) : "-"}
+                          </TableCell>
+                          {!isConfirmed && (
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => openEditDialog(user)}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                  <span className="sr-only">수정</span>
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="sm" variant="outline" className="h-7">
+                                      팀 변경
+                                      <ChevronDown className="ml-1 h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.A_TEAM)}
+                                    >
+                                      A팀
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.B_TEAM)}
+                                    >
+                                      B팀
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.RESERVE_A)}
+                                    >
+                                      A팀 예비
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.RESERVE_B)}
+                                    >
+                                      B팀 예비
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.UNASSIGNED)}
+                                    >
+                                      모두 가능
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="sm" variant="outline" className="h-7">
+                                      포지션
+                                      <ChevronDown className="ml-1 h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {POSITIONS.map((position) => (
+                                      <DropdownMenuItem
+                                        key={position.value}
+                                        onClick={() => updateUserPosition(user.userSeq, position.value)}
+                                        className={userPosition === position.value ? "bg-accent" : ""}
+                                      >
+                                        {position.label}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      )
+                    })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={!isConfirmed ? 5 : 4} className="text-center py-4">
+                      <TableCell colSpan={!isConfirmed ? 6 : 5} className="text-center py-4">
                         미배정 유저가 없습니다.
                       </TableCell>
                     </TableRow>
@@ -740,35 +877,46 @@ export default function SquadsPage() {
           <div className="max-h-[400px] overflow-y-auto">
             {selectedTeamType && getTeamMembers(selectedTeamType).length > 0 ? (
               <div className="space-y-2">
-                {getTeamMembers(selectedTeamType).map((member) => (
-                  <div key={member.userSeq} className="flex justify-between items-center p-2 border-b">
-                    <div>
-                      <div className="font-medium">{member.userName}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Lv.{member.userLevel} | {member.userPower.toLocaleString()}
+                {getTeamMembers(selectedTeamType).map((member) => {
+                  const memberPosition = pendingChanges[member.userSeq]
+                    ? pendingChanges[member.userSeq].position
+                    : member.position || -1
+
+                  return (
+                    <div key={member.userSeq} className="flex justify-between items-center p-2 border-b">
+                      <div>
+                        <div className="font-medium">{member.userName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Lv.{member.userLevel} | {member.userPower.toLocaleString()}
+                          {memberPosition !== -1 && (
+                            <span className="ml-2 text-blue-600 dark:text-blue-400">
+                              {getPositionLabel(memberPosition)}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsTeamMembersDialogOpen(false)
+                          // 테이블에서 해당 유저로 스크롤
+                          const userRow = document.getElementById(`user-${member.userSeq}`)
+                          if (userRow) {
+                            userRow.scrollIntoView({ behavior: "smooth", block: "center" })
+                            // 하이라이트 효과
+                            userRow.classList.add("bg-accent")
+                            setTimeout(() => {
+                              userRow.classList.remove("bg-accent")
+                            }, 2000)
+                          }
+                        }}
+                      >
+                        찾기
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setIsTeamMembersDialogOpen(false)
-                        // 테이블에서 해당 유저로 스크롤
-                        const userRow = document.getElementById(`user-${member.userSeq}`)
-                        if (userRow) {
-                          userRow.scrollIntoView({ behavior: "smooth", block: "center" })
-                          // 하이라이트 효과
-                          userRow.classList.add("bg-accent")
-                          setTimeout(() => {
-                            userRow.classList.remove("bg-accent")
-                          }, 2000)
-                        }
-                      }}
-                    >
-                      찾기
-                    </Button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">멤버가 없습니다</div>

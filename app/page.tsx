@@ -39,8 +39,8 @@ export default function Home() {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">사막전 이벤트 매치 관리 시스템</h1>
-      <p className="text-muted-foreground mb-8">게임 사막전 이벤트 매치를 효율적으로 관리하기 위한 시스템입니다.</p>
+      <h1 className="text-3xl font-bold mb-6">1242 ROKK 이벤트 관리 시스템</h1>
+      <p className="text-muted-foreground mb-8">이벤트 매치를 효율적으로 관리하기 위한 시스템입니다.</p>
 
       {/* 메인 페이지의 카드 그리드를 모바일에 맞게 조정합니다. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

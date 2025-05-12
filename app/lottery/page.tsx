@@ -23,7 +23,7 @@ export default function LotteryPage() {
   const [winners, setWinners] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAnimating, setIsAnimating] = useState(false)
-  const [drawCount, setDrawCount] = useState<number>(1)
+  const [drawCount, setDrawCount] = useState<number | "">("")
   const [activeTab, setActiveTab] = useState("selection")
 
   const MAX_SELECTIONS = 50
@@ -62,7 +62,7 @@ export default function LotteryPage() {
       return
     }
 
-    if (drawCount <= 0 || drawCount > selectedUsers.length) {
+    if (drawCount === "" || drawCount <= 0 || drawCount > selectedUsers.length) {
       toast({
         title: "유효하지 않은 추첨 인원",
         description: `추첨 인원은 1명에서 ${selectedUsers.length}명 사이여야 합니다.`,
@@ -91,7 +91,7 @@ export default function LotteryPage() {
   // 추첨 인원 변경 처리
   const handleDrawCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value === "" ? "" : Number.parseInt(e.target.value, 10)
-    setDrawCount(value === "" ? 1 : isNaN(value) ? 1 : value)
+    setDrawCount(value === "" ? "" : isNaN(value) ? "" : value)
   }
 
   if (isLoading) {
@@ -134,6 +134,7 @@ export default function LotteryPage() {
                     selectedUsers={selectedUsers}
                     onSelectUsers={setSelectedUsers}
                     maxSelections={MAX_SELECTIONS}
+                    enableListItemClick={true}
                   />
                 </CardContent>
               </Card>
@@ -146,36 +147,58 @@ export default function LotteryPage() {
                   <CardDescription>추첨 인원 및 옵션을 설정하세요</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="drawCount">추첨 인원</Label>
-                    <Input
-                      id="drawCount"
-                      type="number"
-                      min={1}
-                      max={Math.min(selectedUsers.length || 1, MAX_DRAW_COUNT)}
-                      value={drawCount}
-                      onChange={handleDrawCountChange}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      선택된 {selectedUsers.length}명 중 {drawCount}명을 추첨합니다.
-                    </p>
-                  </div>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      if (
+                        !(
+                          selectedUsers.length === 0 ||
+                          drawCount === "" ||
+                          drawCount <= 0 ||
+                          drawCount > selectedUsers.length
+                        )
+                      ) {
+                        startLottery()
+                      }
+                    }}
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="drawCount">추첨 인원</Label>
+                      <Input
+                        id="drawCount"
+                        type="number"
+                        min={1}
+                        max={Math.min(selectedUsers.length || 1, MAX_DRAW_COUNT)}
+                        value={drawCount}
+                        onChange={handleDrawCountChange}
+                        placeholder="추첨할 인원 수를 입력하세요"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        선택된 {selectedUsers.length}명 중 {drawCount}명을 추첨합니다.
+                      </p>
+                    </div>
 
-                  <div className="pt-4">
-                    <Button
-                      onClick={startLottery}
-                      disabled={selectedUsers.length === 0 || drawCount <= 0 || drawCount > selectedUsers.length}
-                      className="w-full"
-                    >
-                      <Shuffle className="mr-2 h-4 w-4" />
-                      추첨 시작
-                    </Button>
-                  </div>
+                    <div className="pt-4">
+                      <Button
+                        type="submit"
+                        disabled={
+                          selectedUsers.length === 0 ||
+                          drawCount === "" ||
+                          drawCount <= 0 ||
+                          drawCount > selectedUsers.length
+                        }
+                        className="w-full"
+                      >
+                        <Shuffle className="mr-2 h-4 w-4" />
+                        추첨 시작
+                      </Button>
+                    </div>
+                  </form>
                 </CardContent>
               </Card>
 
               <div className="mt-6">
-                <Card>
+                <Card className="h-[62.5vh]">
                   <CardHeader>
                     <CardTitle>선택된 유저</CardTitle>
                     <CardDescription>
@@ -183,7 +206,7 @@ export default function LotteryPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="max-h-[200px] overflow-y-auto space-y-2">
+                    <div className="max-h-[52.5vh] overflow-y-auto space-y-2">
                       {selectedUsers.length > 0 ? (
                         selectedUsers.map((user) => (
                           <div key={user.userSeq} className="text-sm p-2 border-b">

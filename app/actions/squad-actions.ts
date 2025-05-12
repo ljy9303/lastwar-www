@@ -3,6 +3,7 @@
 import { fetchFromAPI } from "@/lib/api-service"
 import { revalidatePath } from "next/cache"
 
+// Update the SquadMember interface to include position
 export interface SquadMember {
   desertSeq: number
   userSeq: number
@@ -17,9 +18,11 @@ export interface SquadMember {
   position: number
 }
 
+// Update the SquadUpdateRequest interface to include position
 export interface SquadUpdateRequest {
   userSeq: number
   desertType: string
+  position?: number
 }
 
 export interface SquadSaveRequest {

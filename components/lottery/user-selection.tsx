@@ -23,9 +23,16 @@ interface UserSelectionProps {
   selectedUsers: User[]
   onSelectUsers: (users: User[]) => void
   maxSelections: number
+  enableListItemClick?: boolean
 }
 
-export function UserSelection({ users, selectedUsers, onSelectUsers, maxSelections }: UserSelectionProps) {
+export function UserSelection({
+  users,
+  selectedUsers,
+  onSelectUsers,
+  maxSelections,
+  enableListItemClick = true,
+}: UserSelectionProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false)
   const [filters, setFilters] = useState({
@@ -198,7 +205,7 @@ export function UserSelection({ users, selectedUsers, onSelectUsers, maxSelectio
       </div>
 
       <div className="border rounded-md">
-        <div className="max-h-[400px] overflow-y-auto">
+        <div className="max-h-[70vh] overflow-y-auto">
           {filteredUsers.length > 0 ? (
             <div className="divide-y">
               {filteredUsers.map((user) => {
@@ -210,13 +217,19 @@ export function UserSelection({ users, selectedUsers, onSelectUsers, maxSelectio
                     key={user.userSeq}
                     className={`flex items-center p-3 hover:bg-accent/50 ${
                       isSelected ? "bg-primary/10" : ""
-                    } ${isDisabled ? "opacity-50" : ""}`}
+                    } ${isDisabled ? "opacity-50" : ""} ${!isDisabled || isSelected ? "cursor-pointer" : ""}`}
+                    onClick={() => {
+                      if (enableListItemClick && (!isDisabled || isSelected)) {
+                        toggleUserSelection(user)
+                      }
+                    }}
                   >
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => toggleUserSelection(user)}
                       disabled={isDisabled && !isSelected}
                       className="mr-3"
+                      onClick={(e) => e.stopPropagation()} // Prevent double-toggling when clicking the checkbox directly
                     />
                     <div className="flex-1">
                       <div className="font-medium">{user.name}</div>
