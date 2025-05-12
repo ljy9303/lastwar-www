@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, ArrowLeft, Save, AlertTriangle, Loader2 } from "lucide-react"
+import { Search, ArrowLeft, Save, AlertTriangle, Loader2, Pencil } from "lucide-react"
 import Link from "next/link"
 import {
   AlertDialog,
@@ -25,6 +24,17 @@ import { getSquads, saveSquads, type SquadMember } from "@/app/actions/squad-act
 import { getDesertById } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ChevronDown } from "lucide-react"
+import { UserForm } from "@/components/user/user-form"
+import type { User } from "@/types/user"
 
 // 팀 상수
 const TEAM = {
@@ -51,6 +61,8 @@ export default function SquadsPage() {
   const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({})
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
   const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   // 팀 배정 상태
   const [squads, setSquads] = useState({
@@ -259,6 +271,45 @@ export default function SquadsPage() {
     }
   }
 
+  // 유저 수정 다이얼로그 열기
+  const openEditDialog = (user: SquadMember) => {
+    setCurrentUser({
+      userSeq: user.userSeq,
+      name: user.userName,
+      level: user.userLevel,
+      power: user.userPower,
+      leave: false, // API에서 제공하지 않으므로 기본값 설정
+      id: 0, // 필요한 경우 적절한 값으로 설정
+      createdAt: "",
+      updatedAt: "",
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  // 유저 수정 성공 처리
+  const handleEditSuccess = async (updatedUser: User) => {
+    setIsEditDialogOpen(false)
+
+    // 데이터 다시 로드
+    try {
+      const squadData = await getSquads(Number(eventId))
+      setSquadMembers(squadData)
+      organizeSquadsByTeam(squadData)
+
+      toast({
+        title: "수정 완료",
+        description: `${updatedUser.name}님의 정보가 수정되었습니다.`,
+      })
+    } catch (error) {
+      console.error("스쿼드 데이터 로드 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "데이터를 다시 불러오는 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    }
+  }
+
   // 변경 사항 저장
   const saveChanges = async () => {
     if (Object.keys(pendingChanges).length === 0) return
@@ -356,49 +407,50 @@ export default function SquadsPage() {
 
           {!isConfirmed && (
             <div className="flex flex-wrap gap-1 mt-2 sm:mt-0">
-              {team !== TEAM.A_TEAM && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
-                  onClick={() => moveUser(user.userSeq, team, TEAM.A_TEAM)}
-                >
-                  A팀
-                </Button>
-              )}
-
-              {team !== TEAM.B_TEAM && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
-                  onClick={() => moveUser(user.userSeq, team, TEAM.B_TEAM)}
-                >
-                  B팀
-                </Button>
-              )}
-
-              {team !== TEAM.RESERVE_A && team !== TEAM.RESERVE_B && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2"
-                  onClick={() => moveUser(user.userSeq, team, team === TEAM.A_TEAM ? TEAM.RESERVE_A : TEAM.RESERVE_B)}
-                >
-                  예비
-                </Button>
-              )}
-
-              {team !== TEAM.EXCLUDED && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-destructive"
-                  onClick={() => moveUser(user.userSeq, team, TEAM.EXCLUDED)}
-                >
-                  제외
-                </Button>
-              )}
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditDialog(user)}>
+                <Pencil className="h-3 w-3" />
+                <span className="sr-only">수정</span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" className="h-7">
+                    팀 변경
+                    <ChevronDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {team !== TEAM.A_TEAM && (
+                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.A_TEAM)}>A팀</DropdownMenuItem>
+                  )}
+                  {team !== TEAM.B_TEAM && (
+                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.B_TEAM)}>B팀</DropdownMenuItem>
+                  )}
+                  {team !== TEAM.RESERVE_A && (
+                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.RESERVE_A)}>
+                      A팀 예비
+                    </DropdownMenuItem>
+                  )}
+                  {team !== TEAM.RESERVE_B && (
+                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.RESERVE_B)}>
+                      B팀 예비
+                    </DropdownMenuItem>
+                  )}
+                  {team !== TEAM.UNASSIGNED && (
+                    <DropdownMenuItem onClick={() => moveUser(user.userSeq, team, TEAM.UNASSIGNED)}>
+                      모두 가능
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  {team !== TEAM.EXCLUDED && (
+                    <DropdownMenuItem
+                      onClick={() => moveUser(user.userSeq, team, TEAM.EXCLUDED)}
+                      className="text-destructive"
+                    >
+                      제외
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
@@ -529,67 +581,152 @@ export default function SquadsPage() {
           </CardContent>
         </Card>
 
-        {/* 예비 */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>예비 인원</CardTitle>
-            <CardDescription>A팀/B팀 예비 인원</CardDescription>
+        {/* A팀 예비 */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <CardTitle>A팀 예비 ({squads[TEAM.RESERVE_A].length}/10)</CardTitle>
+              {squads[TEAM.RESERVE_A].length > 10 && <Badge variant="destructive">초과</Badge>}
+            </div>
+            <CardDescription>A팀 예비 멤버</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Tabs defaultValue={TEAM.RESERVE_A}>
-              <TabsList className="mb-4">
-                <TabsTrigger value={TEAM.RESERVE_A}>A팀 예비 ({squads[TEAM.RESERVE_A].length}/10)</TabsTrigger>
-                <TabsTrigger value={TEAM.RESERVE_B}>B팀 예비 ({squads[TEAM.RESERVE_B].length}/10)</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value={TEAM.RESERVE_A} className="max-h-[300px] overflow-y-auto">
-                {getFilteredUsers(TEAM.RESERVE_A).length > 0 ? (
-                  getFilteredUsers(TEAM.RESERVE_A).map((user) => renderUserCard(user, TEAM.RESERVE_A))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
-                )}
-              </TabsContent>
-
-              <TabsContent value={TEAM.RESERVE_B} className="max-h-[300px] overflow-y-auto">
-                {getFilteredUsers(TEAM.RESERVE_B).length > 0 ? (
-                  getFilteredUsers(TEAM.RESERVE_B).map((user) => renderUserCard(user, TEAM.RESERVE_B))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
-                )}
-              </TabsContent>
-            </Tabs>
+          <CardContent className="max-h-[300px] overflow-y-auto">
+            {getFilteredUsers(TEAM.RESERVE_A).length > 0 ? (
+              getFilteredUsers(TEAM.RESERVE_A).map((user) => renderUserCard(user, TEAM.RESERVE_A))
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
+            )}
           </CardContent>
         </Card>
 
-        {/* 미배정 & 제외 */}
+        {/* B팀 예비 */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex justify-between items-center">
+              <CardTitle>B팀 예비 ({squads[TEAM.RESERVE_B].length}/10)</CardTitle>
+              {squads[TEAM.RESERVE_B].length > 10 && <Badge variant="destructive">초과</Badge>}
+            </div>
+            <CardDescription>B팀 예비 멤버</CardDescription>
+          </CardHeader>
+          <CardContent className="max-h-[300px] overflow-y-auto">
+            {getFilteredUsers(TEAM.RESERVE_B).length > 0 ? (
+              getFilteredUsers(TEAM.RESERVE_B).map((user) => renderUserCard(user, TEAM.RESERVE_B))
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 모두 가능 */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>기타 인원</CardTitle>
-            <CardDescription>미배정 및 제외 인원</CardDescription>
+            <CardTitle>모두 가능</CardTitle>
+            <CardDescription>A팀/B팀 모두 참여 가능한 인원</CardDescription>
+          </CardHeader>
+          <CardContent className="max-h-[300px] overflow-y-auto">
+            {getFilteredUsers(TEAM.UNASSIGNED).length > 0 ? (
+              getFilteredUsers(TEAM.UNASSIGNED).map((user) => renderUserCard(user, TEAM.UNASSIGNED))
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">모두 가능 유저가 없습니다.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 미배정 인원 */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>미배정 인원</CardTitle>
+            <CardDescription>참여 제외된 인원</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue={TEAM.UNASSIGNED}>
-              <TabsList className="mb-4">
-                <TabsTrigger value={TEAM.UNASSIGNED}>미배정 ({squads[TEAM.UNASSIGNED].length})</TabsTrigger>
-                <TabsTrigger value={TEAM.EXCLUDED}>제외 ({squads[TEAM.EXCLUDED].length})</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value={TEAM.UNASSIGNED} className="max-h-[300px] overflow-y-auto">
-                {getFilteredUsers(TEAM.UNASSIGNED).length > 0 ? (
-                  getFilteredUsers(TEAM.UNASSIGNED).map((user) => renderUserCard(user, TEAM.UNASSIGNED))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">미배정 유저가 없습니다.</div>
-                )}
-              </TabsContent>
-
-              <TabsContent value={TEAM.EXCLUDED} className="max-h-[300px] overflow-y-auto">
-                {getFilteredUsers(TEAM.EXCLUDED).length > 0 ? (
-                  getFilteredUsers(TEAM.EXCLUDED).map((user) => renderUserCard(user, TEAM.EXCLUDED))
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">제외된 유저가 없습니다.</div>
-                )}
-              </TabsContent>
-            </Tabs>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>닉네임</TableHead>
+                    <TableHead className="hidden sm:table-cell">레벨</TableHead>
+                    <TableHead className="hidden sm:table-cell">전투력</TableHead>
+                    <TableHead>선호</TableHead>
+                    {!isConfirmed && <TableHead className="text-right">관리</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getFilteredUsers(TEAM.EXCLUDED).length > 0 ? (
+                    getFilteredUsers(TEAM.EXCLUDED).map((user) => (
+                      <TableRow key={user.userSeq} id={`user-${user.userSeq}`}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{user.userName}</div>
+                            <div className="sm:hidden text-xs text-muted-foreground">
+                              Lv.{user.userLevel} | {user.userPower.toLocaleString()}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">{user.userLevel}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{user.userPower.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" size="sm">
+                            {getPreferenceLabel(user.intentType)}
+                          </Badge>
+                        </TableCell>
+                        {!isConfirmed && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => openEditDialog(user)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                                <span className="sr-only">수정</span>
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-7">
+                                    팀 변경
+                                    <ChevronDown className="ml-1 h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.A_TEAM)}>
+                                    A팀
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.B_TEAM)}>
+                                    B팀
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.RESERVE_A)}
+                                  >
+                                    A팀 예비
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.RESERVE_B)}
+                                  >
+                                    B팀 예비
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => moveUser(user.userSeq, TEAM.EXCLUDED, TEAM.UNASSIGNED)}
+                                  >
+                                    모두 가능
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={!isConfirmed ? 5 : 4} className="text-center py-4">
+                        미배정 유저가 없습니다.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -639,6 +776,26 @@ export default function SquadsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 유저 수정 다이얼로그 */}
+      {currentUser && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>유저 정보 수정</DialogTitle>
+            </DialogHeader>
+            <UserForm
+              mode="edit"
+              user={currentUser}
+              onSuccess={handleEditSuccess}
+              onCancel={() => {
+                setIsEditDialogOpen(false)
+                setCurrentUser(null)
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
