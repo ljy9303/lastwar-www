@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogTrigger } from "@/components/ui/dialog"
+
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +13,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -514,9 +515,9 @@ export default function EventsPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link href={`/post-events?eventId=${desert.desertSeq}`}>
+                              <Link href={`/desert-results?eventId=${desert.desertSeq}`}>
                                 <ClipboardList className="h-4 w-4 mr-2" />
-                                사후관리
+                                사막전 결과
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
@@ -542,9 +543,9 @@ export default function EventsPage() {
                             </Link>
                           </Button>
                           <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/post-events?eventId=${desert.desertSeq}`}>
+                            <Link href={`/desert-results?eventId=${desert.desertSeq}`}>
                               <ClipboardList className="h-4 w-4 mr-1" />
-                              사후관리
+                              사막전 결과
                             </Link>
                           </Button>
                           <Button variant="ghost" size="sm" asChild>

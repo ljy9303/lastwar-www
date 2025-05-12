@@ -7,7 +7,7 @@ import { Users, History, CheckCircle, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-// 임시 이트 데이터
+// 임시 이�����트 데이터
 // 이거 기준
 const initialEvents = [
   {
@@ -65,7 +65,7 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto">
-      <h1 className="text-3xl font-bold mb-6">1242 ROKK 이벤트 관리 시스템</h1>
+      <h1 className="text-3xl font-bold mb-6">대시보드</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <Card>

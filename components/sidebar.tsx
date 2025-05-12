@@ -42,8 +42,8 @@ const navItems = [
     icon: UserSquare,
   },
   {
-    title: "사후 관리",
-    href: "/post-events",
+    title: "사막전 결과",
+    href: "/desert-results",
     icon: ClipboardList,
   },
   {

@@ -240,10 +240,10 @@ export default function EventDetailPage({ params }) {
                   스쿼드 관리
                 </Button>
               </Link>
-              <Link href={`/post-events?eventId=${desert.desertSeq}`}>
+              <Link href={`/desert-results?eventId=${desert.desertSeq}`}>
                 <Button variant="outline" className="w-full justify-start">
                   <ClipboardList className="h-4 w-4 mr-2" />
-                  사후 관리
+                  사막전 결과
                 </Button>
               </Link>
             </div>
