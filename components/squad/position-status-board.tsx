@@ -282,7 +282,7 @@ export function PositionStatusBoard({
                 ) : (
                   <ChevronRight className="h-4 w-4 mr-1" />
                 )}
-                A팀 포지션 현황
+                A조 포지션 현황
                 <Badge className="ml-2 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                   {teamAAssignedCount}/{teamAMembers?.length || 0}명
                 </Badge>
@@ -327,7 +327,7 @@ export function PositionStatusBoard({
                 ) : (
                   <ChevronRight className="h-4 w-4 mr-1" />
                 )}
-                B팀 포지션 현황
+                B조 포지션 현황
                 <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                   {teamBAssignedCount}/{teamBMembers?.length || 0}명
                 </Badge>

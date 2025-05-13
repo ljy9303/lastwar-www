@@ -67,10 +67,11 @@ const POSITIONS = [
 ]
 
 // Function to sort users based on level and name
-const sortUsers = (users: SquadMember[]): SquadMember[] => {
+const sortUsers = (users: SquadMember[], levelDirection: "asc" | "desc" = "desc"): SquadMember[] => {
   return [...users].sort((a, b) => {
-    // First, sort by userLevel in descending order
-    const levelComparison = b.userLevel - a.userLevel
+    // Sort by userLevel based on direction
+    const levelComparison = levelDirection === "desc" ? b.userLevel - a.userLevel : a.userLevel - b.userLevel
+
     if (levelComparison !== 0) {
       return levelComparison
     }
@@ -232,7 +233,7 @@ export default function SquadsPage() {
 
     // 각 팀을 정렬
     Object.keys(initialSquads).forEach((team) => {
-      initialSquads[team] = sortUsers(initialSquads[team])
+      initialSquads[team] = sortUsers(initialSquads[team], sortLevelDirection)
     })
 
     setSquads(initialSquads)
@@ -320,7 +321,7 @@ export default function SquadsPage() {
         } else {
           newSquads[toTeam].push(user)
           // 미배정이 아닌 다른 팀으로 이동할 때만 정렬
-          newSquads[toTeam] = sortUsers(newSquads[toTeam])
+          newSquads[toTeam] = sortUsers(newSquads[toTeam], sortLevelDirection)
         }
 
         setSquads(newSquads)
@@ -343,7 +344,7 @@ export default function SquadsPage() {
         }))
       }
     },
-    [squads, toast],
+    [squads, toast, sortLevelDirection],
   )
 
   // Add a function to update user position
@@ -758,8 +759,20 @@ export default function SquadsPage() {
   }
 
   // Function to open the edit dialog
-  const openEditDialog = (user: User) => {
-    setCurrentUser(user)
+  const openEditDialog = (user: SquadMember) => {
+    // SquadMember를 User 타입으로 변환
+    const userForEdit: User = {
+      userSeq: user.userSeq,
+      id: user.userSeq, // id 필드 추가
+      name: user.userName,
+      level: user.userLevel,
+      power: user.userPower,
+      leave: false, // 기본값 설정
+      createdAt: "", // 기본값 설정
+      updatedAt: "", // 기본값 설정
+    }
+
+    setCurrentUser(userForEdit)
     setIsEditDialogOpen(true)
   }
 
@@ -843,7 +856,18 @@ export default function SquadsPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setSortLevelDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+                const newDirection = sortLevelDirection === "asc" ? "desc" : "asc"
+                setSortLevelDirection(newDirection)
+
+                // 모든 팀에 새 정렬 방향 적용
+                const newSquads = { ...squads }
+                Object.keys(newSquads).forEach((team) => {
+                  if (team !== TEAM.UNASSIGNED) {
+                    // 미배정 팀은 정렬하지 않음
+                    newSquads[team] = sortUsers(newSquads[team], newDirection)
+                  }
+                })
+                setSquads(newSquads)
               }}
               className="h-8 px-2"
             >
