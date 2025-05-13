@@ -614,6 +614,27 @@ export default function SquadsPage() {
     return "포지션 없음"
   }
 
+  // 포지션별 인원 수 계산
+  const countMembersByPosition = (team: string) => {
+    const members = squads[team] || []
+    const positionCounts: Record<number, number> = {}
+
+    // 포지션 카운트 초기화
+    POSITIONS.forEach((pos) => {
+      positionCounts[pos.value] = 0
+    })
+
+    // 각 멤버의 포지션 카운트
+    members.forEach((member) => {
+      const position = member.position !== undefined ? member.position : -1
+      if (positionCounts[position] !== undefined) {
+        positionCounts[position]++
+      }
+    })
+
+    return positionCounts
+  }
+
   const teamMenuItems = useMemo(() => {
     return (team: string, userSeq: number, intentType: string) => (
       <>
@@ -740,15 +761,27 @@ export default function SquadsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {POSITIONS.map((position) => (
-                    <DropdownMenuItem
-                      key={position.value}
-                      onClick={() => updateUserPosition(user.userSeq, position.value)}
-                      className={currentPosition === position.value ? "bg-accent" : ""}
-                    >
-                      {position.value !== -1 ? `${position.value}시 - ${position.label}` : position.label}
-                    </DropdownMenuItem>
-                  ))}
+                  {(() => {
+                    // 현재 팀의 포지션별 인원 수 계산
+                    const positionCounts = countMembersByPosition(team)
+
+                    return POSITIONS.map((position) => (
+                      <DropdownMenuItem
+                        key={position.value}
+                        onClick={() => updateUserPosition(user.userSeq, position.value)}
+                        className={currentPosition === position.value ? "bg-accent" : ""}
+                      >
+                        <div className="flex justify-between w-full">
+                          <span>
+                            {position.value !== -1 ? `${position.value}시 - ${position.label}` : position.label}
+                          </span>
+                          <Badge variant="outline" className="ml-2">
+                            {positionCounts[position.value]}명
+                          </Badge>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  })()}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

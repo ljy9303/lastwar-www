@@ -199,9 +199,9 @@ export function PositionStatusBoard({
       if (members.length === 0) return null
 
       return (
-        <div key={position.value} className="mb-4 p-3 rounded-lg bg-background border">
-          <h4 className="text-sm font-medium flex items-center mb-2">
-            <div className="mr-2 flex items-center justify-center w-6 h-6 rounded-full bg-muted">{position.icon}</div>
+        <div key={position.value} className="mb-2 p-2 rounded-lg bg-background border">
+          <h4 className="text-xs font-medium flex items-center mb-1">
+            <div className="mr-1 flex items-center justify-center w-5 h-5 rounded-full bg-muted">{position.icon}</div>
             <span className="font-semibold">{position.label}</span>
             <Badge variant="outline" className="ml-2">
               {members.length}명
@@ -210,14 +210,14 @@ export function PositionStatusBoard({
               <span className="text-muted-foreground ml-1 text-xs">- {position.description}</span>
             )}
           </h4>
-          <div className="pl-8 grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <div className="pl-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
             {members.map((member) => (
               <div
                 key={member.userSeq}
-                className="flex items-center py-1 px-2 rounded hover:bg-muted/50 transition-colors"
+                className="flex items-center py-0.5 px-1 rounded hover:bg-muted/50 transition-colors text-sm"
               >
                 <span className="font-medium">{member.userName}</span>
-                <span className="text-xs text-muted-foreground ml-2">Lv.{member.userLevel}</span>
+                <span className="text-xs text-muted-foreground ml-1">Lv.{member.userLevel}</span>
               </div>
             ))}
           </div>
@@ -231,9 +231,9 @@ export function PositionStatusBoard({
     if (reserveMembers.length === 0) return null
 
     return (
-      <div className="mb-4 p-3 rounded-lg bg-background border">
-        <h4 className="text-sm font-medium flex items-center mb-2">
-          <div className="mr-2 flex items-center justify-center w-6 h-6 rounded-full bg-muted">
+      <div className="mb-2 p-2 rounded-lg bg-background border">
+        <h4 className="text-xs font-medium flex items-center mb-1">
+          <div className="mr-1 flex items-center justify-center w-5 h-5 rounded-full bg-muted">
             <Swords className="h-4 w-4" />
           </div>
           <span className="font-semibold">예비 출정</span>
@@ -241,14 +241,14 @@ export function PositionStatusBoard({
             {reserveMembers.length}명
           </Badge>
         </h4>
-        <div className="pl-8 grid grid-cols-1 sm:grid-cols-2 gap-1">
+        <div className="pl-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
           {reserveMembers.map((member) => (
             <div
               key={member.userSeq}
-              className="flex items-center py-1 px-2 rounded hover:bg-muted/50 transition-colors"
+              className="flex items-center py-0.5 px-1 rounded hover:bg-muted/50 transition-colors text-sm"
             >
               <span className="font-medium">{member.userName}</span>
-              <span className="text-xs text-muted-foreground ml-2">Lv.{member.userLevel}</span>
+              <span className="text-xs text-muted-foreground ml-1">Lv.{member.userLevel}</span>
             </div>
           ))}
         </div>
