@@ -6,7 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, ArrowLeft, Save, AlertTriangle, Loader2, Pencil, ChevronDown, X, CheckCircle } from "lucide-react"
+import {
+  Search,
+  ArrowLeft,
+  Save,
+  AlertTriangle,
+  Loader2,
+  Pencil,
+  ChevronDown,
+  X,
+  CheckCircle,
+  Clipboard,
+} from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getSquads, saveSquads, type SquadMember } from "@/app/actions/squad-actions"
@@ -257,6 +268,33 @@ export default function SquadsPage() {
       default:
         return team
     }
+  }
+
+  // 클립보드에 복사할 텍스트 생성
+  const generateClipboardText = (team: string) => {
+    const members = [...squads[team]].sort((a, b) => b.userLevel - a.userLevel)
+    return members.map((member, index) => `${index + 1}. ${member.userName} (${member.userLevel})`).join("\n")
+  }
+
+  // 클립보드 복사 함수
+  const copyToClipboard = (team: string) => {
+    const text = generateClipboardText(team)
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        toast({
+          title: "클립보드에 복사됨",
+          description: `${getTeamName(team)} 멤버 목록이 클립보드에 복사되었습니다.`,
+        })
+      })
+      .catch((err) => {
+        toast({
+          title: "복사 실패",
+          description: "클립보드 복사 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+        console.error("클립보드 복사 실패:", err)
+      })
   }
 
   // 선호도 표시
@@ -963,7 +1001,19 @@ export default function SquadsPage() {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle>A조 ({squads[TEAM.A_TEAM].length}/20)</CardTitle>
-              {squads[TEAM.A_TEAM].length > 20 && <Badge variant="destructive">초과</Badge>}
+              <div className="flex items-center gap-2">
+                {squads[TEAM.A_TEAM].length > 20 && <Badge variant="destructive">초과</Badge>}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => copyToClipboard(TEAM.A_TEAM)}
+                  title="멤버 목록 복사"
+                >
+                  <Clipboard className="h-4 w-4" />
+                  <span className="sr-only">멤버 목록 복사</span>
+                </Button>
+              </div>
             </div>
             <CardDescription>A조 출전 멤버</CardDescription>
           </CardHeader>
@@ -981,7 +1031,19 @@ export default function SquadsPage() {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle>B조 ({squads[TEAM.B_TEAM].length}/20)</CardTitle>
-              {squads[TEAM.B_TEAM].length > 20 && <Badge variant="destructive">초과</Badge>}
+              <div className="flex items-center gap-2">
+                {squads[TEAM.B_TEAM].length > 20 && <Badge variant="destructive">초과</Badge>}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => copyToClipboard(TEAM.B_TEAM)}
+                  title="멤버 목록 복사"
+                >
+                  <Clipboard className="h-4 w-4" />
+                  <span className="sr-only">멤버 목록 복사</span>
+                </Button>
+              </div>
             </div>
             <CardDescription>B조 주전 멤버</CardDescription>
           </CardHeader>
@@ -999,9 +1061,21 @@ export default function SquadsPage() {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle>A조 예비 ({squads[TEAM.A_RESERVE].length}/10)</CardTitle>
-              {squads[TEAM.A_RESERVE].length > 10 && <Badge variant="destructive">초과</Badge>}
+              <div className="flex items-center gap-2">
+                {squads[TEAM.A_RESERVE].length > 10 && <Badge variant="destructive">초과</Badge>}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => copyToClipboard(TEAM.A_RESERVE)}
+                  title="멤버 목록 복사"
+                >
+                  <Clipboard className="h-4 w-4" />
+                  <span className="sr-only">멤버 목록 복사</span>
+                </Button>
+              </div>
             </div>
-            <CardDescription>Aㅈ 예비 멤버</CardDescription>
+            <CardDescription>A조 예비 멤버</CardDescription>
           </CardHeader>
           <CardContent className="max-h-[300px] overflow-y-auto">
             {getFilteredUsers(TEAM.A_RESERVE).length > 0 ? (
@@ -1017,7 +1091,19 @@ export default function SquadsPage() {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle>B조 예비 ({squads[TEAM.B_RESERVE].length}/10)</CardTitle>
-              {squads[TEAM.B_RESERVE].length > 10 && <Badge variant="destructive">초과</Badge>}
+              <div className="flex items-center gap-2">
+                {squads[TEAM.B_RESERVE].length > 10 && <Badge variant="destructive">초과</Badge>}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => copyToClipboard(TEAM.B_RESERVE)}
+                  title="멤버 목록 복사"
+                >
+                  <Clipboard className="h-4 w-4" />
+                  <span className="sr-only">멤버 목록 복사</span>
+                </Button>
+              </div>
             </div>
             <CardDescription>B조 예비 멤버</CardDescription>
           </CardHeader>
