@@ -18,22 +18,33 @@ export interface SquadMember {
   position: number
 }
 
+// 그룹화된 스쿼드 응답 인터페이스 추가
+export interface GroupedSquadResponse {
+  A_TEAM: SquadMember[]
+  B_TEAM: SquadMember[]
+  A_RESERVE: SquadMember[]
+  B_RESERVE: SquadMember[]
+  AB_POSSIBLE: SquadMember[]
+  UNASSIGNED: SquadMember[]
+}
+
 // Update the SquadUpdateRequest interface to include position
 export interface SquadUpdateRequest {
   userSeq: number
   desertType: string
   position?: number
+  isCandidate: boolean // isCandidate를 필수 필드로 변경
 }
 
 export interface SquadSaveRequest {
   desertSeq: number
-  squads: SquadUpdateRequest[]
+  rosters: SquadUpdateRequest[]
 }
 
 /**
  * 스쿼드 목록을 조회합니다.
  */
-export async function getSquads(desertSeq: number): Promise<SquadMember[]> {
+export async function getSquads(desertSeq: number): Promise<GroupedSquadResponse> {
   try {
     return await fetchFromAPI(`/desert/roster/prepare/${desertSeq}`)
   } catch (error) {
@@ -47,9 +58,18 @@ export async function getSquads(desertSeq: number): Promise<SquadMember[]> {
  */
 export async function saveSquads(request: SquadSaveRequest): Promise<void> {
   try {
+    // 모든 요청에 isCandidate: true 추가
+    const modifiedRequest = {
+      ...request,
+      rosters: request.rosters.map((roster) => ({
+        ...roster,
+        isCandidate: true, // 항상 true로 설정
+      })),
+    }
+
     await fetchFromAPI("/desert/roster/prepare/save", {
       method: "POST",
-      body: JSON.stringify(request),
+      body: JSON.stringify(modifiedRequest),
     })
 
     revalidatePath(`/squads?eventId=${request.desertSeq}`)
@@ -62,14 +82,21 @@ export async function saveSquads(request: SquadSaveRequest): Promise<void> {
 /**
  * 단일 스쿼드 멤버 데이터를 업데이트합니다.
  */
-export async function updateSquadMember(desertSeq: number, userSeq: number, desertType: string): Promise<void> {
+export async function updateSquadMember(
+  desertSeq: number,
+  userSeq: number,
+  desertType: string,
+  position = -1,
+): Promise<void> {
   try {
     const request: SquadSaveRequest = {
       desertSeq,
-      squads: [
+      rosters: [
         {
           userSeq,
           desertType,
+          position,
+          isCandidate: true, // 항상 true로 설정
         },
       ],
     }

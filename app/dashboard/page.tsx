@@ -7,7 +7,7 @@ import { Users, History, CheckCircle, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-// 임시 이�����트 데이터
+// 임시 이�������트 데이터
 // 이거 기준
 const initialEvents = [
   {
