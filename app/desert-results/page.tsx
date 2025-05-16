@@ -203,6 +203,24 @@ function ResultRow({
   )
 }
 
+// 팀 파라미터를 포함한 결과 로드 함수
+const loadDesertResults = async (desertSeq: number, team?: string) => {
+  try {
+    // 기본 API 호출
+    const results = await getDesertResults(desertSeq)
+
+    // 팀 파라미터가 있으면 해당 팀만 필터링
+    if (team) {
+      return results.filter((result) => result.desertType.toUpperCase().startsWith(team))
+    }
+
+    return results
+  } catch (error) {
+    console.error("결과 로드 실패:", error)
+    throw error
+  }
+}
+
 export default function DesertResultsPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -227,6 +245,10 @@ export default function DesertResultsPage() {
     break: null,
     kill: null,
   })
+  const [teamCounts, setTeamCounts] = useState<Record<string, number>>({
+    A: 0,
+    B: 0,
+  })
 
   // 이벤트 및 결과 데이터 로드
   useEffect(() => {
@@ -248,11 +270,28 @@ export default function DesertResultsPage() {
           setSelectedEvent({ title: `사막전 #${desertSeq}` })
         }
 
-        // 사막전 결과 로드
+        // 사막전 결과 로드 - 초기 로드는 팀 파라미터 없이
         try {
-          const resultsData = await getDesertResults(desertSeq)
+          const resultsData = await loadDesertResults(desertSeq)
           setResults(resultsData)
           setFilteredResults(resultsData)
+
+          // 팀별 인원 수 계산
+          const counts = {
+            A: 0,
+            B: 0,
+          }
+
+          resultsData.forEach((result) => {
+            const teamType = result.desertType.toUpperCase()
+            if (teamType.startsWith("A")) {
+              counts.A++
+            } else if (teamType.startsWith("B")) {
+              counts.B++
+            }
+          })
+
+          setTeamCounts(counts)
 
           // 기존 MVP 설정 로드
           const mvpInit: Record<string, number | null> = {
@@ -310,6 +349,66 @@ export default function DesertResultsPage() {
     loadData()
   }, [desertSeq])
 
+  // 페이지 로드 시 URL 파라미터에 따라 초기 탭 설정
+  useEffect(() => {
+    const teamParam = searchParams.get("team")
+    if (teamParam) {
+      if (teamParam.toUpperCase() === "A") {
+        setActiveTab("a")
+      } else if (teamParam.toUpperCase() === "B") {
+        setActiveTab("b")
+      }
+    }
+  }, [searchParams])
+
+  // 탭 변경 시 URL 파라미터 업데이트
+  const handleTabChange = async (value: string) => {
+    setActiveTab(value)
+    setIsLoading(true)
+
+    try {
+      // 팀 파라미터 설정 (a -> A, b -> B)
+      const teamParam = value.toUpperCase()
+
+      // 해당 팀 데이터 로드
+      const resultsData = await loadDesertResults(desertSeq, teamParam)
+
+      setResults(resultsData)
+      setFilteredResults(resultsData)
+
+      // MVP 설정 업데이트
+      const mvpInit: Record<string, number | null> = {
+        total: null,
+        command: null,
+        gather: null,
+        break: null,
+        kill: null,
+      }
+
+      resultsData.forEach((result) => {
+        if (result.tag && result.tag !== "none" && mvpInit.hasOwnProperty(result.tag)) {
+          mvpInit[result.tag] = result.userSeq
+        }
+      })
+
+      setMvpSelections(mvpInit)
+
+      toast({
+        title: `${teamParam}팀 데이터 로드 완료`,
+        description: `${resultsData.length}명의 데이터를 불러왔습니다.`,
+      })
+    } catch (error) {
+      console.error(`${value.toUpperCase()}팀 데이터 로드 실패:`, error)
+      toast({
+        title: "데이터 로드 실패",
+        description: `${value.toUpperCase()}팀 데이터를 불러오는 중 오류가 발생했습니다.`,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // 검색어와 필터에 따라 결과 필터링
   useEffect(() => {
     if (!results.length) {
@@ -324,11 +423,11 @@ export default function DesertResultsPage() {
       filtered = filtered.filter((result) => result.name.toLowerCase().includes(searchTerm.toLowerCase()))
     }
 
-    // 탭에 따라 필터링
+    // 탭에 따라 필터링 (대소문자 구분 없이)
     if (activeTab === "a") {
-      filtered = filtered.filter((result) => result.desertType.startsWith("A"))
+      filtered = filtered.filter((result) => result.desertType.toUpperCase().startsWith("A"))
     } else if (activeTab === "b") {
-      filtered = filtered.filter((result) => result.desertType.startsWith("B"))
+      filtered = filtered.filter((result) => result.desertType.toUpperCase().startsWith("B"))
     }
 
     // 참여자만 표시 옵션
@@ -585,13 +684,15 @@ export default function DesertResultsPage() {
     document.body.removeChild(link)
   }, [results, selectedEvent, getTeamName])
 
-  const [isSaveAllChangesButtonDisabled, setIsSaveAllChangesButtonDisabled] = useState(
-    Object.keys(pendingChanges).length === 0 || isSaving,
+  const isSaveAllChangesButtonDisabled = useMemo(
+    () => Object.keys(pendingChanges).length === 0 || isSaving,
+    [pendingChanges, isSaving],
   )
 
-  useEffect(() => {
-    setIsSaveAllChangesButtonDisabled(Object.keys(pendingChanges).length === 0 || isSaving)
-  }, [pendingChanges, isSaving])
+  const saveAllChangesButtonContent = isSaving ? "저장 중..." : `저장 (${Object.keys(pendingChanges).length})`
+
+  // showOnlyParticipated 상태를 먼저 정의
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false)
 
   if (!desertSeq) {
     return (
@@ -649,8 +750,8 @@ export default function DesertResultsPage() {
         <h1 className="text-3xl font-bold">사막전 결과 {selectedEvent && `- ${selectedEvent.title}`}</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <Card className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
@@ -665,10 +766,10 @@ export default function DesertResultsPage() {
                   className="mr-2"
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? "저장 중..." : `저장 (${Object.keys(pendingChanges).length})`}
+                  {saveAllChangesButtonContent}
                 </Button>
                 <TooltipProvider>
-                  <Tooltip>
+                  <Tooltip open={isTooltipOpen} onOpenChange={setIsTooltipOpen}>
                     <TooltipTrigger asChild>
                       <Button
                         variant="outline"
@@ -689,10 +790,10 @@ export default function DesertResultsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
               <TabsList>
-                <TabsTrigger value="a">A팀</TabsTrigger>
-                <TabsTrigger value="b">B팀</TabsTrigger>
+                <TabsTrigger value="a">A팀 ({teamCounts.A})</TabsTrigger>
+                <TabsTrigger value="b">B팀 ({teamCounts.B})</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -852,95 +953,23 @@ export default function DesertResultsPage() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-4">
-                        {results.length > 0 ? "검색 결과가 없습니다." : "데이터가 없습니다."}
+                        {results.length > 0 ? (
+                          <>
+                            <p>검색 결과가 없습니다.</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {activeTab === "b" && teamCounts.B === 0
+                                ? "B팀에 배정된 인원이 없습니다."
+                                : "필터 조건을 변경해보세요."}
+                            </p>
+                          </>
+                        ) : (
+                          "데이터가 없습니다."
+                        )}
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>사막전 결과</CardTitle>
-            <CardDescription>사막전 최종 결과를 기록합니다.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">승리 팀</h3>
-                <div className="flex gap-2">
-                  <Button
-                    variant={eventSummary?.winnerType === "A_TEAM" ? "default" : "outline"}
-                    className="flex-1"
-                    onClick={() => setEventSummary((prev) => (prev ? { ...prev, winnerType: "A_TEAM" } : null))}
-                    disabled={isLoading}
-                  >
-                    A팀
-                  </Button>
-                  <Button
-                    variant={eventSummary?.winnerType === "B_TEAM" ? "default" : "outline"}
-                    className="flex-1"
-                    onClick={() => setEventSummary((prev) => (prev ? { ...prev, winnerType: "B_TEAM" } : null))}
-                    disabled={isLoading}
-                  >
-                    B팀
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">참여 통계</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="border rounded-md p-3 text-center">
-                    <div className="text-2xl font-bold">{results.filter((r) => r.isPlayed).length}</div>
-                    <div className="text-xs text-muted-foreground">참여</div>
-                  </div>
-                  <div className="border rounded-md p-3 text-center">
-                    <div className="text-2xl font-bold">{results.filter((r) => !r.isPlayed).length}</div>
-                    <div className="text-xs text-muted-foreground">불참</div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">성과 분포</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="border rounded-md p-2 text-center">
-                    <div className="text-lg font-bold">
-                      {results.filter((r) => r.tag === "total" || r.tag === "command").length}
-                    </div>
-                    <div className="text-xs text-muted-foreground">종합/거점</div>
-                  </div>
-                  <div className="border rounded-md p-2 text-center">
-                    <div className="text-lg font-bold">
-                      {results.filter((r) => r.tag === "gather" || r.tag === "break").length}
-                    </div>
-                    <div className="text-xs text-muted-foreground">자원/구조물</div>
-                  </div>
-                  <div className="border rounded-md p-2 text-center">
-                    <div className="text-lg font-bold">{results.filter((r) => r.tag === "kill").length}</div>
-                    <div className="text-xs text-muted-foreground">적처치</div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">비고</h3>
-                <textarea
-                  className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={eventSummary?.description || ""}
-                  onChange={(e) => setEventSummary((prev) => (prev ? { ...prev, description: e.target.value } : null))}
-                  placeholder="사막전 결과에 대한 추가 정보를 입력하세요."
-                  disabled={isLoading}
-                />
-              </div>
-
-              <Button className="w-full" onClick={saveSummary} disabled={isLoading || isSaving || !eventSummary}>
-                {isSaving ? "저장 중..." : "결과 저장"}
-              </Button>
             </div>
           </CardContent>
         </Card>
