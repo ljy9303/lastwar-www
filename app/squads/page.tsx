@@ -376,9 +376,9 @@ export default function SquadsPage() {
       // 각 그룹 정렬
       const sortedSquadData = {
         A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
+        B_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
         A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+        B_RESERVE: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
       }
@@ -406,10 +406,10 @@ export default function SquadsPage() {
 
   // 팀 확정 함수
   const confirmSquads = async () => {
-    if (squadMembers.AB_POSSIBLE.length > 0 || squadMembers.NONE.length > 0) {
+    if (squadMembers.AB_POSSIBLE.length > 0) {
       toast({
-        title: "미배정 인원 존재",
-        description: "AB 가능 또는 미배정 인원이 존재합니다. 모든 인원을 팀에 배정해주세요.",
+        title: "AB 가능 인원 존재",
+        description: "AB 가능 인원이 존재합니다. 모든 AB 가능 인원을 팀에 배정해주세요.",
         variant: "destructive",
       })
       return
@@ -811,7 +811,7 @@ export default function SquadsPage() {
 
           <Button
             onClick={confirmSquads}
-            disabled={isConfirming || squadMembers.AB_POSSIBLE.length > 0 || squadMembers.NONE.length > 0}
+            disabled={isConfirming || squadMembers.AB_POSSIBLE.length > 0}
             className="flex-1 md:flex-auto"
             variant="outline"
           >
