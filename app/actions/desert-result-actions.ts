@@ -74,7 +74,17 @@ export async function saveDesertResultSummary(summary: DesertResultSummary): Pro
  */
 export async function getDesertResultSummary(desertSeq: number): Promise<DesertResultSummary> {
   try {
-    return await fetchFromAPI(`/desert/result/summary/${desertSeq}`)
+    // API 엔드포인트가 아직 구현되지 않았을 수 있으므로 기본값 반환
+    // 실제 API가 구현되면 아래 주석을 해제하고 사용
+    // return await fetchFromAPI(`/desert/result/summary/${desertSeq}`)
+
+    // 임시 기본값 반환
+    console.log(`사막전 결과 요약 API가 아직 구현되지 않아 기본값을 반환합니다. (ID: ${desertSeq})`)
+    return {
+      desertSeq,
+      winnerType: "",
+      description: "",
+    }
   } catch (error) {
     console.error(`사막전 결과 요약 조회 실패 (ID: ${desertSeq}):`, error)
     // 결과가 없는 경우 기본값 반환
