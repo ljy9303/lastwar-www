@@ -417,15 +417,16 @@ export default function SquadsPage() {
 
     setIsConfirming(true)
     try {
-      // 모든 인원에 대한 변경사항 생성
+      // 모든 인원에 대한 변경사항 생성 (미배정 인원 제외)
       const allChanges: Record<number, { desertType: string; position: number }> = {}
 
-      // 각 팀의 모든 멤버에 대해 변경사항 생성
+      // 각 팀의 모든 멤버에 대해 변경사항 생성 (미배정 인원 제외)
       Object.entries(squadMembers).forEach(([team, members]) => {
-        if (team !== TEAM.AB_POSSIBLE && team !== TEAM.NONE) {
+        // 미배정 인원은 제외하고 처리
+        if (team !== TEAM.NONE) {
           members.forEach((user) => {
             allChanges[user.userSeq] = {
-              desertType: team,
+              desertType: team, // 현재 속해 있는 팀으로 desert_type 설정
               position: user.position || -1,
             }
           })
@@ -438,7 +439,7 @@ export default function SquadsPage() {
           userSeq: Number(userSeq),
           desertType: change.desertType,
           position: change.position,
-          isCandidate: true,
+          isCandidate: true, // 미배정 인원은 이미 제외되었으므로 모두 true
         })),
       }
 
@@ -450,9 +451,9 @@ export default function SquadsPage() {
       // 각 그룹 정렬
       const sortedSquadData = {
         A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-        B_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
         A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-        B_RESERVE: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
       }
@@ -691,9 +692,9 @@ export default function SquadsPage() {
         // 각 그룹 정렬
         const sortedSquadData = {
           A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-          B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
+          B_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
           A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-          B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+          B_RESERVE: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
           AB_POSSIBLE: squadData.AB_POSSIBLE || [],
           NONE: squadData.NONE || [],
         }
