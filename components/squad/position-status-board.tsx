@@ -196,7 +196,8 @@ export function PositionStatusBoard({
   const renderPositionMembers = (positionGroups: Record<number, SquadMember[]>) => {
     return POSITIONS.map((position) => {
       const members = positionGroups[position.value] || []
-      if (members.length === 0) return null
+      // 공격/지원 포지션(value: 0)은 멤버가 없어도 항상 표시
+      if (members.length === 0 && position.value !== 0) return null
 
       return (
         <div key={position.value} className="mb-2 p-2 rounded-lg bg-background border">
@@ -210,17 +211,21 @@ export function PositionStatusBoard({
               <span className="text-muted-foreground ml-1 text-xs">- {position.description}</span>
             )}
           </h4>
-          <div className="pl-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-            {members.map((member) => (
-              <div
-                key={member.userSeq}
-                className="flex items-center py-0.5 px-1 rounded hover:bg-muted/50 transition-colors text-sm"
-              >
-                <span className="font-medium">{member.userName}</span>
-                <span className="text-xs text-muted-foreground ml-1">Lv.{member.userLevel}</span>
-              </div>
-            ))}
-          </div>
+          {members.length > 0 ? (
+            <div className="pl-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+              {members.map((member) => (
+                <div
+                  key={member.userSeq}
+                  className="flex items-center py-0.5 px-1 rounded hover:bg-muted/50 transition-colors text-sm"
+                >
+                  <span className="font-medium">{member.userName}</span>
+                  <span className="text-xs text-muted-foreground ml-1">Lv.{member.userLevel}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="pl-6 text-sm text-muted-foreground">배정된 멤버가 없습니다.</div>
+          )}
         </div>
       )
     }).filter(Boolean)
