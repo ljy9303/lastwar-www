@@ -17,6 +17,7 @@ import {
   X,
   CheckCircle,
   Clipboard,
+  RefreshCw,
 } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -28,6 +29,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { UserForm } from "@/components/user/user-form"
 import type { User } from "@/types/user"
 import { PositionStatusBoard } from "@/components/squad/position-status-board"
+
+// API 기본 URL 설정
+const API_BASE_URL = "https://api.chunsik.site"
 
 // 팀 상수
 const TEAM = {
@@ -99,6 +103,7 @@ export default function SquadsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<Record<number, { desertType: string; position: number }>>({})
   const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -164,6 +169,58 @@ export default function SquadsPage() {
 
     loadData()
   }, [eventId, toast, sortLevelDirection])
+
+  // 유저 정보 동기화 함수
+  const syncUserData = async () => {
+    if (!eventId || isSyncing) return
+
+    setIsSyncing(true)
+    try {
+      // 동기화 API 호출
+      const response = await fetch(`${API_BASE_URL}/desert/roster/sync/${eventId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`동기화 실패: ${response.status} ${response.statusText}`)
+      }
+
+      // 최소 1초간 로딩 표시
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // 데이터 다시 로드
+      const squadData = await getSquads(Number(eventId))
+
+      // 각 그룹 정렬
+      const sortedSquadData = {
+        A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
+        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+        AB_POSSIBLE: squadData.AB_POSSIBLE || [],
+        NONE: squadData.NONE || [],
+      }
+
+      setSquadMembers(sortedSquadData)
+
+      toast({
+        title: "동기화 완료",
+        description: "유저 정보가 성공적으로 동기화되었습니다.",
+      })
+    } catch (error) {
+      console.error("유저 정보 동기화 실패:", error)
+      toast({
+        title: "동기화 실패",
+        description: "유저 정보 동기화 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   // 팀 이름 표시
   const getTeamName = (team: string) => {
@@ -451,9 +508,9 @@ export default function SquadsPage() {
       // 각 그룹 정렬
       const sortedSquadData = {
         A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
+        B_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
         A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+        B_RESERVE: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
       }
@@ -640,7 +697,11 @@ export default function SquadsPage() {
                       >
                         <div className="flex justify-between w-full">
                           <span>
-                            {position.value !== -1 ? `${position.value}시 - ${position.label}` : position.label}
+                            {(() => {
+                              if (position.value === 0) return "공격/지원"
+                              if (position.value === -1) return position.label
+                              return `${position.value}시 - ${position.label}`
+                            })()}
                           </span>
                           <Badge variant="outline" className="ml-2">
                             {positionCounts[position.value]}명
@@ -791,6 +852,19 @@ export default function SquadsPage() {
               {sortLevelDirection === "asc" ? "↑" : "↓"}
             </Button>
           </div>
+
+          {/* 유저 정보 동기화 버튼 */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={syncUserData}
+            disabled={isSyncing}
+            className="h-8"
+            title="유저 정보 동기화"
+          >
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span className="ml-1">동기화</span>
+          </Button>
         </div>
 
         <div className="flex gap-2 w-full md:w-auto">
@@ -829,6 +903,16 @@ export default function SquadsPage() {
           </Button>
         </div>
       </div>
+
+      {/* 동기화 중 오버레이 */}
+      {isSyncing && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+            <p className="text-lg font-medium">유저 정보 동기화 중...</p>
+          </div>
+        </div>
+      )}
 
       {/* 포지션 현황판 */}
       <div className="mb-6">
