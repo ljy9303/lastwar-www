@@ -65,7 +65,7 @@ export function PositionStatusBoard({
     // 공격/지원 포지션 처리
     const attackMembers = positionGroups[0] || []
     if (attackMembers.length > 0) {
-      text += "* 공격/지원:\n"
+      text += "공격/지원:\n"
       // 5명씩 나누어 표시
       for (let i = 0; i < attackMembers.length; i += 5) {
         const chunk = attackMembers.slice(i, i + 5)
@@ -78,13 +78,15 @@ export function PositionStatusBoard({
     POSITIONS.slice(1).forEach((position) => {
       const posMembers = positionGroups[position.value] || []
       if (posMembers.length > 0) {
-        text += `* ${position.label}: ${posMembers.map((m) => m.userName).join(", ")}\n`
+        // description이 있으면 함께 표시, 없으면 label만 표시
+        const positionText = position.description || position.label
+        text += `${positionText}: ${posMembers.map((m) => m.userName).join(", ")}\n`
       }
     })
 
     // 해당 팀의 예비 출정 인원 추가
     if (teamReserveMembers.length > 0) {
-      text += "\n* 예비 출정 : " + teamReserveMembers.map((m) => m.userName).join(", ") + "\n"
+      text += "\n예비 출정 : " + teamReserveMembers.map((m) => m.userName).join(", ") + "\n"
     }
 
     return text
