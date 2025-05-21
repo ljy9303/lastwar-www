@@ -433,9 +433,9 @@ export default function SquadsPage() {
       // 각 그룹 정렬
       const sortedSquadData = {
         A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-        B_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
         A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-        B_RESERVE: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
       }
@@ -508,9 +508,9 @@ export default function SquadsPage() {
       // 각 그룹 정렬
       const sortedSquadData = {
         A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-        B_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
         A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-        B_RESERVE: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
       }
@@ -753,9 +753,9 @@ export default function SquadsPage() {
         // 각 그룹 정렬
         const sortedSquadData = {
           A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-          B_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
+          B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
           A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-          B_RESERVE: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
+          B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
           AB_POSSIBLE: squadData.AB_POSSIBLE || [],
           NONE: squadData.NONE || [],
         }
