@@ -15,13 +15,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Plus,
   Search,
   CalendarDays,
-  ArrowRight,
   FileSpreadsheet,
   UserSquare,
   ClipboardList,
@@ -242,11 +240,6 @@ export default function EventsPage() {
     }
   }
 
-  // 상태에 따른 배지 색상 (삭제 여부에 따라 표시)
-  const getStatusBadge = (deleted: boolean) => {
-    return deleted ? <Badge variant="destructive">삭제됨</Badge> : <Badge variant="outline">활성</Badge>
-  }
-
   // 날짜 포맷팅
   const formatDate = (dateString: string) => {
     try {
@@ -259,20 +252,17 @@ export default function EventsPage() {
 
   // 참가자 수 계산 (API 연동 후 실제 데이터로 대체 필요)
   const getParticipantCount = (desert: Desert) => {
-    // 임시로 랜덤 값 반환
-    return Math.floor(Math.random() * 30) + 20
+    return (desert.ateamCount || 0) + (desert.bteamCount || 0)
   }
 
   // A팀 인원 수 계산 (API 연동 후 실제 데이터로 대체 필요)
   const getTeamACount = (desert: Desert) => {
-    // 임시로 랜덤 값 반환
-    return Math.floor(Math.random() * 15) + 10
+    return desert.ateamCount || 0
   }
 
   // B팀 인원 수 계산 (API 연동 후 실제 데이터로 대체 필요)
   const getTeamBCount = (desert: Desert) => {
-    // 임시로 랜덤 값 반환
-    return Math.floor(Math.random() * 15) + 10
+    return desert.bteamCount || 0
   }
 
   if (isInitialLoad) {
@@ -470,7 +460,6 @@ export default function EventsPage() {
                   <TableHead className="hidden sm:table-cell">참가자</TableHead>
                   <TableHead className="hidden sm:table-cell">A팀</TableHead>
                   <TableHead className="hidden sm:table-cell">B팀</TableHead>
-                  <TableHead className="hidden md:table-cell">상태</TableHead>
                   <TableHead className="text-right">관리</TableHead>
                 </TableRow>
               </TableHeader>
@@ -485,14 +474,12 @@ export default function EventsPage() {
                           참가자: {getParticipantCount(desert)}명 | A팀: {getTeamACount(desert)}명 | B팀:{" "}
                           {getTeamBCount(desert)}명
                         </div>
-                        <div className="md:hidden sm:block text-xs">{getStatusBadge(desert.deleted)}</div>
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{formatDate(desert.eventDate)}</TableCell>
                     <TableCell className="hidden sm:table-cell">{getParticipantCount(desert)}명</TableCell>
                     <TableCell className="hidden sm:table-cell">{getTeamACount(desert)}명</TableCell>
                     <TableCell className="hidden sm:table-cell">{getTeamBCount(desert)}명</TableCell>
-                    <TableCell className="hidden md:table-cell">{getStatusBadge(desert.deleted)}</TableCell>
                     <TableCell className="text-right">
                       {isMobile ? (
                         <DropdownMenu>
@@ -520,12 +507,6 @@ export default function EventsPage() {
                                 사막전 결과
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/events/${desert.desertSeq}`}>
-                                <ArrowRight className="h-4 w-4 mr-2" />
-                                상세보기
-                              </Link>
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : (
@@ -546,12 +527,6 @@ export default function EventsPage() {
                             <Link href={`/desert-results?eventId=${desert.desertSeq}`}>
                               <ClipboardList className="h-4 w-4 mr-1" />
                               사막전 결과
-                            </Link>
-                          </Button>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/events/${desert.desertSeq}`}>
-                              <ArrowRight className="h-4 w-4 mr-1" />
-                              상세보기
                             </Link>
                           </Button>
                         </div>
