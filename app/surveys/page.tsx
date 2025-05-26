@@ -139,6 +139,41 @@ export default function SurveysPage() {
     loadData()
   }, [eventId, toast])
 
+  // 글로벌 키보드 입력 시 검색창으로 포커스 이동
+  useEffect(() => {
+    const handleGlobalKeyPress = (event: KeyboardEvent) => {
+      // 현재 포커스된 요소가 input, textarea, select가 아닌 경우에만 실행
+      const activeElement = document.activeElement
+      const isInputFocused =
+        activeElement?.tagName === "INPUT" ||
+        activeElement?.tagName === "TEXTAREA" ||
+        activeElement?.tagName === "SELECT" ||
+        activeElement?.contentEditable === "true"
+
+      // 특수키나 조합키가 눌린 경우 제외
+      if (event.ctrlKey || event.altKey || event.metaKey || event.key.length > 1) {
+        return
+      }
+
+      // 입력 요소에 포커스가 없고, 일반 문자키가 입력된 경우
+      if (!isInputFocused && event.key.match(/^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s]$/)) {
+        const searchInput = document.querySelector('input[placeholder="닉네임으로 검색..."]') as HTMLInputElement
+        if (searchInput) {
+          event.preventDefault()
+          searchInput.focus()
+          // 입력된 문자를 검색창에 추가
+          setSearchTerm(event.key)
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleGlobalKeyPress)
+
+    return () => {
+      document.removeEventListener("keydown", handleGlobalKeyPress)
+    }
+  }, [])
+
   // intentType별 집계 계산 함수
   const getIntentTypeCounts = () => {
     const counts = {
@@ -575,6 +610,14 @@ export default function SurveysPage() {
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
+                ref={(el) => {
+                  if (el && searchTerm.length === 1) {
+                    // 새로 입력된 단일 문자가 있을 때 커서를 끝으로 이동
+                    setTimeout(() => {
+                      el.setSelectionRange(el.value.length, el.value.length)
+                    }, 0)
+                  }
+                }}
                 placeholder="닉네임으로 검색..."
                 className="pl-8"
                 value={searchTerm}
