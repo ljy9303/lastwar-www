@@ -6,38 +6,21 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   Search,
-  FileUp,
-  FileDown,
   Pencil,
   Trash,
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  UserSquare,
 } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  getRosters,
-  updateRoster,
-  saveRosters,
-  type Roster,
-  type RosterUpdateRequest,
-} from "@/app/actions/roster-actions"
+import { getRosters, updateRoster, saveRosters, type Roster } from "@/app/actions/roster-actions"
 import { getDesertById } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
 import { UserForm } from "@/components/user/user-form"
@@ -80,8 +63,6 @@ export default function SurveysPage() {
     | null
   >(null)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
-  const [importText, setImportText] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<Record<number, string>>({})
@@ -385,104 +366,6 @@ export default function SurveysPage() {
     }
   }
 
-  // CSV 내보내기
-  const exportToCsv = () => {
-    const headers = ["ID", "닉네임", "본부레벨", "전투력", "선호팀"]
-    const csvContent = [
-      headers.join(","),
-      ...rosters.map((roster) =>
-        [
-          roster.userSeq,
-          roster.userName,
-          roster.userLevel,
-          roster.userPower,
-          getPreferenceLabel(roster.intentType),
-        ].join(","),
-      ),
-    ].join("\n")
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `사전조사_${selectedEvent?.title || eventId}.csv`)
-    link.style.visibility = "hidden"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-  // 텍스트 데이터 가져오기
-  const handleImportData = async () => {
-    if (!importText.trim()) {
-      toast({
-        title: "입력 오류",
-        description: "가져올 데이터를 입력해주세요.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      // 간단한 파싱 예시 (실제로는 더 복잡한 로직이 필요할 수 있음)
-      const lines = importText.trim().split("\n")
-      const importedRosters: RosterUpdateRequest[] = []
-
-      for (const line of lines) {
-        const [userName, intentType] = line.split(",").map((item) => item.trim())
-
-        // 유저 이름으로 userSeq 찾기
-        const user = rosters.find((r) => r.userName === userName)
-        if (user) {
-          // 선호도 값 검증
-          const validIntentType = preferenceOptions.find((opt) => opt.label === intentType)?.value || "NONE"
-
-          importedRosters.push({
-            userSeq: user.userSeq,
-            intentType: validIntentType,
-          })
-        }
-      }
-
-      if (importedRosters.length === 0) {
-        toast({
-          title: "가져오기 실패",
-          description: "일치하는 유저가 없습니다.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // 데이터 저장
-      setIsSaving(true)
-      await saveRosters({
-        desertSeq: Number(eventId),
-        rosters: importedRosters,
-      })
-
-      // 데이터 다시 로드
-      const updatedRosters = await getRosters(Number(eventId))
-      setRosters(updatedRosters)
-
-      setIsImportDialogOpen(false)
-      setImportText("")
-
-      toast({
-        title: "가져오기 성공",
-        description: `${importedRosters.length}개의 사전조사 데이터가 업데이트되었습니다.`,
-      })
-    } catch (error) {
-      console.error("데이터 가져오기 실패:", error)
-      toast({
-        title: "가져오기 실패",
-        description: "데이터 가져오기에 실패했습니다. 형식을 확인해주세요.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
   if (!eventId) {
     return (
       <div className="container mx-auto">
@@ -509,14 +392,20 @@ export default function SurveysPage() {
     <div className="container mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={eventId ? `/events/${eventId}` : "/events"}>
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-          </Button>
           <h1 className="text-xl sm:text-3xl font-bold truncate">
             사전조사 관리 {selectedEvent && `- ${selectedEvent.title}`}
           </h1>
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button variant="outline" asChild>
+            <Link href="/events">사막전 관리</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/squads?eventId=${eventId}`}>
+              <UserSquare className="h-4 w-4 mr-2" />
+              스쿼드 관리
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -528,57 +417,6 @@ export default function SurveysPage() {
               <CardDescription>외부에서 수집한 사전조사 데이터를 관리합니다.</CardDescription>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto">
-                    <FileUp className="mr-2 h-4 w-4" />
-                    데이터 가져오기
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>사전조사 데이터 가져오기</DialogTitle>
-                    <DialogDescription>
-                      엑셀이나 메모장에서 정리한 데이터를 붙여넣기 하세요.
-                      <br />
-                      형식: 닉네임, 선호팀
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="import-data">데이터</Label>
-                      <textarea
-                        id="import-data"
-                        className="min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        placeholder="다크입니다, A팀&#10;주사놔주는봇, B팀"
-                        value={importText}
-                        onChange={(e) => setImportText(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isSaving}>
-                      취소
-                    </Button>
-                    <Button onClick={handleImportData} disabled={isSaving}>
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          가져오는 중...
-                        </>
-                      ) : (
-                        "가져오기"
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <Button variant="outline" size="sm" onClick={exportToCsv} className="flex-1 sm:flex-auto">
-                <FileDown className="mr-2 h-4 w-4" />
-                CSV 내보내기
-              </Button>
-
               <div className="relative flex-1 sm:flex-auto">
                 {Object.keys(pendingChanges).length > 0 && (
                   <Button onClick={saveChanges} disabled={isSaving} size="sm" className="w-full group">

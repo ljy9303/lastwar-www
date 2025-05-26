@@ -5,9 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search, ArrowLeft, FileDown, Save, Filter, ArrowUpDown } from "lucide-react"
+import { Search, ArrowLeft, Save, Filter, ArrowUpDown } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "@/components/ui/use-toast"
@@ -19,15 +18,10 @@ import {
   type DesertResultSummary,
 } from "../actions/desert-result-actions"
 import { fetchFromAPI } from "@/lib/api-service"
-
-// 성과 태그 옵션
-const PERFORMANCE_TAGS = [
-  { value: "total", label: "종합점수", icon: "🏆", color: "bg-purple-500" },
-  { value: "command", label: "거점점수", icon: "🏰", color: "bg-green-500" },
-  { value: "gather", label: "자원수집", icon: "💎", color: "bg-blue-500" },
-  { value: "break", label: "구조물파괴", icon: "🔨", color: "bg-orange-500" },
-  { value: "kill", label: "적처치", icon: "⚔️", color: "bg-red-500" },
-]
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Loader2 } from "lucide-react"
 
 export default function DesertResultsPage() {
   const searchParams = useSearchParams()
@@ -52,6 +46,140 @@ export default function DesertResultsPage() {
 
   const [sortBy, setSortBy] = useState<"name" | "team" | null>(null)
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+
+  const [desertResultForm, setDesertResultForm] = useState({
+    desertType: "",
+    desertResult: null as boolean | null,
+    desertDescription: "",
+    battleServer: "",
+    battleUnion: "",
+    battleUnionAlias: "",
+    battleUnionRank: "",
+  })
+  const [isSavingResult, setIsSavingResult] = useState(false)
+  const [desertHistory, setDesertHistory] = useState<any>(null)
+
+  // 사막전 결과 히스토리 로드 함수
+  const loadDesertHistory = useCallback(
+    async (teamType: string) => {
+      if (!desertSeq) return
+
+      try {
+        const url = `/desert/history/${desertSeq}?desertType=${teamType.toUpperCase()}`
+        const historyData = await fetchFromAPI(url)
+
+        // API 응답이 null이거나 빈 응답인 경우 처리
+        if (!historyData) {
+          console.log("사막전 결과 히스토리가 없습니다.")
+          setDesertHistory(null)
+          // 데이터가 없으면 폼 초기화
+          setDesertResultForm({
+            desertType: "",
+            desertResult: null,
+            desertDescription: "",
+            battleServer: "",
+            battleUnion: "",
+            battleUnionAlias: "",
+            battleUnionRank: "",
+          })
+          return
+        }
+
+        setDesertHistory(historyData)
+
+        // 조회된 데이터로 폼 초기화
+        if (historyData && typeof historyData === "object") {
+          setDesertResultForm({
+            desertType: historyData.desertType || "",
+            desertResult: historyData.desertResult !== null ? historyData.desertResult : null,
+            desertDescription: historyData.desertDescription || "",
+            battleServer: historyData.battleServer ? historyData.battleServer.toString() : "",
+            battleUnion: historyData.battleUnion || "",
+            battleUnionAlias: historyData.battleUnionAlias || "",
+            battleUnionRank: historyData.battleUnionRank ? historyData.battleUnionRank.toString() : "",
+          })
+        } else {
+          // 데이터가 유효하지 않으면 폼 초기화
+          setDesertResultForm({
+            desertType: "",
+            desertResult: null,
+            desertDescription: "",
+            battleServer: "",
+            battleUnion: "",
+            battleUnionAlias: "",
+            battleUnionRank: "",
+          })
+        }
+      } catch (error) {
+        console.error("사막전 결과 히스토리 로드 실패:", error)
+
+        // JSON 파싱 에러나 빈 응답인 경우 처리
+        if (error instanceof Error && error.message.includes("Unexpected end of JSON input")) {
+          console.log("사막전 결과 히스토리가 비어있거나 유효하지 않습니다.")
+          setDesertHistory(null)
+        }
+
+        // 에러 시 폼 초기화
+        setDesertResultForm({
+          desertType: "",
+          desertResult: null,
+          desertDescription: "",
+          battleServer: "",
+          battleUnion: "",
+          battleUnionAlias: "",
+          battleUnionRank: "",
+        })
+      }
+    },
+    [desertSeq],
+  )
+
+  // 사막전 결과 저장 함수
+  const saveDesertResult = useCallback(async () => {
+    if (!desertSeq || desertResultForm.desertResult === null) {
+      toast({
+        title: "입력 오류",
+        description: "결과를 선택해주세요.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSavingResult(true)
+    try {
+      const requestData = {
+        desertSeq,
+        desertType: activeTab.toUpperCase(), // 현재 활성 탭 사용
+        desertResult: desertResultForm.desertResult,
+        desertDescription: desertResultForm.desertDescription || undefined,
+        battleServer: desertResultForm.battleServer ? Number.parseInt(desertResultForm.battleServer) : undefined,
+        battleUnion: desertResultForm.battleUnion || undefined,
+        battleUnionAlias: desertResultForm.battleUnionAlias || undefined,
+        battleUnionRank: desertResultForm.battleUnionRank
+          ? Number.parseInt(desertResultForm.battleUnionRank)
+          : undefined,
+      }
+
+      await fetchFromAPI(`/desert/result/save`, {
+        method: "POST",
+        body: JSON.stringify(requestData),
+      })
+
+      toast({
+        title: "저장 완료",
+        description: `${activeTab === "a" ? "A팀" : "B팀"} 사막전 결과가 저장되었습니다.`,
+      })
+    } catch (error) {
+      console.error("사막전 결과 저장 실패:", error)
+      toast({
+        title: "저장 실패",
+        description: "사막전 결과 저장 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSavingResult(false)
+    }
+  }, [desertSeq, desertResultForm, activeTab, toast])
 
   // 팀별 데이터 로드 함수 수정
   const loadTeamData = useCallback(
@@ -97,8 +225,9 @@ export default function DesertResultsPage() {
     (value: string) => {
       setActiveTab(value)
       loadTeamData(value.toUpperCase())
+      loadDesertHistory(value) // 사막전 결과 히스토리도 함께 로드
     },
-    [loadTeamData],
+    [loadTeamData, loadDesertHistory],
   )
 
   // 이벤트 및 결과 데이터 로드
@@ -177,6 +306,13 @@ export default function DesertResultsPage() {
     loadData()
   }, [desertSeq])
 
+  // 초기 로드 시 A팀 히스토리 로드
+  useEffect(() => {
+    if (desertSeq) {
+      loadDesertHistory("A")
+    }
+  }, [desertSeq, loadDesertHistory])
+
   // 변경사항 추적
   const trackChange = useCallback((result: DesertRosterResult) => {
     setPendingChanges((prev) => ({
@@ -215,76 +351,6 @@ export default function DesertResultsPage() {
     [results, trackChange],
   )
 
-  // 성과 태그 변경
-  const handleTagChange = useCallback(
-    (userSeq: number, tag: string) => {
-      const result = results.find((r) => r.userSeq === userSeq)
-      if (!result) return
-
-      // 현재 사용자가 이미 해당 태그를 가지고 있으면 제거
-      if (result.tag === tag) {
-        const updatedResult = { ...result, tag: "none" }
-        trackChange(updatedResult)
-        setResults((prev) => prev.map((item) => (item.userSeq === userSeq ? updatedResult : item)))
-        return
-      }
-
-      // 현재 팀에서 해당 태그를 이미 가진 사람이 있는지 확인
-      const currentTeam = result.desertType.toUpperCase().charAt(0) // A 또는 B
-      const existingUser = results.find(
-        (r) => r.userSeq !== userSeq && r.desertType.toUpperCase().startsWith(currentTeam) && r.tag === tag,
-      )
-
-      if (existingUser) {
-        // 기존 사용자의 태그를 제거하고 새 사용자에게 배정
-        const updatedExistingUser = { ...existingUser, tag: "none" }
-        const updatedNewUser = { ...result, tag }
-
-        trackChange(updatedExistingUser)
-        trackChange(updatedNewUser)
-
-        setResults((prev) =>
-          prev.map((item) => {
-            if (item.userSeq === existingUser.userSeq) return updatedExistingUser
-            if (item.userSeq === userSeq) return updatedNewUser
-            return item
-          }),
-        )
-
-        toast({
-          title: "성과 이전",
-          description: `${existingUser.name}의 ${PERFORMANCE_TAGS.find((t) => t.value === tag)?.label}이 ${result.name}에게 이전되었습니다.`,
-        })
-      } else {
-        // 해당 태그를 가진 사람이 없으면 새로 배정
-        const updatedResult = { ...result, tag }
-        trackChange(updatedResult)
-        setResults((prev) => prev.map((item) => (item.userSeq === userSeq ? updatedResult : item)))
-      }
-    },
-    [results, trackChange],
-  )
-
-  // 성과 버튼이 비활성화되어야 하는지 확인
-  const isTagDisabled = useCallback(
-    (userSeq: number, tagValue: string) => {
-      const result = results.find((r) => r.userSeq === userSeq)
-      if (!result) return true
-
-      // 현재 사용자가 이미 해당 태그를 가지고 있으면 활성화 (제거 가능)
-      if (result.tag === tagValue) return false
-
-      // 현재 팀에서 해당 태그를 이미 가진 다른 사람이 있는지 확인
-      const currentTeam = result.desertType.toUpperCase().charAt(0) // A 또는 B
-      const existingUser = results.find(
-        (r) => r.userSeq !== userSeq && r.desertType.toUpperCase().startsWith(currentTeam) && r.tag === tagValue,
-      )
-
-      return !!existingUser // 다른 사람이 이미 가지고 있으면 비활성화
-    },
-    [results],
-  )
-
   // 정렬 처리
   const handleSort = useCallback(
     (field: "name" | "team") => {
@@ -310,7 +376,6 @@ export default function DesertResultsPage() {
         rosters: Object.values(pendingChanges).map((result) => ({
           userSeq: result.userSeq,
           isPlayed: result.isPlayed,
-          tag: result.tag || "none",
           description: result.description || "",
         })),
       }
@@ -357,50 +422,6 @@ export default function DesertResultsPage() {
         return team
     }
   }, [])
-
-  // 성과 배지
-  const getPerformanceBadge = useCallback((tag: string) => {
-    const performanceTag = PERFORMANCE_TAGS.find((t) => t.value === tag)
-    if (performanceTag) {
-      return (
-        <Badge className={performanceTag.color}>
-          {performanceTag.icon} {performanceTag.label}
-        </Badge>
-      )
-    }
-    return tag ? <Badge>{tag}</Badge> : null
-  }, [])
-
-  // CSV 내보내기
-  const exportToCsv = useCallback(() => {
-    if (!results.length) return
-
-    const headers = ["ID", "닉네임", "팀", "참여 여부", "성과", "비고"]
-    const csvContent = [
-      headers.join(","),
-      ...results.map((result) => {
-        const performanceLabel = PERFORMANCE_TAGS.find((t) => t.value === result.tag)?.label || result.tag || "없음"
-        return [
-          result.userSeq,
-          result.name,
-          getTeamName(result.desertType),
-          result.isPlayed ? "O" : "X",
-          performanceLabel,
-          `"${result.description?.replace(/"/g, '""') || "없음"}"`,
-        ].join(",")
-      }),
-    ].join("\n")
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `사막전결과_${selectedEvent?.title || "전체"}.csv`)
-    link.style.visibility = "hidden"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }, [results, selectedEvent, getTeamName])
 
   // 검색어와 필터에 따라 결과 필터링 및 정렬
   useEffect(() => {
@@ -511,20 +532,189 @@ export default function DesertResultsPage() {
                     <TooltipContent>{showOnlyParticipated ? "모든 인원 표시" : "참여자만 표시"}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Button variant="outline" onClick={exportToCsv} disabled={!results.length}>
-                  <FileDown className="mr-2 h-4 w-4" />
-                  CSV 내보내기
-                </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
               <TabsList>
-                <TabsTrigger value="a">A팀 ({teamCounts.A})</TabsTrigger>
-                <TabsTrigger value="b">B팀 ({teamCounts.B})</TabsTrigger>
+                <TabsTrigger value="a">A팀</TabsTrigger>
+                <TabsTrigger value="b">B팀</TabsTrigger>
               </TabsList>
             </Tabs>
+
+            {/* 사막전 결과 입력 섹션 - 탭 안으로 이동 */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>{activeTab === "a" ? "A팀" : "B팀"} 사막전 결과 입력</CardTitle>
+                <CardDescription>
+                  {activeTab === "a" ? "A팀" : "B팀"}의 사막전 결과를 입력하고 저장합니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {/* 결과 선택 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="desertResult">결과 *</Label>
+                    <Select
+                      value={desertResultForm.desertResult === null ? "" : desertResultForm.desertResult.toString()}
+                      onValueChange={(value) =>
+                        setDesertResultForm((prev) => ({
+                          ...prev,
+                          desertResult: value === "" ? null : value === "true",
+                        }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="결과 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">승리</SelectItem>
+                        <SelectItem value="false">패배</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 상대 서버 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="battleServer">상대 서버</Label>
+                    <Input
+                      id="battleServer"
+                      type="number"
+                      placeholder="서버 번호"
+                      value={desertResultForm.battleServer}
+                      onChange={(e) => setDesertResultForm((prev) => ({ ...prev, battleServer: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* 상대 연맹 순위 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="battleUnionRank">상대 연맹 순위</Label>
+                    <Input
+                      id="battleUnionRank"
+                      type="number"
+                      placeholder="순위"
+                      value={desertResultForm.battleUnionRank}
+                      onChange={(e) => setDesertResultForm((prev) => ({ ...prev, battleUnionRank: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* 상대 연맹 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="battleUnion">상대 연맹</Label>
+                    <Input
+                      id="battleUnion"
+                      placeholder="상대 연맹명"
+                      value={desertResultForm.battleUnion}
+                      onChange={(e) => setDesertResultForm((prev) => ({ ...prev, battleUnion: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* 상대 연맹 태그 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="battleUnionAlias">상대 연맹 태그</Label>
+                    <Input
+                      id="battleUnionAlias"
+                      placeholder="연맹 태그"
+                      value={desertResultForm.battleUnionAlias}
+                      onChange={(e) => setDesertResultForm((prev) => ({ ...prev, battleUnionAlias: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                {/* 비고 */}
+                <div className="space-y-2 mb-4">
+                  <Label htmlFor="description">비고</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="추가 설명이나 특이사항을 입력하세요..."
+                    value={desertResultForm.desertDescription}
+                    onChange={(e) => setDesertResultForm((prev) => ({ ...prev, desertDescription: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
+
+                <Button
+                  onClick={async () => {
+                    if (!desertSeq || desertResultForm.desertResult === null) {
+                      toast({
+                        title: "입력 오류",
+                        description: "결과를 선택해주세요.",
+                        variant: "destructive",
+                      })
+                      return
+                    }
+
+                    setIsSavingResult(true)
+                    try {
+                      const requestData = {
+                        desertSeq,
+                        desertType: activeTab.toUpperCase(), // "A" 또는 "B"
+                        desertResult: desertResultForm.desertResult,
+                        desertDescription: desertResultForm.desertDescription || undefined,
+                        battleServer: desertResultForm.battleServer
+                          ? Number.parseInt(desertResultForm.battleServer)
+                          : undefined,
+                        battleUnion: desertResultForm.battleUnion || undefined,
+                        battleUnionAlias: desertResultForm.battleUnionAlias || undefined,
+                        battleUnionRank: desertResultForm.battleUnionRank
+                          ? Number.parseInt(desertResultForm.battleUnionRank)
+                          : undefined,
+                      }
+
+                      const response = await fetchFromAPI(`/desert/history/${desertSeq}`, {
+                        method: "PATCH",
+                        body: JSON.stringify(requestData),
+                      })
+
+                      // 응답 데이터로 폼 업데이트 (초기화하지 않음)
+                      if (response && typeof response === "object") {
+                        setDesertResultForm({
+                          desertType: response.desertType || "",
+                          desertResult: response.desertResult !== null ? response.desertResult : null,
+                          desertDescription: response.desertDescription || "",
+                          battleServer: response.battleServer ? response.battleServer.toString() : "",
+                          battleUnion: response.battleUnion || "",
+                          battleUnionAlias: response.battleUnionAlias || "",
+                          battleUnionRank: response.battleUnionRank ? response.battleUnionRank.toString() : "",
+                        })
+                        setDesertHistory(response)
+                      }
+
+                      toast({
+                        title: "저장 완료",
+                        description: `${activeTab === "a" ? "A팀" : "B팀"} 사막전 결과가 저장되었습니다.`,
+                      })
+                    } catch (error) {
+                      console.error("사막전 결과 저장 실패:", error)
+                      toast({
+                        title: "저장 실패",
+                        description: "사막전 결과 저장 중 오류가 발생했습니다.",
+                        variant: "destructive",
+                      })
+                    } finally {
+                      setIsSavingResult(false)
+                    }
+                  }}
+                  disabled={isSavingResult || desertResultForm.desertResult === null}
+                  className="w-full md:w-auto"
+                >
+                  {isSavingResult ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      저장 중...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {activeTab === "a" ? "A팀" : "B팀"} 결과 저장
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
 
             <div className="relative mb-4">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -561,14 +751,13 @@ export default function DesertResultsPage() {
                       </Button>
                     </TableHead>
                     <TableHead className="w-[100px]">참석여부</TableHead>
-                    <TableHead className="hidden sm:table-cell">성과</TableHead>
                     <TableHead className="hidden md:table-cell">비고</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-4">
+                      <TableCell colSpan={4} className="text-center py-4">
                         데이터를 불러오는 중...
                       </TableCell>
                     </TableRow>
@@ -596,55 +785,6 @@ export default function DesertResultsPage() {
                             {result.isPlayed ? "참석" : "불참"}
                           </Button>
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          <div className="flex flex-wrap gap-1">
-                            {result.tag &&
-                            result.tag !== "none" &&
-                            PERFORMANCE_TAGS.find((t) => t.value === result.tag) ? (
-                              // 현재 선택된 태그가 있으면 해당 태그와 제거 버튼 표시
-                              <div className="flex items-center gap-1">
-                                <Badge className={PERFORMANCE_TAGS.find((t) => t.value === result.tag)?.color}>
-                                  {PERFORMANCE_TAGS.find((t) => t.value === result.tag)?.icon}{" "}
-                                  {PERFORMANCE_TAGS.find((t) => t.value === result.tag)?.label}
-                                </Badge>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="px-2 py-1 h-auto text-xs"
-                                  onClick={() => handleTagChange(result.userSeq, result.tag)}
-                                >
-                                  수정
-                                </Button>
-                              </div>
-                            ) : (
-                              // 선택된 태그가 없으면 모든 태그 버튼 표시
-                              PERFORMANCE_TAGS.map((tag) => {
-                                const isSelected = result.tag === tag.value
-                                const isDisabled = isTagDisabled(result.userSeq, tag.value)
-
-                                return (
-                                  <Button
-                                    key={tag.value}
-                                    variant={isSelected ? "default" : "outline"}
-                                    size="sm"
-                                    disabled={isDisabled}
-                                    className={`px-2 py-1 h-auto text-xs transition-all ${
-                                      isSelected
-                                        ? `${tag.color} text-white hover:opacity-80`
-                                        : isDisabled
-                                          ? "opacity-50 cursor-not-allowed"
-                                          : "hover:bg-gray-100"
-                                    }`}
-                                    onClick={() => handleTagChange(result.userSeq, tag.value)}
-                                  >
-                                    <span className="mr-1">{tag.icon}</span>
-                                    <span>{tag.label}</span>
-                                  </Button>
-                                )
-                              })
-                            )}
-                          </div>
-                        </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <Input
                             placeholder="비고"
@@ -656,7 +796,7 @@ export default function DesertResultsPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-4">
+                      <TableCell colSpan={4} className="text-center py-4">
                         {results.length > 0 ? (
                           <>
                             <p>검색 결과가 없습니다.</p>

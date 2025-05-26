@@ -3,11 +3,12 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, LayoutDashboard, Settings, Menu, X, Shuffle, ChevronRight, ChevronLeft } from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
+import { Badge } from "@/components/ui/badge"
 
 // hi yuri
 const navItems = [
@@ -43,6 +44,7 @@ export default function Sidebar() {
   const [open, setOpen] = useState(false)
   const isMobile = useMobile()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [pendingCount, setPendingCount] = useState(3) // Example state for pending count
 
   // 모바일에서 메뉴 선택 후 자동으로 닫기
   const handleNavigation = () => {
@@ -70,7 +72,11 @@ export default function Sidebar() {
         className={`hidden md:flex h-full ${isSidebarCollapsed ? "w-16" : "w-64"} flex-col border-r bg-background transition-all duration-300`}
       >
         <div className="p-4 border-b flex items-center justify-between">
-          {!isSidebarCollapsed && <h1 className="text-xl font-bold">1242 ROKK</h1>}
+          {!isSidebarCollapsed && (
+            <Link href="/">
+              <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">1242 ROKK</h1>
+            </Link>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -128,6 +134,12 @@ export default function Sidebar() {
                   <div className="flex items-center gap-3">
                     <item.icon className="h-4 w-4 flex-shrink-0" />
                     <span>{item.title}</span>
+                    {/* 예: 미완료 작업 수 표시 */}
+                    {item.href === "/events" && pendingCount > 0 && (
+                      <Badge variant="destructive" className="ml-auto">
+                        {pendingCount}
+                      </Badge>
+                    )}
                   </div>
                   <ChevronRight className="h-4 w-4 opacity-50" />
                 </Link>
@@ -135,8 +147,13 @@ export default function Sidebar() {
             </nav>
           </SheetContent>
         </Sheet>
-        <h1 className="text-lg font-bold truncate">
+        <h1 className="text-lg font-bold truncate flex items-center">
           {navItems.find((item) => pathname === item.href)?.title || "1242 ROKK"}
+          {pathname !== "/" && (
+            <Badge variant="outline" className="ml-2 text-xs">
+              {navItems.find((item) => pathname === item.href)?.title}
+            </Badge>
+          )}
         </h1>
       </div>
     </>

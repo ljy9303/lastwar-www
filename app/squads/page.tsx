@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import {
   Search,
-  ArrowLeft,
   Save,
   AlertTriangle,
   Loader2,
@@ -809,12 +808,20 @@ export default function SquadsPage() {
   return (
     <div className="container mx-auto">
       <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={eventId ? `/events/${eventId}` : "/events"}>
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
         <h1 className="text-3xl font-bold">스쿼드 관리 {selectedEvent && `- ${selectedEvent.title}`}</h1>
+        <div className="ml-auto">
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/events">사막전 관리</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/surveys?eventId=${eventId}`}>사전조사</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/desert-results?eventId=${eventId}`}>사막전 결과</Link>
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
