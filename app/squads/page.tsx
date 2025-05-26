@@ -549,7 +549,7 @@ export default function SquadsPage() {
   // Update the getPositionLabel function to display position names
   const getPositionLabel = (position: number) => {
     if (position === -1) return "" // 포지션 값이 -1이면 빈 문자열 반환
-    if (position === 0) return "공격지원"
+    if (position === 0) return "공격/지원" // "공격지원"에서 "공격/지원"으로 변경
     if (position === 1) return "1시"
     if (position === 2) return "2시"
     if (position === 4) return "4시"
@@ -616,7 +616,11 @@ export default function SquadsPage() {
       (team === TEAM.B_RESERVE && user.intentType === "B_RESERVE")
 
     // Get the current position (from pending changes or user data)
-    const currentPosition = pendingChanges[user.userSeq] ? pendingChanges[user.userSeq].position : user.position || -1
+    const currentPosition = pendingChanges[user.userSeq]
+      ? pendingChanges[user.userSeq].position
+      : user.position !== undefined
+        ? user.position
+        : -1
 
     return (
       <div key={user.userSeq} className="p-3 mb-2 rounded-lg border bg-background" id={`user-${user.userSeq}`}>
@@ -629,7 +633,7 @@ export default function SquadsPage() {
             <Badge variant={isPreferenceMatched ? "outline" : "secondary"} size="sm">
               {getPreferenceLabel(user.intentType)}
             </Badge>
-            {currentPosition !== -1 && (
+            {currentPosition >= 0 && (
               <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
                 {getPositionLabel(currentPosition)}
               </Badge>
