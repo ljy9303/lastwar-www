@@ -127,6 +127,7 @@ export default function SquadsPage() {
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
   const [userHistories, setUserHistories] = useState<Record<number, UserHistory>>({})
   const [loadingHistories, setLoadingHistories] = useState<Record<number, boolean>>({})
+  const [expandedHistories, setExpandedHistories] = useState<Record<number, boolean>>({})
 
   // 팀 확장/축소 상태
   // const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({
@@ -320,7 +321,7 @@ export default function SquadsPage() {
   }
 
   // 선호도 표시
-  const getPreferenceLabel = (preference: string) => {
+  const getPreferenceLabel = (preference: string, isSurvey = false) => {
     switch (preference) {
       case "A_TEAM":
         return "A조"
@@ -335,7 +336,7 @@ export default function SquadsPage() {
       case "AB_IMPOSSIBLE":
         return "AB 불가능"
       case "NONE":
-        return "미참여"
+        return isSurvey ? "안함" : "미배정"
       default:
         return preference
     }
@@ -787,22 +788,81 @@ export default function SquadsPage() {
 
         {/* 히스토리 정보 표시 */}
         {userHistory && (
-          <div className="mt-2 text-xs text-muted-foreground">
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((week) => {
-                const weekKey = `week${week}` as keyof UserHistory
-                const desertType = userHistory[`${weekKey}DesertType` as keyof UserHistory] as string
-                const played = userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
+          <div className="mt-2">
+            <button
+              onClick={() => setExpandedHistories((prev) => ({ ...prev, [user.userSeq]: !prev[user.userSeq] }))}
+              className="w-full p-2 bg-muted/30 rounded border-l-2 border-l-primary/20 hover:bg-muted/50 transition-colors text-left"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">최근 4주 참석률</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex">
+                    {[1, 2, 3, 4].map((week) => {
+                      const weekKey = `week${week}` as keyof UserHistory
+                      const played = userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
+                      const desertType = userHistory[`${weekKey}DesertType` as keyof UserHistory] as string
 
-                return (
-                  <div key={week} className="text-center">
-                    <div className="font-medium">{week}주전</div>
-                    <div>{getTeamName(desertType)}</div>
-                    <div>{played ? "✓" : "✗"}</div>
+                      return (
+                        <div
+                          key={week}
+                          className={`w-3 h-3 mx-0.5 rounded-full border ${
+                            played
+                              ? "bg-green-500 border-green-600"
+                              : desertType !== "NONE"
+                                ? "bg-red-500 border-red-600"
+                                : "bg-gray-300 border-gray-400"
+                          }`}
+                          title={`${week}주전: ${getTeamName(desertType)} ${played ? "참석" : "불참"}`}
+                        />
+                      )
+                    })}
                   </div>
-                )
-              })}
-            </div>
+                  {(() => {
+                    const totalWeeks = 4
+                    const participatedWeeks = [1, 2, 3, 4].filter((week) => {
+                      const weekKey = `week${week}` as keyof UserHistory
+                      return userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
+                    }).length
+                    const participationRate = Math.round((participatedWeeks / totalWeeks) * 100)
+
+                    return (
+                      <Badge
+                        variant={
+                          participationRate >= 75 ? "default" : participationRate >= 50 ? "secondary" : "destructive"
+                        }
+                        className="text-xs px-1.5 py-0.5"
+                      >
+                        {participationRate}%
+                      </Badge>
+                    )
+                  })()}
+                  <ChevronDown
+                    className={`h-3 w-3 transition-transform ${expandedHistories[user.userSeq] ? "rotate-180" : ""}`}
+                  />
+                </div>
+              </div>
+            </button>
+            {expandedHistories[user.userSeq] && (
+              <div className="mt-1 p-2 bg-muted/20 rounded text-xs">
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 2, 3, 4].map((week) => {
+                    const weekKey = `week${week}` as keyof UserHistory
+                    const desertType = userHistory[`${weekKey}DesertType` as keyof UserHistory] as string
+                    const surveyType = userHistory[`${weekKey}SurveyType` as keyof UserHistory] as string
+                    const played = userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
+
+                    return (
+                      <div key={week} className="text-center p-1 border rounded">
+                        <div className="font-medium">{week}주전</div>
+                        <div className="text-muted-foreground">{getPreferenceLabel(desertType, false)}</div>
+                        <div className="text-muted-foreground">투표: {getPreferenceLabel(surveyType, true)}</div>
+                        <div className={played ? "text-green-600" : "text-red-600"}>{played ? "✓ 참석" : "✗ 불참"}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
