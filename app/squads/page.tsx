@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Clipboard,
   RefreshCw,
+  Clock,
 } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -67,6 +68,22 @@ const POSITIONS = [
   { value: 11, label: "11시" },
 ]
 
+// User history type
+type UserHistory = {
+  week1DesertType: string
+  week1SurveyType: string
+  week1Played: boolean
+  week2DesertType: string
+  week2SurveyType: string
+  week2Played: boolean
+  week3DesertType: string
+  week3SurveyType: string
+  week3Played: boolean
+  week4DesertType: string
+  week4SurveyType: string
+  week4Played: boolean
+}
+
 // Function to sort users based on level and name
 const sortUsers = (users: SquadMember[], levelDirection: "asc" | "desc" = "desc"): SquadMember[] => {
   return [...users].sort((a, b) => {
@@ -108,6 +125,8 @@ export default function SquadsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
+  const [userHistories, setUserHistories] = useState<Record<number, UserHistory>>({})
+  const [loadingHistories, setLoadingHistories] = useState<Record<number, boolean>>({})
 
   // 팀 확장/축소 상태
   // const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({
@@ -168,6 +187,38 @@ export default function SquadsPage() {
 
     loadData()
   }, [eventId, toast, sortLevelDirection])
+
+  // 유저 히스토리 조회 함수
+  const fetchUserHistory = async (userSeq: number) => {
+    if (!eventId || loadingHistories[userSeq] || userHistories[userSeq]) return
+
+    setLoadingHistories((prev) => ({ ...prev, [userSeq]: true }))
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/desert/history/${userSeq}?desertSeq=${eventId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`히스토리 조회 실패: ${response.status} ${response.statusText}`)
+      }
+
+      const historyData: UserHistory = await response.json()
+      setUserHistories((prev) => ({ ...prev, [userSeq]: historyData }))
+    } catch (error) {
+      console.error("유저 히스토리 조회 실패:", error)
+      toast({
+        title: "히스토리 조회 실패",
+        description: "유저 히스토리를 불러오는 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoadingHistories((prev) => ({ ...prev, [userSeq]: false }))
+    }
+  }
 
   // 유저 정보 동기화 함수
   const syncUserData = async () => {
@@ -621,6 +672,9 @@ export default function SquadsPage() {
         ? user.position
         : -1
 
+    const userHistory = userHistories[user.userSeq]
+    const isLoadingHistory = loadingHistories[user.userSeq]
+
     return (
       <div key={user.userSeq} className="p-3 mb-2 rounded-lg border bg-background" id={`user-${user.userSeq}`}>
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
@@ -643,6 +697,18 @@ export default function SquadsPage() {
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditDialog(user)}>
               <Pencil className="h-3 w-3" />
               <span className="sr-only">수정</span>
+            </Button>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={() => fetchUserHistory(user.userSeq)}
+              disabled={isLoadingHistory}
+              title="히스토리 조회"
+            >
+              {isLoadingHistory ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock className="h-3 w-3" />}
+              <span className="sr-only">히스토리 조회</span>
             </Button>
 
             {/* AB 가능 섹션에서는 미배정 버튼 표시 */}
@@ -718,6 +784,27 @@ export default function SquadsPage() {
             )}
           </div>
         </div>
+
+        {/* 히스토리 정보 표시 */}
+        {userHistory && (
+          <div className="mt-2 text-xs text-muted-foreground">
+            <div className="grid grid-cols-4 gap-2">
+              {[1, 2, 3, 4].map((week) => {
+                const weekKey = `week${week}` as keyof UserHistory
+                const desertType = userHistory[`${weekKey}DesertType` as keyof UserHistory] as string
+                const played = userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
+
+                return (
+                  <div key={week} className="text-center">
+                    <div className="font-medium">{week}주전</div>
+                    <div>{getTeamName(desertType)}</div>
+                    <div>{played ? "✓" : "✗"}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
