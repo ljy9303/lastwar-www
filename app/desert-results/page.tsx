@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { Search, ArrowLeft, Save, Filter, ArrowUpDown } from "lucide-react"
+import { Search, Save, Filter, ArrowUpDown } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "@/components/ui/use-toast"
@@ -492,12 +492,20 @@ export default function DesertResultsPage() {
   return (
     <div className="container mx-auto">
       <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/events/${desertSeq}`}>
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
         <h1 className="text-3xl font-bold">사막전 결과 {selectedEvent && `- ${selectedEvent.title}`}</h1>
+        <div className="ml-auto">
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/events">사막전 관리</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/surveys?eventId=${eventId}`}>사전조사</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/squads?eventId=${eventId}`}>스쿼드 관리</Link>
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 mb-6">

@@ -350,8 +350,8 @@ export default function SquadsPage() {
         setPendingChanges((prev) => ({
           ...prev,
           [userId]: {
-            desertType: toTeam,
-            position: -1, // 포지션을 -1로 초기화
+            desertType: toTeam, // 미배정(NONE)에서 다른 팀으로 이동 시: "A_TEAM", "B_TEAM", "A_RESERVE", "B_RESERVE" 등
+            position: -1, // 포지션을 -1로 초기화 (포지션 없음)
           },
         }))
       }
@@ -417,9 +417,9 @@ export default function SquadsPage() {
         rosters: Object.entries(pendingChanges).map(([userSeq, change]) => {
           return {
             userSeq: Number(userSeq),
-            desertType: change.desertType,
-            position: change.position,
-            isCandidate: true, // API 변경에 따라 항상 true로 설정
+            desertType: change.desertType, // 미배정 → 팀 이동 시 해당 팀 타입
+            position: change.position, // 기본값 -1 (포지션 없음)
+            isCandidate: true, // 미배정에서 팀으로 이동하면 항상 후보자로 설정
           }
         }),
       }

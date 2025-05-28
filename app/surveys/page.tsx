@@ -7,17 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
-  Search,
-  Pencil,
-  Trash,
-  Loader2,
-  AlertTriangle,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  UserSquare,
-} from "lucide-react"
+import { Search, Pencil, Trash, Loader2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getRosters, updateRoster, saveRosters, type Roster } from "@/app/actions/roster-actions"
@@ -401,10 +391,7 @@ export default function SurveysPage() {
             <Link href="/events">사막전 관리</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href={`/squads?eventId=${eventId}`}>
-              <UserSquare className="h-4 w-4 mr-2" />
-              스쿼드 관리
-            </Link>
+            <Link href={`/squads?eventId=${eventId}`}>스쿼드 관리</Link>
           </Button>
         </div>
       </div>

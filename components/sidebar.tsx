@@ -71,10 +71,14 @@ export default function Sidebar() {
       <div
         className={`hidden md:flex h-full ${isSidebarCollapsed ? "w-16" : "w-64"} flex-col border-r bg-background transition-all duration-300`}
       >
+        {/* 이미지나 로고를 여기에 추가할 수 있습니다 */}
         <div className="p-4 border-b flex items-center justify-between">
           {!isSidebarCollapsed && (
             <Link href="/">
-              <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">1242 ROKK</h1>
+              <div className="flex items-center gap-2">
+                <img src="/logo-1242-rokk.png" alt="1242 ROKK Logo" className="w-8 h-8 object-contain" />
+                <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">1242 ROKK</h1>
+              </div>
             </Link>
           )}
           <Button
