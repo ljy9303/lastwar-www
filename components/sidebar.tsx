@@ -75,10 +75,7 @@ export default function Sidebar() {
         <div className="p-4 border-b flex items-center justify-between">
           {!isSidebarCollapsed && (
             <Link href="/">
-              <div className="flex items-center gap-2">
-                <img src="/logo-1242-rokk.png" alt="1242 ROKK Logo" className="w-8 h-8 object-contain" />
-                <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">1242 ROKK</h1>
-              </div>
+              <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">1242 ROKK</h1>
             </Link>
           )}
           <Button
