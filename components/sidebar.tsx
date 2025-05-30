@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft } from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
@@ -12,11 +12,11 @@ import { Badge } from "@/components/ui/badge"
 
 // hi yuri
 const navItems = [
-  //{
-  //  title: "대시보드",
-  //  href: "/dashboard",
-  //  icon: LayoutDashboard,
-  //},
+  {
+    title: "대시보드",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
   {
     title: "유저 관리",
     href: "/users",

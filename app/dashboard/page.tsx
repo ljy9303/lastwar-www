@@ -7,7 +7,22 @@ import { Users, History, CheckCircle, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-// 임시 이�������트 데이터
+// 전투력 포맷팅 함수 (1 = 1백만)
+const formatPower = (power: number): string => {
+  if (power === 0) return "0"
+  if (power < 1) {
+    return `${(power * 100).toFixed(0)}만`
+  }
+  if (power >= 1000) {
+    return `${(power / 1000).toFixed(1)}B`
+  }
+  if (power >= 100) {
+    return `${power.toFixed(0)}M`
+  }
+  return `${power.toFixed(1)}M`
+}
+
+// 임시 이벤트 데이터
 // 이거 기준
 const initialEvents = [
   {
@@ -34,11 +49,11 @@ const initialEvents = [
 
 // 임시 유저 데이터
 const initialUsers = [
-  { id: 1, nickname: "용사1", level: 30, power: 1500000, isLeft: false, participation: 10 },
-  { id: 2, nickname: "용사2", level: 28, power: 1350000, isLeft: false, participation: 8 },
-  { id: 3, nickname: "용사3", level: 32, power: 1650000, isLeft: true, participation: 5 },
-  { id: 4, nickname: "용사4", level: 25, power: 1200000, isLeft: false, participation: 9 },
-  { id: 5, nickname: "용사5", level: 35, power: 1800000, isLeft: false, participation: 10 },
+  { id: 1, nickname: "용사1", level: 30, power: 1500, isLeft: false, participation: 10 },
+  { id: 2, nickname: "용사2", level: 28, power: 1350, isLeft: false, participation: 8 },
+  { id: 3, nickname: "용사3", level: 32, power: 1650, isLeft: true, participation: 5 },
+  { id: 4, nickname: "용사4", level: 25, power: 1200, isLeft: false, participation: 9 },
+  { id: 5, nickname: "용사5", level: 35, power: 1800, isLeft: false, participation: 10 },
 ]
 
 // 임시 활동 로그
@@ -48,6 +63,72 @@ const initialLogs = [
   { id: 3, date: "2023-04-26", action: "사전조사 완료", details: "4월 4주차 사막전 사전조사 완료" },
 ]
 
+// 유저 통계 데이터
+const userStats = {
+  totalUsers: 91,
+  levelDistribution: [
+    {
+      level: 30,
+      count: 38,
+    },
+    {
+      level: 29,
+      count: 26,
+    },
+    {
+      level: 28,
+      count: 11,
+    },
+    {
+      level: 27,
+      count: 11,
+    },
+    {
+      level: 26,
+      count: 1,
+    },
+    {
+      level: 25,
+      count: 3,
+    },
+    {
+      level: 24,
+      count: 1,
+    },
+  ],
+  recentJoinUserCount: 2,
+  recentLeftUserCount: 4,
+  recentJoinUsers: [
+    {
+      userSeq: 155,
+      name: "BlackRose3",
+      level: 29,
+      power: 58.7,
+      leave: false,
+      createdAt: "2025-05-27T06:30:06.118+00:00",
+      updatedAt: "2025-05-27T06:30:06.118+00:00",
+    },
+    {
+      userSeq: 154,
+      name: "HEDGEHOG",
+      level: 27,
+      power: 35.9,
+      leave: false,
+      createdAt: "2025-05-27T06:29:22.560+00:00",
+      updatedAt: "2025-05-27T06:29:22.560+00:00",
+    },
+    {
+      userSeq: 152,
+      name: "Clayymoree",
+      level: 28,
+      power: 54.0,
+      leave: false,
+      createdAt: "2025-05-14T08:55:55.463+00:00",
+      updatedAt: "2025-05-14T08:55:55.463+00:00",
+    },
+  ],
+}
+
 export default function DashboardPage() {
   const [events] = useState(initialEvents)
   const [users] = useState(initialUsers)
@@ -55,12 +136,13 @@ export default function DashboardPage() {
 
   // 통계 계산
   const stats = {
-    totalUsers: users.length,
-    activeUsers: users.filter((u) => !u.isLeft).length,
+    totalUsers: userStats.totalUsers,
     totalEvents: events.length,
     completedEvents: events.filter((e) => e.status === "completed").length,
     aTeamWins: events.filter((e) => e.winner === "A_TEAM").length,
     bTeamWins: events.filter((e) => e.winner === "B_TEAM").length,
+    newUsersToday: userStats.recentJoinUserCount,
+    withdrawalsToday: userStats.recentLeftUserCount,
   }
 
   return (
@@ -77,9 +159,10 @@ export default function DashboardPage() {
               <Users className="h-5 w-5 text-muted-foreground mr-2" />
               <div className="text-2xl font-bold">{stats.totalUsers}명</div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              활동중: {stats.activeUsers}명 / 탈퇴: {stats.totalUsers - stats.activeUsers}명
-            </p>
+            <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <span className="text-green-600">가입: +{stats.newUsersToday}명</span>
+              <span className="text-red-600">탈퇴: -{stats.withdrawalsToday}명</span>
+            </div>
           </CardContent>
         </Card>
 
@@ -202,10 +285,47 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card>
+      {/* 유저 통계 섹션 */}
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        {/* 레벨 분포 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>레벨 분포</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {userStats.levelDistribution
+                .sort((a, b) => b.level - a.level)
+                .map((item) => {
+                  const percentage = (item.count / userStats.totalUsers) * 100
+                  return (
+                    <div key={item.level} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">레벨 {item.level}</span>
+                      <div className="flex items-center gap-2 flex-1 ml-4">
+                        <div className="flex-1 bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <span className="text-sm text-muted-foreground w-12 text-right">{item.count}명</span>
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 유저 활동 통계 */}
+      <div className="grid grid-cols-1 gap-6 mb-6"></div>
+
+      {/* 최근 가입 유저 */}
+      <Card className="mb-6">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>참여율 높은 유저</CardTitle>
+            <CardTitle>최근 가입 유저</CardTitle>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/users">모두 보기</Link>
             </Button>
@@ -219,28 +339,25 @@ export default function DashboardPage() {
                   <TableHead>닉네임</TableHead>
                   <TableHead className="hidden sm:table-cell">레벨</TableHead>
                   <TableHead className="hidden sm:table-cell">전투력</TableHead>
-                  <TableHead>참여 횟수</TableHead>
+                  <TableHead>가입일</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users
-                  .sort((a, b) => b.participation - a.participation)
-                  .slice(0, 5)
-                  .map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div>
-                          {user.nickname}
-                          <div className="sm:hidden text-xs text-muted-foreground">
-                            Lv.{user.level} | {user.power.toLocaleString()}
-                          </div>
+                {userStats.recentJoinUsers.map((user) => (
+                  <TableRow key={user.userSeq}>
+                    <TableCell>
+                      <div>
+                        {user.name}
+                        <div className="sm:hidden text-xs text-muted-foreground">
+                          Lv.{user.level} | {formatPower(user.power)}
                         </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{user.power.toLocaleString()}</TableCell>
-                      <TableCell>{user.participation}회</TableCell>
-                    </TableRow>
-                  ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{formatPower(user.power)}</TableCell>
+                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
