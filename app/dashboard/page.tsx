@@ -127,6 +127,18 @@ const userStats = {
       updatedAt: "2025-05-14T08:55:55.463+00:00",
     },
   ],
+  // 사막전 통계 데이터
+  desertStats: {
+    totalDesert: 8,
+    desertRate: {
+      bteamWinCount: 4,
+      ateamTotal: 4,
+      bteamTotal: 4,
+      bteamWinRate: 100.0,
+      ateamWinRate: 25.0,
+      ateamWinCount: 1,
+    },
+  },
 }
 
 export default function DashboardPage() {
@@ -139,8 +151,11 @@ export default function DashboardPage() {
     totalUsers: userStats.totalUsers,
     totalEvents: events.length,
     completedEvents: events.filter((e) => e.status === "completed").length,
-    aTeamWins: events.filter((e) => e.winner === "A_TEAM").length,
-    bTeamWins: events.filter((e) => e.winner === "B_TEAM").length,
+    aTeamWins: userStats.desertStats.desertRate.ateamWinCount,
+    bTeamWins: userStats.desertStats.desertRate.bteamWinCount,
+    aTeamWinRate: userStats.desertStats.desertRate.ateamWinRate,
+    bTeamWinRate: userStats.desertStats.desertRate.bteamWinRate,
+    totalDesert: userStats.desertStats.totalDesert,
     newUsersToday: userStats.recentJoinUserCount,
     withdrawalsToday: userStats.recentLeftUserCount,
   }
@@ -168,15 +183,16 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">이벤트 수</CardTitle>
+            <CardTitle className="text-sm font-medium">총 사막전</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
               <CalendarDays className="h-5 w-5 text-muted-foreground mr-2" />
-              <div className="text-2xl font-bold">{stats.totalEvents}개</div>
+              <div className="text-2xl font-bold">{stats.totalDesert}회</div>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              완료: {stats.completedEvents}개 / 진행중: {stats.totalEvents - stats.completedEvents}개
+              A팀: {userStats.desertStats.desertRate.ateamTotal}회 / B팀: {userStats.desertStats.desertRate.bteamTotal}
+              회
             </p>
           </CardContent>
         </Card>
@@ -187,9 +203,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.aTeamWins}회</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              승률: {stats.completedEvents > 0 ? Math.round((stats.aTeamWins / stats.completedEvents) * 100) : 0}%
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">승률: {stats.aTeamWinRate.toFixed(1)}%</p>
           </CardContent>
         </Card>
 
@@ -199,9 +213,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.bTeamWins}회</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              승률: {stats.completedEvents > 0 ? Math.round((stats.bTeamWins / stats.completedEvents) * 100) : 0}%
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">승률: {stats.bTeamWinRate.toFixed(1)}%</p>
           </CardContent>
         </Card>
       </div>
