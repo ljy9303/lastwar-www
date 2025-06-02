@@ -1,11 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, History, CheckCircle, CalendarDays } from "lucide-react"
+import { Users, CalendarDays, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { fetchFromAPI } from "@/lib/api-service"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // 전투력 포맷팅 함수 (1 = 1백만)
 const formatPower = (power: number): string => {
@@ -22,142 +25,121 @@ const formatPower = (power: number): string => {
   return `${power.toFixed(1)}M`
 }
 
-// 임시 이벤트 데이터
-// 이거 기준
-const initialEvents = [
-  {
-    id: 1,
-    name: "4월 4주차 사막전",
-    date: "2023-04-22",
-    status: "completed",
-    participants: 45,
-    aTeam: 20,
-    bTeam: 20,
-    winner: "A_TEAM",
-  },
-  {
-    id: 2,
-    name: "5월 1주차 사막전",
-    date: "2023-05-01",
-    status: "in_progress",
-    participants: 42,
-    aTeam: 20,
-    bTeam: 18,
-    winner: null,
-  },
-]
+// 날짜 포맷팅 함수
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  return `${year}년 ${month}월 ${day}일`
+}
 
-// 임시 유저 데이터
-const initialUsers = [
-  { id: 1, nickname: "용사1", level: 30, power: 1500, isLeft: false, participation: 10 },
-  { id: 2, nickname: "용사2", level: 28, power: 1350, isLeft: false, participation: 8 },
-  { id: 3, nickname: "용사3", level: 32, power: 1650, isLeft: true, participation: 5 },
-  { id: 4, nickname: "용사4", level: 25, power: 1200, isLeft: false, participation: 9 },
-  { id: 5, nickname: "용사5", level: 35, power: 1800, isLeft: false, participation: 10 },
-]
+// 유저 통계 타입 정의
+interface LevelDistribution {
+  level: number
+  count: number
+}
 
-// 임시 활동 로그
-const initialLogs = [
-  { id: 1, date: "2023-05-01", action: "이벤트 생성", details: "5월 1주차 사막전 생성됨" },
-  { id: 2, date: "2023-04-28", action: "팀 확정", details: "4월 4주차 사막전 팀 확정" },
-  { id: 3, date: "2023-04-26", action: "사전조사 완료", details: "4월 4주차 사막전 사전조사 완료" },
-]
+interface UserStats {
+  totalUsers: number
+  levelDistribution: LevelDistribution[]
+  recentJoinUserCount: number
+  recentLeftUserCount: number
+  recentJoinUsers: {
+    userSeq: number
+    name: string
+    level: number
+    power: number
+    leave: boolean
+    createdAt: string
+    updatedAt: string
+  }[]
+}
 
-// 유저 통계 데이터
-const userStats = {
-  totalUsers: 91,
-  levelDistribution: [
-    {
-      level: 30,
-      count: 38,
-    },
-    {
-      level: 29,
-      count: 26,
-    },
-    {
-      level: 28,
-      count: 11,
-    },
-    {
-      level: 27,
-      count: 11,
-    },
-    {
-      level: 26,
-      count: 1,
-    },
-    {
-      level: 25,
-      count: 3,
-    },
-    {
-      level: 24,
-      count: 1,
-    },
-  ],
-  recentJoinUserCount: 2,
-  recentLeftUserCount: 4,
-  recentJoinUsers: [
-    {
-      userSeq: 155,
-      name: "BlackRose3",
-      level: 29,
-      power: 58.7,
-      leave: false,
-      createdAt: "2025-05-27T06:30:06.118+00:00",
-      updatedAt: "2025-05-27T06:30:06.118+00:00",
-    },
-    {
-      userSeq: 154,
-      name: "HEDGEHOG",
-      level: 27,
-      power: 35.9,
-      leave: false,
-      createdAt: "2025-05-27T06:29:22.560+00:00",
-      updatedAt: "2025-05-27T06:29:22.560+00:00",
-    },
-    {
-      userSeq: 152,
-      name: "Clayymoree",
-      level: 28,
-      power: 54.0,
-      leave: false,
-      createdAt: "2025-05-14T08:55:55.463+00:00",
-      updatedAt: "2025-05-14T08:55:55.463+00:00",
-    },
-  ],
-  // 사막전 통계 데이터
-  desertStats: {
-    totalDesert: 8,
-    desertRate: {
-      bteamWinCount: 4,
-      ateamTotal: 4,
-      bteamTotal: 4,
-      bteamWinRate: 100.0,
-      ateamWinRate: 25.0,
-      ateamWinCount: 1,
-    },
-  },
+// 사막전 통계 타입 정의
+interface TeamStats {
+  total: number
+  played: number
+  ratio: number
+}
+
+interface DesertRoster {
+  desertSeq: number
+  desertType: string
+  title: string
+  team: TeamStats
+  reserve: TeamStats
+}
+
+interface DesertRate {
+  ateamTotal: number
+  ateamWinRate: number
+  ateamWinCount: number
+  bteamWinRate: number
+  bteamTotal: number
+  bteamWinCount: number
+}
+
+interface DesertStats {
+  totalDesert: number
+  desertRate: DesertRate
+  recentRosters: DesertRoster[]
 }
 
 export default function DashboardPage() {
-  const [events] = useState(initialEvents)
-  const [users] = useState(initialUsers)
-  const [logs] = useState(initialLogs)
+  const [userStats, setUserStats] = useState<UserStats | null>(null)
+  const [desertStats, setDesertStats] = useState<DesertStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+
+        // 병렬로 API 호출
+        const [userStatsData, desertStatsData] = await Promise.all([
+          fetchFromAPI("/user/stats"),
+          fetchFromAPI("/desert/stats"),
+        ])
+
+        setUserStats(userStatsData)
+        setDesertStats(desertStatsData)
+        setError(null)
+      } catch (err) {
+        console.error("데이터를 불러오는데 실패했습니다:", err)
+        setError("데이터를 불러오는데 실패했습니다.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   // 통계 계산
   const stats = {
-    totalUsers: userStats.totalUsers,
-    totalEvents: events.length,
-    completedEvents: events.filter((e) => e.status === "completed").length,
-    aTeamWins: userStats.desertStats.desertRate.ateamWinCount,
-    bTeamWins: userStats.desertStats.desertRate.bteamWinCount,
-    aTeamWinRate: userStats.desertStats.desertRate.ateamWinRate,
-    bTeamWinRate: userStats.desertStats.desertRate.bteamWinRate,
-    totalDesert: userStats.desertStats.totalDesert,
-    newUsersToday: userStats.recentJoinUserCount,
-    withdrawalsToday: userStats.recentLeftUserCount,
+    totalUsers: userStats?.totalUsers || 0,
+    aTeamWins: desertStats?.desertRate?.ateamWinCount || 0,
+    bTeamWins: desertStats?.desertRate?.bteamWinCount || 0,
+    aTeamWinRate: desertStats?.desertRate?.ateamWinRate || 0,
+    bTeamWinRate: desertStats?.desertRate?.bteamWinRate || 0,
+    totalDesert: desertStats?.totalDesert || 0,
+    newUsersToday: userStats?.recentJoinUserCount || 0,
+    withdrawalsToday: userStats?.recentLeftUserCount || 0,
+  }
+
+  // 에러 표시
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button onClick={() => window.location.reload()}>새로고침</Button>
+      </div>
+    )
   }
 
   return (
@@ -170,14 +152,23 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">전체 유저</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
-              <Users className="h-5 w-5 text-muted-foreground mr-2" />
-              <div className="text-2xl font-bold">{stats.totalUsers}명</div>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
-              <span className="text-green-600">가입: +{stats.newUsersToday}명</span>
-              <span className="text-red-600">탈퇴: -{stats.withdrawalsToday}명</span>
-            </div>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{stats.totalUsers}명</div>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <span className="text-green-600">가입: +{stats.newUsersToday}명</span>
+                  <span className="text-red-600">탈퇴: -{stats.withdrawalsToday}명</span>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -186,14 +177,22 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">총 사막전</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
-              <CalendarDays className="h-5 w-5 text-muted-foreground mr-2" />
-              <div className="text-2xl font-bold">{stats.totalDesert}회</div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              A팀: {userStats.desertStats.desertRate.ateamTotal}회 / B팀: {userStats.desertStats.desertRate.bteamTotal}
-              회
-            </p>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center">
+                  <CalendarDays className="h-5 w-5 text-muted-foreground mr-2" />
+                  <div className="text-2xl font-bold">{stats.totalDesert}회</div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  A팀: {desertStats?.desertRate?.ateamTotal || 0}회 / B팀: {desertStats?.desertRate?.bteamTotal || 0}회
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -202,8 +201,17 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">A팀 승리</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.aTeamWins}회</div>
-            <p className="text-xs text-muted-foreground mt-1">승률: {stats.aTeamWinRate.toFixed(1)}%</p>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.aTeamWins}회</div>
+                <p className="text-xs text-muted-foreground mt-1">승률: {stats.aTeamWinRate.toFixed(1)}%</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -212,13 +220,22 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">B팀 승리</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.bTeamWins}회</div>
-            <p className="text-xs text-muted-foreground mt-1">승률: {stats.bTeamWinRate.toFixed(1)}%</p>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.bTeamWins}회</div>
+                <p className="text-xs text-muted-foreground mt-1">승률: {stats.bTeamWinRate.toFixed(1)}%</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
@@ -233,65 +250,76 @@ export default function DashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>이벤트명</TableHead>
-                    <TableHead className="hidden sm:table-cell">날짜</TableHead>
-                    <TableHead className="hidden sm:table-cell">참가자</TableHead>
-                    <TableHead>상태</TableHead>
+                    <TableHead>사막전</TableHead>
+                    <TableHead className="hidden sm:table-cell">팀</TableHead>
+                    <TableHead className="hidden sm:table-cell">출전율</TableHead>
+                    <TableHead>예비 출전율</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {events.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell>
-                        <Link href={`/events/${event.id}`} className="hover:underline">
-                          <div>
-                            {event.name}
-                            <div className="sm:hidden text-xs text-muted-foreground">
-                              {event.date} | {event.participants}명
+                  {loading
+                    ? Array(5)
+                        .fill(0)
+                        .map((_, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <Skeleton className="h-5 w-32" />
+                              <div className="sm:hidden mt-1">
+                                <Skeleton className="h-4 w-24" />
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              <Skeleton className="h-5 w-10" />
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              <Skeleton className="h-5 w-16" />
+                              <Skeleton className="h-4 w-12 mt-1" />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-5 w-16" />
+                              <Skeleton className="h-4 w-12 mt-1" />
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    : desertStats?.recentRosters.slice(0, 5).map((roster) => (
+                        <TableRow key={`${roster.desertSeq}-${roster.desertType}`}>
+                          <TableCell>
+                            <div>
+                              {roster.title}
+                              <div className="sm:hidden text-xs text-muted-foreground">
+                                {roster.desertType}팀 | 본대: {roster.team.played}/{roster.team.total}
+                              </div>
                             </div>
-                          </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">{event.date}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{event.participants}명</TableCell>
-                      <TableCell>
-                        {event.status === "completed" ? (
-                          <span className="flex items-center text-green-600">
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            완료
-                          </span>
-                        ) : (
-                          <span className="text-blue-600">진행중</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${
+                                roster.desertType === "A" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {roster.desertType}팀
+                            </span>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">
+                                {roster.team.played}/{roster.team.total}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{roster.team.ratio.toFixed(1)}%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">
+                                {roster.reserve.played}/{roster.reserve.total}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{roster.reserve.ratio.toFixed(1)}%</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                 </TableBody>
               </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>최근 활동</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {logs.map((log) => (
-                <div key={log.id} className="flex items-start gap-4">
-                  <div className="rounded-full p-2 bg-muted">
-                    <History className="h-4 w-4" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none">{log.action}</p>
-                    <p className="text-sm text-muted-foreground">{log.details}</p>
-                    <p className="text-xs text-muted-foreground">{log.date}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </CardContent>
         </Card>
@@ -305,33 +333,44 @@ export default function DashboardPage() {
             <CardTitle>레벨 분포</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {userStats.levelDistribution
-                .sort((a, b) => b.level - a.level)
-                .map((item) => {
-                  const percentage = (item.count / userStats.totalUsers) * 100
-                  return (
-                    <div key={item.level} className="flex items-center justify-between">
-                      <span className="text-sm font-medium">레벨 {item.level}</span>
-                      <div className="flex items-center gap-2 flex-1 ml-4">
-                        <div className="flex-1 bg-muted rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-muted-foreground w-12 text-right">{item.count}명</span>
-                      </div>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-16" />
+                    <div className="flex items-center gap-2 flex-1 ml-4">
+                      <Skeleton className="h-2 w-full" />
+                      <Skeleton className="h-4 w-12" />
                     </div>
-                  )
-                })}
-            </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {userStats?.levelDistribution
+                  .sort((a, b) => b.level - a.level)
+                  .map((item) => {
+                    const percentage = (item.count / (userStats?.totalUsers || 1)) * 100
+                    return (
+                      <div key={item.level} className="flex items-center justify-between">
+                        <span className="text-sm font-medium">레벨 {item.level}</span>
+                        <div className="flex items-center gap-2 flex-1 ml-4">
+                          <div className="flex-1 bg-muted rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-muted-foreground w-12 text-right">{item.count}명</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* 유저 활동 통계 */}
-      <div className="grid grid-cols-1 gap-6 mb-6"></div>
 
       {/* 최근 가입 유저 */}
       <Card className="mb-6">
@@ -355,21 +394,38 @@ export default function DashboardPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {userStats.recentJoinUsers.map((user) => (
-                  <TableRow key={user.userSeq}>
-                    <TableCell>
-                      <div>
-                        {user.name}
-                        <div className="sm:hidden text-xs text-muted-foreground">
-                          Lv.{user.level} | {formatPower(user.power)}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
-                    <TableCell className="hidden sm:table-cell">{formatPower(user.power)}</TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
+                {loading
+                  ? [1, 2, 3].map((i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <Skeleton className="h-5 w-24" />
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Skeleton className="h-5 w-8" />
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Skeleton className="h-5 w-12" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-5 w-20" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : userStats?.recentJoinUsers.map((user) => (
+                      <TableRow key={user.userSeq}>
+                        <TableCell>
+                          <div>
+                            {user.name}
+                            <div className="sm:hidden text-xs text-muted-foreground">
+                              Lv.{user.level} | {formatPower(user.power)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{formatPower(user.power)}</TableCell>
+                        <TableCell>{formatDate(user.createdAt)}</TableCell>
+                      </TableRow>
+                    ))}
               </TableBody>
             </Table>
           </div>
