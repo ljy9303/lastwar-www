@@ -74,7 +74,7 @@ export default function Sidebar() {
         {/* 이미지나 로고를 여기에 추가할 수 있습니다 */}
         <div className="p-4 border-b flex items-center justify-between">
           {!isSidebarCollapsed && (
-            <Link href="/">
+            <Link href="/dashboard">
               <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">1242 ROKK</h1>
             </Link>
           )}
