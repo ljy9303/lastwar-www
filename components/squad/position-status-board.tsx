@@ -218,7 +218,7 @@ export function PositionStatusBoard({
               {members.map((member) => (
                 <div
                   key={member.userSeq}
-                  className="flex items-center py-0.5 px-1 rounded hover:bg-muted/50 transition-colors text-sm"
+                  className="flex items-center py-0.5 px-1 rounded hover:bg-muted/50 transition-colors text-xs"
                 >
                   <span className="font-medium">{member.userName}</span>
                   <span className="text-xs text-muted-foreground ml-1">Lv.{member.userLevel}</span>
@@ -226,7 +226,7 @@ export function PositionStatusBoard({
               ))}
             </div>
           ) : (
-            <div className="pl-6 text-sm text-muted-foreground">배정된 멤버가 없습니다.</div>
+            <div className="pl-6 text-xs text-muted-foreground">배정된 멤버가 없습니다.</div>
           )}
         </div>
       )
@@ -252,7 +252,7 @@ export function PositionStatusBoard({
           {reserveMembers.map((member) => (
             <div
               key={member.userSeq}
-              className="flex items-center py-0.5 px-1 rounded hover:bg-muted/50 transition-colors text-sm"
+              className="flex items-center py-0.5 px-1 rounded hover:bg-muted/50 transition-colors text-xs"
             >
               <span className="font-medium">{member.userName}</span>
               <span className="text-xs text-muted-foreground ml-1">Lv.{member.userLevel}</span>
@@ -266,7 +266,7 @@ export function PositionStatusBoard({
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">포지션 현황</h2>
+        <h2 className="text-xl font-bold">포지션 현황</h2>
         <button
           onClick={toggleAllTeams}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -282,7 +282,7 @@ export function PositionStatusBoard({
             className="pb-2 cursor-pointer bg-red-50/50 dark:bg-red-900/10"
             onClick={() => toggleTeam("teamA")}
           >
-            <CardTitle className="text-lg flex items-center justify-between">
+            <CardTitle className="text-base flex items-center justify-between">
               <div className="flex items-center">
                 {expandedTeams.teamA ? (
                   <ChevronDown className="h-4 w-4 mr-1" />
@@ -315,7 +315,7 @@ export function PositionStatusBoard({
               {renderReserveMembers(teamAReserveMembers)}
               {Object.values(teamAPositions).every((members) => members.length === 0) &&
                 teamAReserveMembers.length === 0 && (
-                  <div className="text-center py-4 text-muted-foreground">배정된 멤버가 없습니다.</div>
+                  <div className="text-center py-3 text-xs text-muted-foreground">배정된 멤버가 없습니다.</div>
                 )}
             </CardContent>
           )}
@@ -327,7 +327,7 @@ export function PositionStatusBoard({
             className="pb-2 cursor-pointer bg-blue-50/50 dark:bg-blue-900/10"
             onClick={() => toggleTeam("teamB")}
           >
-            <CardTitle className="text-lg flex items-center justify-between">
+            <CardTitle className="text-base flex items-center justify-between">
               <div className="flex items-center">
                 {expandedTeams.teamB ? (
                   <ChevronDown className="h-4 w-4 mr-1" />
@@ -360,7 +360,7 @@ export function PositionStatusBoard({
               {renderReserveMembers(teamBReserveMembers)}
               {Object.values(teamBPositions).every((members) => members.length === 0) &&
                 teamBReserveMembers.length === 0 && (
-                  <div className="text-center py-4 text-muted-foreground">배정된 멤버가 없습니다.</div>
+                  <div className="text-center py-3 text-xs text-muted-foreground">배정된 멤버가 없습니다.</div>
                 )}
             </CardContent>
           )}

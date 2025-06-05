@@ -708,7 +708,7 @@ export default function SquadsPage() {
       <div key={user.userSeq} className="p-3 mb-2 rounded-lg border bg-background" id={`user-${user.userSeq}`}>
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-            <div className="font-medium">{user.userName}</div>
+            <div className="font-medium truncate max-w-[120px] sm:max-w-none">{user.userName}</div>
             <div className="text-sm text-muted-foreground flex items-center gap-1">
               Lv.{user.userLevel} | {user.userPower.toLocaleString()}
               {user.zscore !== undefined && getZScoreLabel(user.zscore) && (
