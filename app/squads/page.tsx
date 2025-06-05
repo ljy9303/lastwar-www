@@ -11,7 +11,6 @@ import {
   Save,
   AlertTriangle,
   Loader2,
-  Pencil,
   ChevronDown,
   X,
   CheckCircle,
@@ -26,8 +25,6 @@ import { getDesertById } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { UserForm } from "@/components/user/user-form"
-import type { User } from "@/types/user"
 import { PositionStatusBoard } from "@/components/squad/position-status-board"
 
 // API 기본 URL 설정
@@ -67,6 +64,13 @@ const POSITIONS = [
   { value: 10, label: "10시" },
   { value: 11, label: "11시" },
 ]
+
+// Update the SquadMember type to include zscore as string
+declare module "@/app/actions/squad-actions" {
+  interface SquadMember {
+    zscore?: string
+  }
+}
 
 // User history type
 type UserHistory = {
@@ -122,8 +126,6 @@ export default function SquadsPage() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingChanges, setPendingChanges] = useState<Record<number, { desertType: string; position: number }>>({})
   const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
   const [userHistories, setUserHistories] = useState<Record<number, UserHistory>>({})
   const [loadingHistories, setLoadingHistories] = useState<Record<number, boolean>>({})
@@ -614,6 +616,30 @@ export default function SquadsPage() {
     return "포지션 없음"
   }
 
+  // Get zscore label from string value
+  const getZScoreLabel = (zscore: string | undefined) => {
+    if (!zscore) return null
+
+    switch (zscore) {
+      case "top1":
+        return { label: "상위 1%", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" }
+      case "top10":
+        return { label: "상위 10%", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" }
+      case "top30":
+        return { label: "상위 30%", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" }
+      case "middle":
+        return { label: "중간층", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" }
+      case "bottom30":
+        return { label: "하위 30%", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" }
+      case "bottom10":
+        return { label: "하위 10%", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" }
+      case "bottom1":
+        return { label: "하위 1%", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" }
+      default:
+        return null
+    }
+  }
+
   // 포지션별 인원 수 계산
   const countMembersByPosition = (team: keyof GroupedSquadResponse) => {
     const members = squadMembers[team] || []
@@ -683,8 +709,13 @@ export default function SquadsPage() {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
             <div className="font-medium">{user.userName}</div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground flex items-center gap-1">
               Lv.{user.userLevel} | {user.userPower.toLocaleString()}
+              {user.zscore !== undefined && getZScoreLabel(user.zscore) && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ml-1 ${getZScoreLabel(user.zscore)?.color}`}>
+                  {getZScoreLabel(user.zscore)?.label}
+                </span>
+              )}
             </div>
             <Badge variant={isPreferenceMatched ? "outline" : "secondary"} size="sm">
               {getPreferenceLabel(user.intentType)}
@@ -697,11 +728,6 @@ export default function SquadsPage() {
           </div>
 
           <div className="flex flex-wrap gap-1 mt-2 sm:mt-0">
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openEditDialog(user)}>
-              <Pencil className="h-3 w-3" />
-              <span className="sr-only">수정</span>
-            </Button>
-
             <Button
               size="sm"
               variant="ghost"
@@ -869,63 +895,6 @@ export default function SquadsPage() {
         )}
       </div>
     )
-  }
-
-  // Function to open the edit dialog
-  const openEditDialog = (user: SquadMember) => {
-    // SquadMember를 User 타입으로 변환
-    const userForEdit: User = {
-      userSeq: user.userSeq,
-      id: user.userSeq, // id 필드 추가
-      name: user.userName,
-      level: user.userLevel,
-      power: user.userPower,
-      leave: false, // 기본값 설정
-      createdAt: "", // 기본값 설정
-      updatedAt: "", // 기본값 설정
-    }
-
-    setCurrentUser(userForEdit)
-    setIsEditDialogOpen(true)
-  }
-
-  // Function to handle successful edit
-  const handleEditSuccess = () => {
-    setIsEditDialogOpen(false)
-    setCurrentUser(null)
-    // Optionally refresh data or update local state
-    const loadData = async () => {
-      if (!eventId) return
-
-      setIsLoading(true)
-      try {
-        // 스쿼드 데이터 로드
-        const squadData = await getSquads(Number(eventId))
-
-        // 각 그룹 정렬
-        const sortedSquadData = {
-          A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
-          B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
-          A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
-          B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
-          AB_POSSIBLE: squadData.AB_POSSIBLE || [],
-          NONE: squadData.NONE || [],
-        }
-
-        setSquadMembers(sortedSquadData)
-      } catch (error) {
-        console.error("데이터 로드 실패:", error)
-        toast({
-          title: "오류 발생",
-          description: "데이터를 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadData()
   }
 
   // 팀 멤버 목록 다이얼로그 열기 함수 추가
@@ -1315,26 +1284,6 @@ export default function SquadsPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* 유저 수정 다이얼로그 */}
-      {currentUser && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>유저 정보 수정</DialogTitle>
-            </DialogHeader>
-            <UserForm
-              mode="edit"
-              user={currentUser}
-              onSuccess={handleEditSuccess}
-              onCancel={() => {
-                setIsEditDialogOpen(false)
-                setCurrentUser(null)
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   )
 }
