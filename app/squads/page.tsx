@@ -85,16 +85,16 @@ type UserHistory = {
 }
 
 // Function to sort users based on level and name
-const sortUsers = (users: SquadMember[], levelDirection: "asc" | "desc" = "desc"): SquadMember[] => {
+const sortUsers = (users: SquadMember[], powerDirection: "asc" | "desc" = "desc"): SquadMember[] => {
   return [...users].sort((a, b) => {
-    // Sort by userLevel based on direction
-    const levelComparison = levelDirection === "desc" ? b.userLevel - a.userLevel : a.userLevel - b.userLevel
+    // Sort by userPower based on direction
+    const powerComparison = powerDirection === "desc" ? b.userPower - a.userPower : a.userPower - b.userPower
 
-    if (levelComparison !== 0) {
-      return levelComparison
+    if (powerComparison !== 0) {
+      return powerComparison
     }
 
-    // If levels are the same, sort by userName in ascending order
+    // If power is the same, sort by userName in ascending order
     return a.userName.localeCompare(b.userName)
   })
 }
@@ -137,7 +137,7 @@ export default function SquadsPage() {
 
   // Sort direction states
   // const [sortNameDirection, setSortNameDirection] = useState<"asc" | "desc">("asc")
-  const [sortLevelDirection, setSortLevelDirection] = useState<"asc" | "desc">("desc")
+  const [sortPowerDirection, setSortPowerDirection] = useState<"asc" | "desc">("desc")
 
   // 이벤트 ID가 없으면 이벤트 목록 페이지로 리다이렉트
   useEffect(() => {
@@ -165,10 +165,10 @@ export default function SquadsPage() {
 
         // 각 그룹 정렬
         const sortedSquadData = {
-          A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-          B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
-          A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-          B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+          A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
+          B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
+          A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
+          B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
           AB_POSSIBLE: squadData.AB_POSSIBLE || [],
           NONE: squadData.NONE || [],
         }
@@ -187,7 +187,7 @@ export default function SquadsPage() {
     }
 
     loadData()
-  }, [eventId, toast, sortLevelDirection])
+  }, [eventId, toast, sortPowerDirection])
 
   // 유저 히스토리 조회 함수
   const fetchUserHistory = async (userSeq: number) => {
@@ -247,10 +247,10 @@ export default function SquadsPage() {
 
       // 각 그룹 정렬
       const sortedSquadData = {
-        A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
-        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
+        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
       }
@@ -295,8 +295,10 @@ export default function SquadsPage() {
 
   // 클립보드에 복사할 텍스트 생성
   const generateClipboardText = (team: string) => {
-    const members = [...squadMembers[team as keyof GroupedSquadResponse]].sort((a, b) => b.userLevel - a.userLevel)
-    return members.map((member, index) => `${index + 1}. ${member.userName} (${member.userLevel})`).join("\n")
+    const members = [...squadMembers[team as keyof GroupedSquadResponse]].sort((a, b) => b.userPower - a.userPower)
+    return members
+      .map((member, index) => `${index + 1}. ${member.userName} (${member.userPower.toLocaleString()})`)
+      .join("\n")
   }
 
   // 클립보드 복사 함수
@@ -393,7 +395,7 @@ export default function SquadsPage() {
           newSquadMembers[toTeamKey] = [user, ...newSquadMembers[toTeamKey]]
         } else {
           // 다른 팀으로 이동할 때는 추가 후 정렬
-          newSquadMembers[toTeamKey] = sortUsers([...newSquadMembers[toTeamKey], user], sortLevelDirection)
+          newSquadMembers[toTeamKey] = sortUsers([...newSquadMembers[toTeamKey], user], sortPowerDirection)
         }
 
         setSquadMembers(newSquadMembers)
@@ -408,7 +410,7 @@ export default function SquadsPage() {
         }))
       }
     },
-    [squadMembers, toast, sortLevelDirection],
+    [squadMembers, toast, sortPowerDirection],
   )
 
   // Add a function to update user position
@@ -483,10 +485,10 @@ export default function SquadsPage() {
 
       // 각 그룹 정렬
       const sortedSquadData = {
-        A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
-        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
+        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
       }
@@ -558,10 +560,10 @@ export default function SquadsPage() {
 
       // 각 그룹 정렬
       const sortedSquadData = {
-        A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-        B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
-        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
+        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
       }
@@ -902,10 +904,10 @@ export default function SquadsPage() {
 
         // 각 그룹 정렬
         const sortedSquadData = {
-          A_TEAM: sortUsers(squadData.A_TEAM || [], sortLevelDirection),
-          B_TEAM: sortUsers(squadData.B_TEAM || [], sortLevelDirection),
-          A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortLevelDirection),
-          B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortLevelDirection),
+          A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
+          B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
+          A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
+          B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
           AB_POSSIBLE: squadData.AB_POSSIBLE || [],
           NONE: squadData.NONE || [],
         }
@@ -984,13 +986,13 @@ export default function SquadsPage() {
 
         <div className="flex gap-2">
           <div className="flex items-center gap-1">
-            <span className="text-sm whitespace-nowrap">레벨:</span>
+            <span className="text-sm whitespace-nowrap">전투력:</span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                const newDirection = sortLevelDirection === "asc" ? "desc" : "asc"
-                setSortLevelDirection(newDirection)
+                const newDirection = sortPowerDirection === "asc" ? "desc" : "asc"
+                setSortPowerDirection(newDirection)
 
                 // 모든 팀에 새 정렬 방향 적용
                 const newSquadMembers = { ...squadMembers }
@@ -1007,7 +1009,7 @@ export default function SquadsPage() {
               }}
               className="h-8 px-2"
             >
-              {sortLevelDirection === "asc" ? "↑" : "↓"}
+              {sortPowerDirection === "asc" ? "↑" : "↓"}
             </Button>
           </div>
 

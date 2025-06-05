@@ -4,7 +4,7 @@ import { useState } from "react"
 import type { User } from "@/types/user"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Pencil, Trash } from "lucide-react"
+import { Pencil, Trash, ChevronUp, ChevronDown } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,29 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
   const { toast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
+
+  const [sortField, setSortField] = useState<keyof User | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  const handleSort = (field: keyof User) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  const sortedUsers = [...users].sort((a, b) => {
+    if (!sortField) return 0
+
+    const aValue = a[sortField]
+    const bValue = b[sortField]
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
+    return 0
+  })
 
   const handleDelete = async () => {
     if (!userToDelete) return
@@ -61,19 +84,73 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="hidden md:table-cell">ID</TableHead>
-              <TableHead>닉네임</TableHead>
-              <TableHead className="hidden sm:table-cell">본부 레벨</TableHead>
-              <TableHead className="hidden sm:table-cell">전투력</TableHead>
-              <TableHead className="hidden sm:table-cell">연맹 탈퇴</TableHead>
+              <TableHead>
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("name")}
+                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                >
+                  닉네임
+                  {sortField === "name" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="ml-1 h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    ))}
+                </Button>
+              </TableHead>
+              <TableHead className="hidden sm:table-cell">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("level")}
+                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                >
+                  본부 레벨
+                  {sortField === "level" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="ml-1 h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    ))}
+                </Button>
+              </TableHead>
+              <TableHead className="hidden sm:table-cell">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("power")}
+                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                >
+                  전투력
+                  {sortField === "power" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="ml-1 h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    ))}
+                </Button>
+              </TableHead>
+              <TableHead className="hidden sm:table-cell">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("leave")}
+                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                >
+                  연맹 탈퇴
+                  {sortField === "leave" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="ml-1 h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    ))}
+                </Button>
+              </TableHead>
               <TableHead className="text-right">관리</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.length > 0 ? (
-              users.map((user) => (
+            {sortedUsers.length > 0 ? (
+              sortedUsers.map((user) => (
                 <TableRow key={user.userSeq}>
-                  <TableCell className="hidden md:table-cell">{user.id}</TableCell>
                   <TableCell>
                     <div>
                       <div>{user.name}</div>
@@ -101,7 +178,7 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={5} className="text-center py-4">
                   검색 결과가 없습니다.
                 </TableCell>
               </TableRow>
