@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import Sidebar from "@/components/sidebar"
 import { Toaster } from "@/components/ui/toaster"
 import { Suspense } from "react"
+import { AuthProvider } from "@/components/auth/auth-provider"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,24 +26,28 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <div className="flex flex-col md:flex-row h-screen">
-            <Sidebar />
-            <main className="flex-1 overflow-auto p-3 md:p-6 pt-2 md:pt-6 w-full overscroll-behavior-contain will-change-scroll contain-layout">
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center h-full">
-                    <div className="flex flex-col items-center space-y-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                      <p className="text-sm text-muted-foreground">데이터를 불러오는 중...</p>
-                    </div>
-                  </div>
-                }
-              >
-                {children}
-              </Suspense>
-            </main>
-          </div>
-          <Toaster />
+          <AuthProvider>
+            <div className="flex flex-col md:flex-row h-screen">
+              <Sidebar />
+              <main className="flex-1 overflow-auto p-3 md:p-6 pt-2 md:pt-6 w-full overscroll-behavior-contain will-change-scroll contain-layout">
+                <ProtectedRoute>
+                  <Suspense
+                    fallback={
+                      <div className="flex items-center justify-center h-full">
+                        <div className="flex flex-col items-center space-y-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                          <p className="text-sm text-muted-foreground">데이터를 불러오는 중...</p>
+                        </div>
+                      </div>
+                    }
+                  >
+                    {children}
+                  </Suspense>
+                </ProtectedRoute>
+              </main>
+            </div>
+            <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
