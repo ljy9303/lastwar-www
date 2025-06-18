@@ -20,46 +20,61 @@ export default function CallbackPage() {
         const code = searchParams.get("code")
         const error = searchParams.get("error")
         const errorDescription = searchParams.get("error_description")
+        const state = searchParams.get("state")
 
+        // 에러가 있는 경우 에러 페이지로 리다이렉트
         if (error) {
-          setStatus("error")
-          setMessage(errorDescription || "로그인 중 오류가 발생했습니다.")
+          const errorParams = new URLSearchParams({
+            error,
+            ...(errorDescription && { error_description: errorDescription }),
+          })
+          router.push(`/auth/error?${errorParams.toString()}`)
           return
         }
 
         if (!code) {
-          setStatus("error")
-          setMessage("인증 코드가 없습니다.")
+          router.push("/auth/error?message=인증 코드가 없습니다.")
           return
         }
 
+        setMessage("카카오 로그인을 처리하고 있습니다...")
+
         // 백엔드 콜백 API 호출
-        const response = await fetch(`http://43.203.90.157:8080/api/auth/kakao/callback?code=${code}`, {
+        const callbackUrl = `https://rokk.chunsik.site/api/auth/kakao/callback?code=${code}${state ? `&state=${state}` : ""}`
+
+        const response = await fetch(callbackUrl, {
           method: "GET",
           credentials: "include",
+          headers: {
+            Accept: "application/json",
+          },
         })
 
         if (response.ok) {
           const data = await response.json()
-          if (data.token) {
-            login(data.token)
+
+          if (data.token || data.accessToken) {
+            const token = data.token || data.accessToken
+            login(token)
             setStatus("success")
             setMessage("로그인이 완료되었습니다.")
+
+            // 성공 후 대시보드로 이동
             setTimeout(() => {
               router.push("/dashboard")
             }, 1500)
           } else {
-            setStatus("error")
-            setMessage("토큰을 받지 못했습니다.")
+            throw new Error("토큰을 받지 못했습니다.")
           }
         } else {
-          setStatus("error")
-          setMessage("서버에서 오류가 발생했습니다.")
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.message || `서버 오류: ${response.status}`)
         }
       } catch (error) {
         console.error("콜백 처리 실패:", error)
         setStatus("error")
-        setMessage("네트워크 오류가 발생했습니다.")
+        const errorMessage = error instanceof Error ? error.message : "로그인 처리 중 오류가 발생했습니다."
+        setMessage(errorMessage)
       }
     }
 
@@ -84,7 +99,7 @@ export default function CallbackPage() {
           {status === "loading" && (
             <>
               <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">카카오 로그인을 처리하고 있습니다...</p>
+              <p className="text-muted-foreground">{message}</p>
             </>
           )}
 

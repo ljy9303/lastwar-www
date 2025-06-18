@@ -1,7 +1,6 @@
 "use server"
 
 import { fetchFromAPI } from "@/lib/api-service"
-import { redirect } from "next/navigation"
 
 /**
  * 카카오 로그인 URL을 가져옵니다.
@@ -9,23 +8,11 @@ import { redirect } from "next/navigation"
 export async function getKakaoLoginUrl(): Promise<string> {
   try {
     const response = await fetchFromAPI("/api/auth/kakao/login-url")
-    return response.loginUrl || response.url
+    return response.loginUrl || response.url || response.redirectUrl
   } catch (error) {
     console.error("카카오 로그인 URL 조회 실패:", error)
-    throw error
-  }
-}
-
-/**
- * 카카오 로그인 페이지로 리다이렉트합니다.
- */
-export async function redirectToKakaoLogin() {
-  try {
-    const loginUrl = await getKakaoLoginUrl()
-    redirect(loginUrl)
-  } catch (error) {
-    console.error("카카오 로그인 리다이렉트 실패:", error)
-    throw error
+    // 직접 카카오 로그인 페이지로 리다이렉트하는 백엔드 엔드포인트 사용
+    return "https://rokk.chunsik.site/api/auth/kakao/login"
   }
 }
 
