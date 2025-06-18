@@ -3,24 +3,12 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import {
-  Users,
-  UserSquare,
-  Menu,
-  X,
-  Shuffle,
-  ChevronRight,
-  ChevronLeft,
-  LayoutDashboard,
-  LogIn,
-  LogOut,
-} from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
-import { useAuth } from "@/components/auth/auth-provider"
 
 // hi yuri
 const navItems = [
@@ -57,36 +45,6 @@ export default function Sidebar() {
   const isMobile = useMobile()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [pendingCount, setPendingCount] = useState(3) // Example state for pending count
-  const { isAuthenticated, user, logout } = useAuth()
-  const [windowWidth, setWindowWidth] = useState(0)
-
-  useEffect(() => {
-    // Function to update windowWidth state
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth)
-    }
-
-    // Set initial window width
-    setWindowWidth(window.innerWidth)
-
-    // Add event listener for window resize
-    window.addEventListener("resize", handleResize)
-
-    // Clean up event listener on component unmount
-    return () => window.removeEventListener("resize", handleResize)
-  }, []) // Empty dependency array ensures this effect runs only once on mount
-
-  useEffect(() => {
-    if (windowWidth >= 768 && open) {
-      setOpen(false)
-    }
-  }, [windowWidth, open])
-
-  // 공개 라우트에서는 사이드바를 숨김
-  const PUBLIC_ROUTES = ["/login", "/auth/callback"]
-  if (PUBLIC_ROUTES.includes(pathname)) {
-    return null
-  }
 
   // 모바일에서 메뉴 선택 후 자동으로 닫기
   const handleNavigation = () => {
@@ -96,16 +54,16 @@ export default function Sidebar() {
   }
 
   // 화면 크기 변경 시 모바일 메뉴 닫기
-  // useEffect(() => {
-  //   const handleResize = () => {
-  //     if (window.innerWidth >= 768 && open) {
-  //       setOpen(false)
-  //     }
-  //   }
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768 && open) {
+        setOpen(false)
+      }
+    }
 
-  //   window.addEventListener("resize", handleResize)
-  //   return () => window.removeEventListener("resize", handleResize)
-  // }, [open])
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [open])
 
   return (
     <>
@@ -145,29 +103,6 @@ export default function Sidebar() {
             </Link>
           ))}
         </nav>
-        <div className="p-4 border-t mt-auto">
-          {isAuthenticated ? (
-            <div className="space-y-2">
-              {!isSidebarCollapsed && user && (
-                <p className="text-xs text-muted-foreground truncate">{user.name || user.email || "사용자"}</p>
-              )}
-              <Button variant="ghost" size="sm" onClick={logout} className="w-full justify-start">
-                <LogOut className="h-4 w-4 mr-2" />
-                {!isSidebarCollapsed && "로그아웃"}
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => (window.location.href = "/login")}
-              className="w-full justify-start"
-            >
-              <LogIn className="h-4 w-4 mr-2" />
-              {!isSidebarCollapsed && "로그인"}
-            </Button>
-          )}
-        </div>
       </div>
 
       {/* 모바일 헤더 */}
@@ -211,29 +146,6 @@ export default function Sidebar() {
                 </Link>
               ))}
             </nav>
-            <div className="p-4 border-t mt-auto">
-              {isAuthenticated ? (
-                <div className="space-y-2">
-                  {user && (
-                    <p className="text-xs text-muted-foreground truncate">{user.name || user.email || "사용자"}</p>
-                  )}
-                  <Button variant="ghost" size="sm" onClick={logout} className="w-full justify-start">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    로그아웃
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => (window.location.href = "/login")}
-                  className="w-full justify-start"
-                >
-                  <LogIn className="h-4 w-4 mr-2" />
-                  로그인
-                </Button>
-              )}
-            </div>
           </SheetContent>
         </Sheet>
         <h1 className="text-lg font-bold truncate flex items-center">

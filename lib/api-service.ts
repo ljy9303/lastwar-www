@@ -3,21 +3,11 @@ const API_BASE_URL = "https://api.chunsik.site"
 export async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`
 
-  // JWT 토큰 가져오기 (localStorage에서)
-  let token = null
-  if (typeof window !== "undefined") {
-    token = localStorage.getItem("jwt_token")
-  }
-
   try {
     const response = await fetch(url, {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        // OAuth 관련 API가 아닌 경우에만 Authorization 헤더 추가
-        ...(token && !endpoint.includes("/auth/") && !endpoint.includes("/oauth2/")
-          ? { Authorization: `Bearer ${token}` }
-          : {}),
         ...options.headers,
       },
     })
