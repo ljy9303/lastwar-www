@@ -11,7 +11,29 @@ interface ProtectedRouteProps {
   children: React.ReactNode
 }
 
-const PUBLIC_ROUTES = ["/login", "/auth/callback"]
+// 인증이 필요하지 않은 공개 라우트들
+const PUBLIC_ROUTES = [
+  "/login",
+  "/auth/callback",
+  "/auth/error",
+  "/api/auth/kakao/login",
+  "/api/auth/kakao/callback",
+  "/api/auth/kakao/login-url",
+  "/oauth2/authorization/kakao",
+  "/oauth2/config",
+]
+
+// 경로가 공개 라우트인지 확인하는 함수
+const isPublicRoute = (pathname: string): boolean => {
+  return PUBLIC_ROUTES.some((route) => {
+    if (route.includes("*")) {
+      // 와일드카드 패턴 처리
+      const baseRoute = route.replace("*", "")
+      return pathname.startsWith(baseRoute)
+    }
+    return pathname === route || pathname.startsWith(route)
+  })
+}
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, loading } = useAuth()
@@ -19,10 +41,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!loading && !isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
+    // API 경로는 클라이언트 사이드 라우팅에서 제외
+    if (pathname.startsWith("/api/")) {
+      return
+    }
+
+    if (!loading && !isAuthenticated && !isPublicRoute(pathname)) {
       router.push("/login")
     }
   }, [isAuthenticated, loading, pathname, router])
+
+  // API 경로는 그대로 통과
+  if (pathname.startsWith("/api/")) {
+    return <>{children}</>
+  }
 
   // 로딩 중일 때
   if (loading) {
@@ -37,7 +69,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // 공개 라우트이거나 인증된 사용자인 경우
-  if (PUBLIC_ROUTES.includes(pathname) || isAuthenticated) {
+  if (isPublicRoute(pathname) || isAuthenticated) {
     return <>{children}</>
   }
 

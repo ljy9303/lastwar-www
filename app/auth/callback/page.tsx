@@ -39,8 +39,8 @@ export default function CallbackPage() {
 
         setMessage("카카오 로그인을 처리하고 있습니다...")
 
-        // 백엔드 콜백 API 호출
-        const callbackUrl = `https://rokk.chunsik.site/api/auth/kakao/callback?code=${code}${state ? `&state=${state}` : ""}`
+        // 백엔드 콜백 API 호출 - 올바른 도메인 사용
+        const callbackUrl = `https://api.chunsik.site/api/auth/kakao/callback?code=${code}${state ? `&state=${state}` : ""}`
 
         const response = await fetch(callbackUrl, {
           method: "GET",
