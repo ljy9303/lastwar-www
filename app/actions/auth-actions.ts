@@ -12,7 +12,7 @@ export async function getKakaoLoginUrl(): Promise<string> {
   } catch (error) {
     console.error("카카오 로그인 URL 조회 실패:", error)
     // 직접 카카오 로그인 페이지로 리다이렉트하는 백엔드 엔드포인트 사용
-    return "https://rokk.chunsik.site/api/auth/kakao/login"
+    return "https://api.chunsik.site/api/auth/kakao/login"
   }
 }
 

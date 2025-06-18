@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://rokk.chunsik.site"
+const API_BASE_URL = "https://api.chunsik.site"
 
 export async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`
