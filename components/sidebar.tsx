@@ -3,14 +3,14 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard } from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard } from "lucide-react" // LogIn, LogOut removed
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
+// useAuth removed
 
-// hi yuri
 const navItems = [
   {
     title: "대시보드",
@@ -27,11 +27,6 @@ const navItems = [
     href: "/events",
     icon: UserSquare,
   },
-  //{
-  //  title: "설정",
-  //  href: "/settings",
-  //  icon: Settings,
-  //},
   {
     title: "연맹원 랜덤뽑기",
     href: "/lottery",
@@ -44,26 +39,30 @@ export default function Sidebar() {
   const [open, setOpen] = useState(false)
   const isMobile = useMobile()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [pendingCount, setPendingCount] = useState(3) // Example state for pending count
+  const [pendingCount, setPendingCount] = useState(3)
+  // isAuthenticated, user, logout removed
+  const [windowWidth, setWindowWidth] = useState(0)
 
-  // 모바일에서 메뉴 선택 후 자동으로 닫기
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth)
+    }
+    setWindowWidth(window.innerWidth)
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  useEffect(() => {
+    if (windowWidth >= 768 && open) {
+      setOpen(false)
+    }
+  }, [windowWidth, open])
+
   const handleNavigation = () => {
     if (isMobile) {
       setOpen(false)
     }
   }
-
-  // 화면 크기 변경 시 모바일 메뉴 닫기
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768 && open) {
-        setOpen(false)
-      }
-    }
-
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [open])
 
   return (
     <>
@@ -71,7 +70,6 @@ export default function Sidebar() {
       <div
         className={`hidden md:flex h-full ${isSidebarCollapsed ? "w-16" : "w-64"} flex-col border-r bg-background transition-all duration-300`}
       >
-        {/* 이미지나 로고를 여기에 추가할 수 있습니다 */}
         <div className="p-4 border-b flex items-center justify-between">
           {!isSidebarCollapsed && (
             <Link href="/dashboard">
@@ -103,6 +101,7 @@ export default function Sidebar() {
             </Link>
           ))}
         </nav>
+        {/* Auth related div removed from here */}
       </div>
 
       {/* 모바일 헤더 */}
@@ -135,7 +134,6 @@ export default function Sidebar() {
                   <div className="flex items-center gap-3">
                     <item.icon className="h-4 w-4 flex-shrink-0" />
                     <span>{item.title}</span>
-                    {/* 예: 미완료 작업 수 표시 */}
                     {item.href === "/events" && pendingCount > 0 && (
                       <Badge variant="destructive" className="ml-auto">
                         {pendingCount}
@@ -146,15 +144,17 @@ export default function Sidebar() {
                 </Link>
               ))}
             </nav>
+            {/* Auth related div removed from here */}
           </SheetContent>
         </Sheet>
         <h1 className="text-lg font-bold truncate flex items-center">
           {navItems.find((item) => pathname === item.href)?.title || "1242 ROKK"}
-          {pathname !== "/" && (
-            <Badge variant="outline" className="ml-2 text-xs">
-              {navItems.find((item) => pathname === item.href)?.title}
-            </Badge>
-          )}
+          {pathname !== "/" &&
+            navItems.find((item) => pathname === item.href)?.title && ( // Added check for title existence
+              <Badge variant="outline" className="ml-2 text-xs">
+                {navItems.find((item) => pathname === item.href)?.title}
+              </Badge>
+            )}
         </h1>
       </div>
     </>

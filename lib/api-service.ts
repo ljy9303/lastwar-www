@@ -1,6 +1,9 @@
-const API_BASE_URL = "https://api.chunsik.site"
+const API_BASE_URL =
+  typeof window !== "undefined"
+    ? ((window as any).NEXT_PUBLIC_API_BASE_URL ?? "https://api.chunsik.site")
+    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.chunsik.site")
 
-export async function fetchFromAPI(endpoint: string, options: RequestInit = {}) {
+export async function fetchFromAPI<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
 
   try {
@@ -8,15 +11,13 @@ export async function fetchFromAPI(endpoint: string, options: RequestInit = {}) 
       ...options,
       headers: {
         "Content-Type": "application/json",
-        ...options.headers,
+        ...options.headers, // JWT 관련 로직 제거됨
       },
     })
 
     if (!response.ok) {
-      // 에러 응답 처리
       let errorMessage = `API 요청 실패: ${response.status} ${response.statusText}`
-      let errorData = {}
-
+      let errorData: any = {} // 타입을 명시적으로 any로 설정하거나 적절한 타입으로 정의
       try {
         errorData = await response.json()
         if (errorData && typeof errorData === "object" && "message" in errorData) {
@@ -25,18 +26,14 @@ export async function fetchFromAPI(endpoint: string, options: RequestInit = {}) 
       } catch (e) {
         // JSON 파싱 실패 시 기본 메시지 사용
       }
-
-      const error = new Error(errorMessage)
-      // @ts-ignore - cause 속성 추가
+      const error = new Error(errorMessage) as Error & { status?: number; data?: any }
       error.status = response.status
-      // @ts-ignore
       error.data = errorData
       throw error
     }
 
-    // 204 No Content 응답인 경우 빈 객체 반환
     if (response.status === 204) {
-      return {}
+      return {} as T // 204 No Content 응답 시 빈 객체 반환
     }
 
     return response.json()
@@ -53,7 +50,7 @@ export async function fetchFromAPI(endpoint: string, options: RequestInit = {}) 
 export function buildQueryString(params: Record<string, any>): string {
   const queryParams = Object.entries(params)
     .filter(([_, value]) => value !== undefined && value !== null && value !== "")
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
     .join("&")
 
   return queryParams ? `?${queryParams}` : ""

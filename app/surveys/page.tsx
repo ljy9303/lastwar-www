@@ -16,7 +16,6 @@ import { useToast } from "@/hooks/use-toast"
 import { UserForm } from "@/components/user/user-form"
 import type { User } from "@/types/user"
 import { cn } from "@/lib/utils"
-import { useMediaQuery } from "@/hooks/use-media-query"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
@@ -41,7 +40,7 @@ export default function SurveysPage() {
   const [rosters, setRosters] = useState<Roster[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [teamFilter, setTeamFilter] = useState<string>("all")
-  const [leftFilter, setLeftFilter] = useState("all")
+  const [leftFilter, setLeftFilter] = useState("all") // 이 상태는 현재 사용되지 않는 것으로 보입니다.
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentRoster, setCurrentRoster] = useState<
     | (Roster & {
@@ -62,17 +61,11 @@ export default function SurveysPage() {
     keys: [],
   })
 
-  const { isMobile } = useMediaQuery()
-  const isMobileDevice = useMobile()
+  const isMobileDevice = useMobile() // useMobile 훅 사용
 
   // 상태 변수 추가 - useState 부분 아래에 추가
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
   const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
-
-  // 컴포넌트 내부에 useMobile 훅 추가
-  // 다른 상태 변수들 아래에 추가:
-
-  // const isMobile = useMobile()
 
   // 이벤트 ID가 없으면 이벤트 목록 페이지로 리다이렉트
   useEffect(() => {
@@ -113,7 +106,6 @@ export default function SurveysPage() {
   // 글로벌 키보드 입력 시 검색창으로 포커스 이동
   useEffect(() => {
     const handleGlobalKeyPress = (event: KeyboardEvent) => {
-      // 현재 포커스된 요소가 input, textarea, select가 아닌 경우에만 실행
       const activeElement = document.activeElement
       const isInputFocused =
         activeElement?.tagName === "INPUT" ||
@@ -121,33 +113,28 @@ export default function SurveysPage() {
         activeElement?.tagName === "SELECT" ||
         activeElement?.contentEditable === "true"
 
-      // 특수키나 조합키가 눌린 경우 제외
       if (event.ctrlKey || event.altKey || event.metaKey || event.key.length > 1) {
         return
       }
 
-      // 입력 요소에 포커스가 없고, 일반 문자키가 입력된 경우
       if (!isInputFocused && event.key.match(/^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s]$/)) {
         const searchInput = document.querySelector('input[placeholder="닉네임으로 검색..."]') as HTMLInputElement
         if (searchInput) {
           event.preventDefault()
           searchInput.focus()
-          // 입력된 문자를 검색창에 추가
           setSearchTerm(event.key)
         }
       }
     }
 
     document.addEventListener("keydown", handleGlobalKeyPress)
-
     return () => {
       document.removeEventListener("keydown", handleGlobalKeyPress)
     }
   }, [])
 
-  // intentType별 집계 계산 함수
   const getIntentTypeCounts = () => {
-    const counts = {
+    const counts: Record<string, number> = {
       A_TEAM: 0,
       B_TEAM: 0,
       A_RESERVE: 0,
@@ -155,90 +142,59 @@ export default function SurveysPage() {
       AB_POSSIBLE: 0,
       NONE: 0,
     }
-
-    // 변경 사항이 있는 경우 변경된 값으로 계산
     const effectiveRosters = rosters.map((roster) => ({
       ...roster,
       intentType: pendingChanges[roster.userSeq] || roster.intentType,
     }))
-
     effectiveRosters.forEach((roster) => {
       if (counts.hasOwnProperty(roster.intentType)) {
         counts[roster.intentType]++
       }
     })
-
     return counts
   }
 
-  // intentType별 소속 유저 목록 가져오는 함수 추가 - getIntentTypeCounts 함수 아래에 추가
   const getTeamMembers = (teamType: string) => {
-    // 변경 사항이 있는 경우 변경된 값으로 계산
     const effectiveRosters = rosters.map((roster) => ({
       ...roster,
       intentType: pendingChanges[roster.userSeq] || roster.intentType,
     }))
-
     return effectiveRosters.filter((roster) => roster.intentType === teamType)
   }
 
-  // 정렬 요청 처리 함수
   const requestSort = (key: string) => {
     const newSortConfig = { ...sortConfig }
     const existingKeyIndex = newSortConfig.keys.findIndex((item) => item.key === key)
-
     if (existingKeyIndex > -1) {
-      // Key already exists in sort config, toggle direction or remove
       if (newSortConfig.keys[existingKeyIndex].direction === "ascending") {
         newSortConfig.keys[existingKeyIndex].direction = "descending"
       } else {
-        // Remove this key from sort config
         newSortConfig.keys.splice(existingKeyIndex, 1)
       }
     } else {
-      // Add new key to sort config
       newSortConfig.keys.push({ key, direction: "ascending" })
     }
-
     setSortConfig(newSortConfig)
   }
 
-  // 정렬된 로스터 목록 가져오기
-  const getSortedRosters = (rosters: Roster[]) => {
-    const sortableRosters = [...rosters]
-
+  const getSortedRosters = (rostersToSort: Roster[]) => {
+    const sortableRosters = [...rostersToSort]
     if (sortConfig.keys.length === 0) {
       return sortableRosters
     }
-
     return sortableRosters.sort((a, b) => {
-      // Apply each sort key in order
       for (const { key, direction } of sortConfig.keys) {
         let comparison = 0
-
-        if (key === "userName") {
-          comparison = a.userName.localeCompare(b.userName)
-        } else if (key === "userLevel") {
-          comparison = a.userLevel - b.userLevel
-        } else if (key === "userPower") {
-          comparison = a.userPower - b.userPower
-        } else if (key === "intentType") {
-          comparison = a.intentType.localeCompare(b.intentType)
-        }
-
-        // If this key gives us a non-zero comparison, return it
-        if (comparison !== 0) {
-          return direction === "ascending" ? comparison : -comparison
-        }
-
-        // Otherwise, continue to the next sort key
+        if (key === "userName") comparison = a.userName.localeCompare(b.userName)
+        else if (key === "userLevel") comparison = a.userLevel - b.userLevel
+        else if (key === "userPower") comparison = a.userPower - b.userPower
+        else if (key === "intentType") comparison = a.intentType.localeCompare(b.intentType)
+        if (comparison !== 0) return direction === "ascending" ? comparison : -comparison
       }
-
       return 0
     })
   }
 
-  // 필터링된 사전조사 목록
   const filteredRosters = getSortedRosters(
     rosters.filter((roster) => {
       const matchesSearch = roster.userName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -247,43 +203,32 @@ export default function SurveysPage() {
     }),
   )
 
-  // 사전조사 수정 다이얼로그 열기
   const openEditDialog = (roster: Roster) => {
     setCurrentRoster({
       ...roster,
       editName: roster.userName,
       editLevel: roster.userLevel,
       editPower: roster.userPower,
-      editLeave: false, // API에서 제공하지 않으므로 기본값 설정
+      editLeave: false,
     })
     setIsEditDialogOpen(true)
   }
 
-  // 유저 수정 성공 처리
   const handleEditSuccess = async (updatedUser: User) => {
     setIsEditDialogOpen(false)
-
-    // 데이터 다시 로드
     const updatedRosters = await getRosters(Number(eventId))
     setRosters(updatedRosters)
-
     toast({
       title: "수정 완료",
       description: `${updatedUser.name}님의 정보가 수정되었습니다.`,
     })
   }
 
-  // 사전조사 정보 수정 함수
-
-  // 사전조사 삭제 함수 (intentType을 none으로 설정)
   const handleDeleteRoster = async (roster: Roster) => {
     if (window.confirm(`${roster.userName}님의 사전조사를 삭제하시겠습니까?`)) {
       try {
         await updateRoster(roster.desertSeq, roster.userSeq, "NONE")
-
-        // 로컬 상태 업데이트
         setRosters((prev) => prev.map((r) => (r.userSeq === roster.userSeq ? { ...r, intentType: "NONE" } : r)))
-
         toast({
           title: "삭제 완료",
           description: `${roster.userName}님의 사전조사가 삭제되었습니다.`,
@@ -299,25 +244,17 @@ export default function SurveysPage() {
     }
   }
 
-  // 선호도 레이블 가져오기
   const getPreferenceLabel = (preference: string) => {
     const option = preferenceOptions.find((opt) => opt.value === preference)
     return option ? option.label : preference
   }
 
-  // 선호도 변경 함수
   const handlePreferenceChange = (userSeq: number, intentType: string) => {
-    // 변경 사항 기록
-    setPendingChanges((prev) => ({
-      ...prev,
-      [userSeq]: intentType,
-    }))
+    setPendingChanges((prev) => ({ ...prev, [userSeq]: intentType }))
   }
 
-  // 변경 사항 저장
   const saveChanges = async () => {
     if (Object.keys(pendingChanges).length === 0) return
-
     setIsSaving(true)
     try {
       const request = {
@@ -327,19 +264,13 @@ export default function SurveysPage() {
           intentType,
         })),
       }
-
       await saveRosters(request)
-
-      // 로컬 상태 업데이트
       setRosters((prev) =>
         prev.map((roster) =>
           pendingChanges[roster.userSeq] ? { ...roster, intentType: pendingChanges[roster.userSeq] } : roster,
         ),
       )
-
-      // 변경 사항 초기화
       setPendingChanges({})
-
       toast({
         title: "저장 완료",
         description: "사전조사 변경 사항이 저장되었습니다.",
@@ -437,7 +368,6 @@ export default function SurveysPage() {
               <Input
                 ref={(el) => {
                   if (el && searchTerm.length === 1) {
-                    // 새로 입력된 단일 문자가 있을 때 커서를 끝으로 이동
                     setTimeout(() => {
                       el.setSelectionRange(el.value.length, el.value.length)
                     }, 0)
@@ -472,21 +402,15 @@ export default function SurveysPage() {
                 const option = preferenceOptions.find((opt) => opt.value === type)
                 const label = option ? option.label : type
                 const teamMembers = getTeamMembers(type)
-
-                // 팀별 색상 설정
                 let bgColor = "bg-muted"
                 let textColor = "text-foreground"
                 let isOverLimit = false
-
-                // 팀별 정원 체크 및 색상 설정
                 if (type === "A_TEAM" || type === "B_TEAM") {
                   isOverLimit = count > 20
                   if (isOverLimit) {
-                    // 정원 초과
                     bgColor = "bg-red-100 dark:bg-red-900"
                     textColor = "text-red-700 dark:text-red-300"
                   } else {
-                    // 정원 이하
                     if (type === "A_TEAM") {
                       bgColor = "bg-blue-100 dark:bg-blue-900"
                       textColor = "text-blue-700 dark:text-blue-300"
@@ -498,11 +422,9 @@ export default function SurveysPage() {
                 } else if (type === "A_RESERVE" || type === "B_RESERVE") {
                   isOverLimit = count > 10
                   if (isOverLimit) {
-                    // 정원 초과
                     bgColor = "bg-red-100 dark:bg-red-900"
                     textColor = "text-red-700 dark:text-red-300"
                   } else {
-                    // 정원 이하
                     if (type === "A_RESERVE") {
                       bgColor = "bg-blue-50 dark:bg-blue-800"
                       textColor = "text-blue-600 dark:text-blue-200"
@@ -518,7 +440,6 @@ export default function SurveysPage() {
                   bgColor = "bg-gray-100 dark:bg-gray-800"
                   textColor = "text-gray-700 dark:text-gray-300"
                 }
-
                 return (
                   <Popover key={type}>
                     <PopoverTrigger asChild>
@@ -709,7 +630,6 @@ export default function SurveysPage() {
         </CardContent>
       </Card>
 
-      {/* 사전조사 수정 다이얼로그 */}
       {currentRoster && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
@@ -724,8 +644,8 @@ export default function SurveysPage() {
                 name: currentRoster.userName,
                 level: currentRoster.userLevel,
                 power: currentRoster.userPower,
-                leave: false, // API에서 제공하지 않으므로 기본값 설정
-                id: 0, // 필요한 경우 적절한 값으로 설정
+                leave: false,
+                id: 0,
                 createdAt: "",
                 updatedAt: "",
               }}
@@ -735,7 +655,6 @@ export default function SurveysPage() {
           </DialogContent>
         </Dialog>
       )}
-      {/* 팀 멤버 목록 다이얼로그 */}
       <Dialog open={isTeamMembersDialogOpen} onOpenChange={setIsTeamMembersDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -762,11 +681,9 @@ export default function SurveysPage() {
                       size="sm"
                       onClick={() => {
                         setIsTeamMembersDialogOpen(false)
-                        // 테이블에서 해당 유저로 스크롤
                         const userRow = document.getElementById(`user-${member.userSeq}`)
                         if (userRow) {
                           userRow.scrollIntoView({ behavior: "smooth", block: "center" })
-                          // 하이라이트 효과
                           userRow.classList.add("bg-accent")
                           setTimeout(() => {
                             userRow.classList.remove("bg-accent")

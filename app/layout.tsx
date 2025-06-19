@@ -1,9 +1,9 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import "./globals.css"
+import "./globals.css" // Make sure this imports Tailwind's base styles
 import { ThemeProvider } from "@/components/theme-provider"
-import Sidebar from "@/components/sidebar"
+import Sidebar from "@/components/sidebar" // Assuming sidebar.tsx exists and is correct
 import { Toaster } from "@/components/ui/toaster"
 import { Suspense } from "react"
 
