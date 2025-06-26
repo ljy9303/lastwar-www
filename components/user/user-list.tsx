@@ -132,6 +132,21 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
               <TableHead className="hidden sm:table-cell">
                 <Button
                   variant="ghost"
+                  onClick={() => handleSort("userGrade")}
+                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                >
+                  유저 등급
+                  {sortField === "userGrade" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="ml-1 h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    ))}
+                </Button>
+              </TableHead>
+              <TableHead className="hidden sm:table-cell">
+                <Button
+                  variant="ghost"
                   onClick={() => handleSort("leave")}
                   className="h-auto p-0 font-semibold hover:bg-transparent"
                 >
@@ -155,12 +170,14 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
                     <div>
                       <div>{user.name}</div>
                       <div className="sm:hidden text-xs text-muted-foreground">
-                        Lv.{user.level} | {user.power.toLocaleString()} | {user.leave ? "탈퇴" : "활동중"}
+                        Lv.{user.level} | {user.power.toLocaleString()} | {user.userGrade} |{" "}
+                        {user.leave ? "탈퇴" : "활동중"}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
                   <TableCell className="hidden sm:table-cell">{user.power.toLocaleString()}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{user.userGrade}</TableCell>
                   <TableCell className="hidden sm:table-cell">{user.leave ? "O" : "X"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -178,7 +195,7 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
+                <TableCell colSpan={6} className="text-center py-4">
                   검색 결과가 없습니다.
                 </TableCell>
               </TableRow>

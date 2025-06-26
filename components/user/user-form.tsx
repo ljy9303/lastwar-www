@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import type { UserCreateRequest, UserUpdateRequest, User } from "@/types/user"
 import { createUser, updateUser } from "@/app/actions/user-actions"
 import { useToast } from "@/hooks/use-toast"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface UserFormProps {
   user?: User
@@ -28,12 +29,14 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
           level: user.level,
           power: user.power,
           leave: user.leave,
+          userGrade: user.userGrade,
         }
       : {
           name: "",
           level: 1,
           power: 0,
           leave: false,
+          userGrade: "R5",
         },
   )
 
@@ -108,6 +111,22 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
           value={formData.power || ""}
           onChange={(e) => handleChange("power", Number.parseFloat(e.target.value))}
         />
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="userGrade">유저 등급</Label>
+        <Select value={formData.userGrade || "R5"} onValueChange={(value) => handleChange("userGrade", value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="유저 등급 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="R5">R5</SelectItem>
+            <SelectItem value="R4">R4</SelectItem>
+            <SelectItem value="R3">R3</SelectItem>
+            <SelectItem value="R2">R2</SelectItem>
+            <SelectItem value="R1">R1</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex items-center gap-2">

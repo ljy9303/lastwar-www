@@ -22,6 +22,7 @@ export function UserFilter({ onFilter, initialFilters = {} }: UserFilterProps) {
     maxLevel: initialFilters.maxLevel,
     name: initialFilters.name || "",
     power: initialFilters.power,
+    userGrade: initialFilters.userGrade,
   })
 
   const handleChange = (field: string, value: any) => {
@@ -40,6 +41,7 @@ export function UserFilter({ onFilter, initialFilters = {} }: UserFilterProps) {
       maxLevel: undefined,
       name: "",
       power: undefined,
+      userGrade: undefined,
     }
     setFilters(resetFilters)
     onFilter(resetFilters)
@@ -77,6 +79,32 @@ export function UserFilter({ onFilter, initialFilters = {} }: UserFilterProps) {
               <SelectItem value="all">전체</SelectItem>
               <SelectItem value="true">탈퇴</SelectItem>
               <SelectItem value="false">활동중</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="userGrade">유저 등급</Label>
+          <Select
+            value={filters.userGrade || "all"}
+            onValueChange={(value) => {
+              if (value === "all") {
+                handleChange("userGrade", undefined)
+              } else {
+                handleChange("userGrade", value)
+              }
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="유저 등급" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
+              <SelectItem value="R5">R5</SelectItem>
+              <SelectItem value="R4">R4</SelectItem>
+              <SelectItem value="R3">R3</SelectItem>
+              <SelectItem value="R2">R2</SelectItem>
+              <SelectItem value="R1">R1</SelectItem>
             </SelectContent>
           </Select>
         </div>

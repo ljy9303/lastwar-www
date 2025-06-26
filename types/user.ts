@@ -5,6 +5,7 @@ export interface User {
   level: number
   power: number
   leave: boolean
+  userGrade: string
   createdAt: string
   updatedAt: string
 }
@@ -14,6 +15,7 @@ export interface UserCreateRequest {
   level: number
   power?: number
   leave?: boolean
+  userGrade?: string
 }
 
 export interface UserUpdateRequest {
@@ -21,6 +23,7 @@ export interface UserUpdateRequest {
   level?: number
   power?: number
   leave?: boolean
+  userGrade?: string
 }
 
 export interface UserSearchParams {
@@ -29,4 +32,5 @@ export interface UserSearchParams {
   maxLevel?: number
   name?: string
   power?: number
+  userGrade?: string
 }
