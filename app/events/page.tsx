@@ -26,6 +26,7 @@ import {
   Loader2,
   Filter,
   MoreHorizontal,
+  Edit,
 } from "lucide-react"
 import { format, nextFriday, subMonths, addMonths } from "date-fns"
 import { ko } from "date-fns/locale"
@@ -40,6 +41,8 @@ import { Pagination } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Desert, DesertResponse, DesertSearchParams } from "@/app/actions/event-actions"
 import { useMobile } from "@/hooks/use-mobile"
+import { DesertEditDialog } from "@/components/desert/desert-edit-dialog"
+import type { Desert as DesertType } from "@/types/desert"
 
 // 이번주 금요일 날짜 계산 함수
 function getThisFriday() {
@@ -66,6 +69,10 @@ export default function EventsPage() {
   const [newEventName, setNewEventName] = useState("")
   const [newEventDate, setNewEventDate] = useState<Date | undefined>(getThisFriday())
   const isMobile = useMobile()
+
+  // 사막전 수정 관련 상태
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingDesert, setEditingDesert] = useState<DesertType | null>(null)
 
   // 검색 필터
   const [searchParams, setSearchParams] = useState<DesertSearchParams>({
@@ -263,6 +270,32 @@ export default function EventsPage() {
   // B팀 인원 수 계산 (API 연동 후 실제 데이터로 대체 필요)
   const getTeamBCount = (desert: Desert) => {
     return desert.bteamCount || 0
+  }
+
+  // 사막전 수정 핸들러
+  const handleEditDesert = (desert: Desert) => {
+    const desertForEdit: DesertType = {
+      desertSeq: desert.desertSeq,
+      title: desert.title,
+      eventDate: desert.eventDate,
+      deleted: false
+    }
+    setEditingDesert(desertForEdit)
+    setIsEditDialogOpen(true)
+  }
+
+  // 사막전 수정 완료 핸들러
+  const handleDesertUpdate = (updatedDesert: DesertType) => {
+    // 목록 새로고침
+    loadDeserts()
+    setIsEditDialogOpen(false)
+    setEditingDesert(null)
+  }
+
+  // 사막전 수정 취소 핸들러
+  const handleEditCancel = () => {
+    setIsEditDialogOpen(false)
+    setEditingDesert(null)
   }
 
   if (isInitialLoad) {
@@ -489,6 +522,10 @@ export default function EventsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditDesert(desert)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              수정
+                            </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link href={`/surveys?eventId=${desert.desertSeq}`}>
                                 <FileSpreadsheet className="h-4 w-4 mr-2" />
@@ -511,6 +548,10 @@ export default function EventsPage() {
                         </DropdownMenu>
                       ) : (
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => handleEditDesert(desert)}>
+                            <Edit className="h-4 w-4 mr-1" />
+                            수정
+                          </Button>
                           <Button variant="ghost" size="sm" asChild>
                             <Link href={`/surveys?eventId=${desert.desertSeq}`}>
                               <FileSpreadsheet className="h-4 w-4 mr-1" />
@@ -565,6 +606,14 @@ export default function EventsPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      {/* 사막전 수정 다이얼로그 */}
+      <DesertEditDialog
+        isOpen={isEditDialogOpen}
+        desert={editingDesert}
+        onClose={handleEditCancel}
+        onUpdate={handleDesertUpdate}
+      />
     </div>
   )
 }

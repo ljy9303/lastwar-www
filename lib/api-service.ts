@@ -55,3 +55,19 @@ export function buildQueryString(params: Record<string, any>): string {
 
   return queryParams ? `?${queryParams}` : ""
 }
+
+// Desert API functions
+export async function getDesertById(desertSeq: number) {
+  return fetchFromAPI(`/desert/${desertSeq}`)
+}
+
+export async function updateDesert(desertSeq: number, data: {
+  title?: string
+  eventDate?: string
+  deleted?: boolean
+}) {
+  return fetchFromAPI(`/desert/${desertSeq}`, {
+    method: "PATCH",
+    body: JSON.stringify(data)
+  })
+}
