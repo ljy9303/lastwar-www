@@ -280,17 +280,8 @@ export default function DesertResultsPage() {
         }
 
         // 사막전 결과 요약 로드
-        try {
-          const summaryData = await getDesertResultSummary(desertSeq)
-          setEventSummary(summaryData)
-        } catch (error) {
-          console.error("사막전 결과 요약 로드 실패:", error)
-          setEventSummary({
-            desertSeq,
-            winnerType: "",
-            description: "",
-          })
-        }
+        const summaryData = await getDesertResultSummary(desertSeq)
+        setEventSummary(summaryData)
       } catch (error) {
         console.error("데이터 로드 실패:", error)
         toast({
