@@ -5,12 +5,9 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "dev:local": "NODE_ENV=development next dev",
     "lint": "next lint",
-    "start": "next start",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --passWithNoTests"
+    "start": "next start"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -67,21 +64,11 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/jest": "^30.0.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "jest": "^30.0.3",
-    "jest-environment-jsdom": "^30.0.2",
-    "msw": "^2.10.2",
-    "node-fetch": "^2.7.0",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
-    "ts-jest": "^29.4.0",
-    "typescript": "^5",
-    "whatwg-fetch": "^3.6.20"
+    "typescript": "^5"
   }
 }
