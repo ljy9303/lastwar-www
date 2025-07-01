@@ -21,6 +21,7 @@ export interface DesertSearchParams {
   toDate?: string
   page?: number
   size?: number
+  sortBy?: "EVENT_DATE" | "CREATE_DATE" | "UPDATE_AT"
   sortOrder?: "ASC" | "DESC"
 }
 
