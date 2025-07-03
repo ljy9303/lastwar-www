@@ -1,21 +1,25 @@
 import type { UserHistoryChanges } from "@/types/user-history"
+import { Badge } from "@/components/ui/badge"
 
 interface UserHistoryChangeProps {
   changes: UserHistoryChanges
+  isNicknameHistoryOnly?: boolean  // 닉네임 변경 이력만 표시할지 여부
 }
 
-export function UserHistoryChange({ changes }: UserHistoryChangeProps) {
+export function UserHistoryChange({ changes, isNicknameHistoryOnly = false }: UserHistoryChangeProps) {
   // 변경 내역을 사용자 친화적인 텍스트로 변환
   const renderChange = () => {
     const changeItems = []
 
     if (changes.user_name) {
       changeItems.push(
-        <div key="name" className="flex flex-col">
-          <span className="font-medium">닉네임 변경</span>
-          <span className="text-sm text-muted-foreground">
-            {changes.user_name.old} → {changes.user_name.new}
-          </span>
+        <div key="name" className="flex items-center gap-2">
+          <Badge variant="outline">닉네임 변경</Badge>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-red-600">{changes.user_name.old}</span>
+            <span className="text-muted-foreground">→</span>
+            <span className="font-medium text-green-600">{changes.user_name.new}</span>
+          </div>
         </div>,
       )
     }
@@ -34,7 +38,8 @@ export function UserHistoryChange({ changes }: UserHistoryChangeProps) {
       )
     }
 
-    if (changes.user_power !== undefined) {
+    // 닉네임 변경 이력에서는 전투력 필드 제외
+    if (changes.user_power !== undefined && !isNicknameHistoryOnly) {
       changeItems.push(
         <div key="power" className="flex flex-col">
           <span className="font-medium">전투력 변경</span>

@@ -16,6 +16,21 @@ import { UserSelection } from "@/components/lottery/user-selection"
 import { LotteryAnimation } from "@/components/lottery/lottery-animation"
 import { LotteryResult } from "@/components/lottery/lottery-result"
 
+// 전투력 포맷팅 함수 (1 = 1백만)
+const formatPower = (power: number): string => {
+  if (power === 0) return "0"
+  if (power < 1) {
+    return `${(power * 100).toFixed(0)}만`
+  }
+  if (power >= 1000) {
+    return `${(power / 1000).toFixed(1)}B`
+  }
+  if (power >= 100) {
+    return `${power.toFixed(0)}M`
+  }
+  return `${power.toFixed(1)}M`
+}
+
 export default function LotteryPage() {
   const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
@@ -212,7 +227,7 @@ export default function LotteryPage() {
                           <div key={user.userSeq} className="text-sm p-2 border-b">
                             <div className="font-medium">{user.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              Lv.{user.level} | {user.power.toLocaleString()}
+                              Lv.{user.level} | {formatPower(user.power)}
                             </div>
                           </div>
                         ))

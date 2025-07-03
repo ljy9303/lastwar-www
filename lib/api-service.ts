@@ -5,6 +5,7 @@ const API_BASE_URL =
 
 export async function fetchFromAPI<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
+  console.log("전체 API URL:", url)
 
   try {
     const response = await fetch(url, {

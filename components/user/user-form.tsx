@@ -110,7 +110,11 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
           min={0}
           value={formData.power || ""}
           onChange={(e) => handleChange("power", Number.parseFloat(e.target.value))}
+          placeholder="예: 150.5 (1억 5천만)"
         />
+        <p className="text-xs text-muted-foreground">
+          소수점 입력 가능 (1 = 1백만, 1000 = 10억, 0.01 = 1만)
+        </p>
       </div>
 
       <div className="grid gap-2">

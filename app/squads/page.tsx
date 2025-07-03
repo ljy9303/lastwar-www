@@ -27,6 +27,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { PositionStatusBoard } from "@/components/squad/position-status-board"
 
+// 전투력 포맷팅 함수 (1 = 1백만)
+const formatPower = (power: number): string => {
+  if (power === 0) return "0"
+  if (power < 1) {
+    return `${(power * 100).toFixed(0)}만`
+  }
+  if (power >= 1000) {
+    return `${(power / 1000).toFixed(1)}B`
+  }
+  if (power >= 100) {
+    return `${power.toFixed(0)}M`
+  }
+  return `${power.toFixed(1)}M`
+}
+
 // API 기본 URL 설정
 const API_BASE_URL = "https://api.chunsik.site"
 
@@ -299,7 +314,7 @@ export default function SquadsPage() {
   const generateClipboardText = (team: string) => {
     const members = [...squadMembers[team as keyof GroupedSquadResponse]].sort((a, b) => b.userPower - a.userPower)
     return members
-      .map((member, index) => `${index + 1}. ${member.userName} (${member.userPower.toLocaleString()})`)
+      .map((member, index) => `${index + 1}. ${member.userName} (${formatPower(member.userPower)})`)
       .join("\n")
   }
 
@@ -710,7 +725,7 @@ export default function SquadsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
             <div className="font-medium truncate max-w-[120px] sm:max-w-none">{user.userName}</div>
             <div className="text-sm text-muted-foreground flex items-center gap-1">
-              Lv.{user.userLevel} | {user.userPower.toLocaleString()}
+              Lv.{user.userLevel} | {formatPower(user.userPower)}
               {user.zscore !== undefined && getZScoreLabel(user.zscore) && (
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ml-1 ${getZScoreLabel(user.zscore)?.color}`}>
                   {getZScoreLabel(user.zscore)?.label}
@@ -1247,7 +1262,7 @@ export default function SquadsPage() {
                       <div>
                         <div className="font-medium">{member.userName}</div>
                         <div className="text-xs text-muted-foreground">
-                          Lv.{member.userLevel} | {member.userPower.toLocaleString()}
+                          Lv.{member.userLevel} | {formatPower(member.userPower)}
                           {memberPosition !== -1 && (
                             <span className="ml-2 text-blue-600 dark:text-blue-400">
                               {getPositionLabel(memberPosition)}

@@ -18,6 +18,18 @@ export async function getUsers(params: UserSearchParams = {}): Promise<User[]> {
 }
 
 /**
+ * 특정 유저의 상세 정보를 조회합니다.
+ */
+export async function getUserById(userSeq: number): Promise<User> {
+  try {
+    return await fetchFromAPI(`/user/${userSeq}`)
+  } catch (error) {
+    console.error(`유저 Seq ${userSeq} 조회 실패:`, error)
+    throw error
+  }
+}
+
+/**
  * 유저를 생성합니다.
  */
 export async function createUser(userData: UserCreateRequest): Promise<User> {

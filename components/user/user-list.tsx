@@ -29,6 +29,21 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
 
+  // 전투력 포맷팅 함수 (1 = 1백만)
+  const formatPower = (power: number): string => {
+    if (power === 0) return "0"
+    if (power < 1) {
+      return `${(power * 100).toFixed(0)}만`
+    }
+    if (power >= 1000) {
+      return `${(power / 1000).toFixed(1)}B`
+    }
+    if (power >= 100) {
+      return `${power.toFixed(0)}M`
+    }
+    return `${power.toFixed(1)}M`
+  }
+
   const [sortField, setSortField] = useState<keyof User | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
@@ -170,15 +185,23 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
                     <div>
                       <div>{user.name}</div>
                       <div className="sm:hidden text-xs text-muted-foreground">
-                        Lv.{user.level} | {user.power.toLocaleString()} | {user.userGrade} |{" "}
+                        Lv.{user.level} | {formatPower(user.power)} | {user.userGrade} |{" "}
                         {user.leave ? "탈퇴" : "활동중"}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{user.power.toLocaleString()}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{formatPower(user.power)}</TableCell>
                   <TableCell className="hidden sm:table-cell">{user.userGrade}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{user.leave ? "O" : "X"}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      user.leave 
+                        ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" 
+                        : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                    }`}>
+                      {user.leave ? "탈퇴" : "활동중"}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       {onEdit && (

@@ -12,6 +12,7 @@ import { UserForm } from "@/components/user/user-form"
 import { UserList } from "@/components/user/user-list"
 import { UserFilter } from "@/components/user/user-filter"
 import { UserHistoryList } from "@/components/user/user-history-list"
+import { NicknameSearch } from "@/components/user/nickname-search"
 import { useToast } from "@/hooks/use-toast"
 
 export default function UsersPage() {
@@ -71,12 +72,27 @@ export default function UsersPage() {
     loadUsers(searchParams)
   }
 
+  // 전투력 포맷팅 함수 (1 = 1백만)
+  const formatPower = (power: number): string => {
+    if (power === 0) return "0"
+    if (power < 1) {
+      return `${(power * 100).toFixed(0)}만`
+    }
+    if (power >= 1000) {
+      return `${(power / 1000).toFixed(1)}B`
+    }
+    if (power >= 100) {
+      return `${power.toFixed(0)}M`
+    }
+    return `${power.toFixed(1)}M`
+  }
+
   // CSV 내보내기
   const exportToCsv = () => {
     const headers = ["ID", "닉네임", "본부레벨", "전투력", "연맹탈퇴여부"]
     const csvContent = [
       headers.join(","),
-      ...users.map((user) => [user.id, user.name, user.level, user.power, user.leave ? "O" : "X"].join(",")),
+      ...users.map((user) => [user.id, user.name, user.level, formatPower(user.power), user.leave ? "탈퇴" : "활동중"].join(",")),
     ].join("\n")
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
@@ -98,6 +114,7 @@ export default function UsersPage() {
         <TabsList className="mb-4">
           <TabsTrigger value="users">유저 목록</TabsTrigger>
           <TabsTrigger value="history">변경 히스토리</TabsTrigger>
+          <TabsTrigger value="nickname-search">예전 닉네임 검색</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -162,6 +179,10 @@ export default function UsersPage() {
               <UserHistoryList />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="nickname-search">
+          <NicknameSearch />
         </TabsContent>
       </Tabs>
 
