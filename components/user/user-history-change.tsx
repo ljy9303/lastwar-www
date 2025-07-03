@@ -6,6 +6,21 @@ interface UserHistoryChangeProps {
   isNicknameHistoryOnly?: boolean  // 닉네임 변경 이력만 표시할지 여부
 }
 
+// 전투력 포맷팅 함수 (1 = 1백만)
+const formatPower = (power: number): string => {
+  if (power === 0) return "0"
+  if (power < 1) {
+    return `${(power * 100).toFixed(0)}만`
+  }
+  if (power >= 1000) {
+    return `${(power / 1000).toFixed(1)}B`
+  }
+  if (power >= 100) {
+    return `${power.toFixed(0)}M`
+  }
+  return `${power.toFixed(1)}M`
+}
+
 export function UserHistoryChange({ changes, isNicknameHistoryOnly = false }: UserHistoryChangeProps) {
   // 변경 내역을 사용자 친화적인 텍스트로 변환
   const renderChange = () => {
@@ -44,7 +59,7 @@ export function UserHistoryChange({ changes, isNicknameHistoryOnly = false }: Us
         <div key="power" className="flex flex-col">
           <span className="font-medium">전투력 변경</span>
           <span className="text-sm text-muted-foreground">
-            {changes.user_power.old.toLocaleString()} → {changes.user_power.new.toLocaleString()}
+            {formatPower(changes.user_power.old)} → {formatPower(changes.user_power.new)}
           </span>
         </div>,
       )
