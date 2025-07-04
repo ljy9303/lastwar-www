@@ -4,7 +4,7 @@ import { useState } from "react"
 import type { User } from "@/types/user"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Pencil, Trash, ChevronUp, ChevronDown } from "lucide-react"
+import { Pencil, Trash, ChevronUp, ChevronDown, Eye } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { deleteUser } from "@/app/actions/user-actions"
 import { useToast } from "@/hooks/use-toast"
+import UserDetailModal from "./user-detail-modal"
 
 interface UserListProps {
   users: User[]
@@ -28,6 +29,8 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
   const { toast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [selectedUserSeq, setSelectedUserSeq] = useState<number | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
   // 전투력 포맷팅 함수 (1 = 1백만)
   const formatPower = (power: number): string => {
@@ -91,6 +94,17 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
       setIsDeleting(false)
       setUserToDelete(null)
     }
+  }
+
+  const handleRowClick = (userSeq: number) => {
+    setSelectedUserSeq(userSeq)
+    setIsDetailModalOpen(true)
+  }
+
+  const handleDetailClick = (e: React.MouseEvent, userSeq: number) => {
+    e.stopPropagation()
+    setSelectedUserSeq(userSeq)
+    setIsDetailModalOpen(true)
   }
 
   return (
@@ -180,7 +194,11 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
           <TableBody>
             {sortedUsers.length > 0 ? (
               sortedUsers.map((user) => (
-                <TableRow key={user.userSeq}>
+                <TableRow 
+                  key={user.userSeq} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleRowClick(user.userSeq)}
+                >
                   <TableCell>
                     <div>
                       <div>{user.name}</div>
@@ -204,12 +222,36 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => handleDetailClick(e, user.userSeq)}
+                        title="상세정보"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       {onEdit && (
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(user)}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEdit(user)
+                          }}
+                          title="수정"
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" onClick={() => setUserToDelete(user)}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setUserToDelete(user)
+                        }}
+                        title="삭제"
+                      >
                         <Trash className="h-4 w-4" />
                       </Button>
                     </div>
@@ -247,6 +289,15 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <UserDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false)
+          setSelectedUserSeq(null)
+        }}
+        userSeq={selectedUserSeq}
+      />
     </>
   )
 }

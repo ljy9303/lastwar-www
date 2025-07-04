@@ -1,13 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, FileDown, FileUp } from "lucide-react"
+import { Plus, FileDown, FileUp, Download } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import Papa from 'papaparse'
 import type { User, UserSearchParams } from "@/types/user"
 import { getUsers } from "@/app/actions/user-actions"
+import { createUsersBatch } from "@/lib/api-service"
 import { UserForm } from "@/components/user/user-form"
 import { UserList } from "@/components/user/user-list"
 import { UserFilter } from "@/components/user/user-filter"
@@ -17,8 +19,10 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function UsersPage() {
   const { toast } = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isUploading, setIsUploading] = useState(false)
   const [searchParams, setSearchParams] = useState<UserSearchParams>({})
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -87,15 +91,45 @@ export default function UsersPage() {
     return `${power.toFixed(1)}M`
   }
 
-  // CSV 내보내기
-  const exportToCsv = () => {
-    const headers = ["ID", "닉네임", "본부레벨", "전투력", "연맹탈퇴여부"]
-    const csvContent = [
-      headers.join(","),
-      ...users.map((user) => [user.id, user.name, user.level, formatPower(user.power), user.leave ? "탈퇴" : "활동중"].join(",")),
-    ].join("\n")
+  // CSV 샘플 다운로드
+  const downloadSampleCsv = () => {
+    const sampleData = [
+      ["닉네임", "본부레벨", "전투력", "탈퇴여부"],
+      ["name", "level", "power", "leave"],
+      ["샘플유저1", "30", "120.5", "false"],
+      ["샘플유저2", "29", "95.2", "false"],
+      ["SampleUser3", "28", "80.0", "true"]
+    ]
+    
+    const csv = Papa.unparse(sampleData)
+    const blob = new Blob(['\uFEFF' + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", "유저정보_샘플.csv")
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+  // CSV 내보내기 (개선)
+  const exportToCsv = () => {
+    const data = [
+      ["닉네임", "본부레벨", "전투력", "등급", "탈퇴여부", "생성일", "수정일"],
+      ...users.map((user) => [
+        user.name,
+        user.level,
+        user.power,
+        user.userGrade,
+        user.leave ? "true" : "false",
+        new Date(user.createdAt).toLocaleDateString(),
+        new Date(user.updatedAt).toLocaleDateString()
+      ])
+    ]
+
+    const csv = Papa.unparse(data)
+    const blob = new Blob(['\uFEFF' + csv], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
@@ -104,6 +138,105 @@ export default function UsersPage() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  // CSV 파일 업로드 처리
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    
+    Papa.parse(file, {
+      header: false,
+      encoding: 'UTF-8',
+      complete: async (results) => {
+        try {
+          const data = results.data as string[][]
+          
+          // 첫 번째 행이 헤더인지 확인
+          const hasHeader = data[0]?.some(cell => 
+            cell.includes('닉네임') || cell.includes('name') || 
+            cell.includes('본부레벨') || cell.includes('level')
+          )
+          
+          const startIndex = hasHeader ? 1 : 0
+          const validRows = data.slice(startIndex).filter(row => 
+            row.length >= 2 && row[0]?.trim() && row[1]?.trim()
+          )
+
+          if (validRows.length === 0) {
+            toast({
+              title: "오류",
+              description: "유효한 데이터가 없습니다.",
+              variant: "destructive",
+            })
+            return
+          }
+
+          // 데이터 변환 (한글/영어 헤더 모두 지원)
+          const users = validRows.map(row => {
+            // 기본값 설정
+            let name = row[0]?.trim() || ''
+            let level = parseInt(row[1]?.trim()) || 1
+            let power = parseFloat(row[2]?.trim()) || 0
+            let leave = false
+
+            // 탈퇴여부 처리 (다양한 형태 지원)
+            if (row[3]) {
+              const leaveValue = row[3].trim().toLowerCase()
+              leave = leaveValue === 'true' || leaveValue === '탈퇴' || leaveValue === 'yes' || leaveValue === '1'
+            }
+
+            return {
+              name,
+              level,
+              power,
+              leave
+            }
+          })
+
+          // API 호출하여 배치 생성
+          await createUsersBatch(users)
+          
+          toast({
+            title: "성공",
+            description: `${users.length}명의 유저가 추가되었습니다.`,
+          })
+          
+          // 유저 목록 새로고침
+          loadUsers(searchParams)
+          
+        } catch (error) {
+          console.error('CSV 업로드 오류:', error)
+          toast({
+            title: "오류",
+            description: "CSV 파일 처리 중 오류가 발생했습니다.",
+            variant: "destructive",
+          })
+        } finally {
+          setIsUploading(false)
+          // 파일 입력 초기화
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+          }
+        }
+      },
+      error: (error) => {
+        console.error('CSV 파싱 오류:', error)
+        toast({
+          title: "오류",
+          description: "CSV 파일을 읽을 수 없습니다.",
+          variant: "destructive",
+        })
+        setIsUploading(false)
+      }
+    })
+  }
+
+  // CSV 가져오기 버튼 클릭
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
   }
 
   return (
@@ -149,14 +282,30 @@ export default function UsersPage() {
                 </div>
 
                 <div className="flex gap-2">
+                  <Button variant="outline" onClick={downloadSampleCsv} className="flex-1 sm:flex-auto">
+                    <Download className="mr-2 h-4 w-4" />
+                    CSV 샘플
+                  </Button>
                   <Button variant="outline" onClick={exportToCsv} className="flex-1 sm:flex-auto">
                     <FileDown className="mr-2 h-4 w-4" />
                     CSV 내보내기
                   </Button>
-                  <Button variant="outline" className="flex-1 sm:flex-auto">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleImportClick} 
+                    className="flex-1 sm:flex-auto"
+                    disabled={isUploading}
+                  >
                     <FileUp className="mr-2 h-4 w-4" />
-                    CSV 가져오기
+                    {isUploading ? "업로드 중..." : "CSV 가져오기"}
                   </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
                 </div>
               </div>
 
