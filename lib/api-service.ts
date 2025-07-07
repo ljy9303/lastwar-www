@@ -98,3 +98,33 @@ export async function createUsersBatch(users: any[]) {
     body: JSON.stringify(users)
   })
 }
+
+// User duplicate check
+export async function checkDuplicateUsers(params: {
+  nickname?: string
+  power?: number
+  level?: number
+  powerRange?: number
+  levelRange?: number
+  similarityThreshold?: number
+  includeHistory?: boolean
+}) {
+  const queryString = buildQueryString(params)
+  return fetchFromAPI(`/user/duplicate-check?${queryString}`)
+}
+
+// User batch upsert
+export async function upsertUsersBatch(users: any[]) {
+  return fetchFromAPI('/user/batch-upsert', {
+    method: 'POST',
+    body: JSON.stringify(users)
+  })
+}
+
+// User auto upsert (insert if new, update if exists)
+export async function autoUpsertUsers(users: any[]) {
+  return fetchFromAPI('/user/auto-upsert', {
+    method: 'POST',
+    body: JSON.stringify(users)
+  })
+}

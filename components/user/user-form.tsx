@@ -36,7 +36,7 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
           level: 1,
           power: 0,
           leave: false,
-          userGrade: "R5",
+          userGrade: "R1",
         },
   )
 
@@ -119,7 +119,7 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
 
       <div className="grid gap-2">
         <Label htmlFor="userGrade">유저 등급</Label>
-        <Select value={formData.userGrade || "R5"} onValueChange={(value) => handleChange("userGrade", value)}>
+        <Select value={formData.userGrade || "R1"} onValueChange={(value) => handleChange("userGrade", value)}>
           <SelectTrigger>
             <SelectValue placeholder="유저 등급 선택" />
           </SelectTrigger>
