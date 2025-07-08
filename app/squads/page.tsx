@@ -23,6 +23,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getSquads, saveSquads, type SquadMember, type GroupedSquadResponse } from "@/app/actions/squad-actions"
 import { getDesertById } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
+import { DesertEventType } from "@/types/desert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { PositionStatusBoard } from "@/components/squad/position-status-board"
@@ -64,6 +65,32 @@ const DESERT_TYPE = {
   AB_POSSIBLE: "AB_POSSIBLE",
   UNASSIGNED: "UNASSIGNED",
   NONE: "NONE",
+}
+
+// 이벤트 타입에 따른 필터링된 팀 상수 생성
+const getFilteredTeams = (eventType?: string) => {
+  if (eventType === DesertEventType.A_TEAM_ONLY) {
+    // A조만 사용하는 이벤트의 경우 B팀 관련 옵션 제외
+    return {
+      A_TEAM: TEAM.A_TEAM,
+      A_RESERVE: TEAM.A_RESERVE,
+      NONE: TEAM.NONE,
+    }
+  }
+  // A_B_TEAM이거나 타입이 없는 경우 모든 팀 사용
+  return TEAM
+}
+
+// 이벤트 타입에 따른 필터링된 데저트 타입 생성
+const getFilteredDesertTypes = (eventType?: string) => {
+  if (eventType === DesertEventType.A_TEAM_ONLY) {
+    return {
+      A_TEAM: DESERT_TYPE.A_TEAM,
+      A_RESERVE: DESERT_TYPE.A_RESERVE,
+      NONE: DESERT_TYPE.NONE,
+    }
+  }
+  return DESERT_TYPE
 }
 
 // Add position constants at the top of the file, after the TEAM constants
@@ -124,17 +151,24 @@ export default function SquadsPage() {
   const { toast } = useToast()
   const eventId = searchParams.get("eventId")
 
-  const [squadMembers, setSquadMembers] = useState<GroupedSquadResponse>({
-    A_TEAM: [],
-    B_TEAM: [],
-    A_RESERVE: [],
-    B_RESERVE: [],
-    AB_POSSIBLE: [],
-    NONE: [], // 변경됨
-  })
+  const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isConfirmed, setIsConfirmed] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<any>(null)
+
+  // 이벤트 타입에 따른 초기 스쿼드 멤버 상태 생성
+  const getInitialSquadMembers = () => {
+    // 초기 로딩 시에는 기본값 사용, 이후 useEffect에서 조건부 업데이트
+    return {
+      A_TEAM: [],
+      B_TEAM: [],
+      A_RESERVE: [],
+      B_RESERVE: [],
+      AB_POSSIBLE: [],
+      NONE: [],
+    }
+  }
+
+  const [squadMembers, setSquadMembers] = useState<GroupedSquadResponse>(getInitialSquadMembers())
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
@@ -164,25 +198,24 @@ export default function SquadsPage() {
       setIsLoading(true)
       try {
         // 이벤트 정보 로드 (eventId가 있을 때만)
+        let eventData = null
         if (eventId) {
-          const eventData = await getDesertById(Number(eventId))
+          eventData = await getDesertById(Number(eventId))
           setSelectedEvent(eventData)
         }
 
         // 스쿼드 데이터 로드
         const squadData = await getSquads(eventId ? Number(eventId) : null)
 
-        // API가 이미 그룹화된 데이터를 제공하므로 직접 설정
-        setSquadMembers(squadData)
-
-        // 각 그룹 정렬
-        const sortedSquadData = {
+        // 이벤트 타입에 따른 조건부 그룹 정렬
+        const sortedSquadData: GroupedSquadResponse = {
           A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
-          B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
           A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
-          B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
-          AB_POSSIBLE: squadData.AB_POSSIBLE || [],
           NONE: squadData.NONE || [],
+          // A조만 사용하는 이벤트의 경우 B팀 관련 데이터를 빈 배열로 설정
+          B_TEAM: eventData?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_TEAM || [], sortPowerDirection),
+          B_RESERVE: eventData?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
+          AB_POSSIBLE: eventData?.eventType === DesertEventType.A_TEAM_ONLY ? [] : squadData.AB_POSSIBLE || [],
         }
 
         setSquadMembers(sortedSquadData)
@@ -257,14 +290,15 @@ export default function SquadsPage() {
       // 데이터 다시 로드
       const squadData = await getSquads(Number(eventId))
 
-      // 각 그룹 정렬
-      const sortedSquadData = {
+      // 각 그룹 정렬 (동기화 시에도 이벤트 타입 고려)
+      const sortedSquadData: GroupedSquadResponse = {
         A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
-        B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
         A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
-        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
-        AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || [],
+        // A조만 사용하는 이벤트의 경우 B팀 관련 데이터를 빈 배열로 설정
+        B_TEAM: selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_TEAM || [], sortPowerDirection),
+        B_RESERVE: selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
+        AB_POSSIBLE: selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY ? [] : squadData.AB_POSSIBLE || [],
       }
 
       setSquadMembers(sortedSquadData)
@@ -359,6 +393,18 @@ export default function SquadsPage() {
   // Update the moveUser function to include position information
   const moveUser = useCallback(
     (userId: number, fromTeam: string, toTeam: string) => {
+      // A조만 사용하는 이벤트에서 B팀 관련 이동 차단
+      if (selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY) {
+        if (toTeam === TEAM.B_TEAM || toTeam === TEAM.B_RESERVE || toTeam === TEAM.AB_POSSIBLE) {
+          toast({
+            title: "이동 불가",
+            description: "A조만 사용하는 이벤트에서는 B팀 관련 옵션을 선택할 수 없습니다.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+      
       // 인원 초과 경고 표시 (이동은 허용)
       if (
         (toTeam === TEAM.A_TEAM && squadMembers.A_TEAM.length >= 20) ||
@@ -422,7 +468,7 @@ export default function SquadsPage() {
         }))
       }
     },
-    [squadMembers, toast, sortPowerDirection],
+    [squadMembers, toast, sortPowerDirection, selectedEvent],
   )
 
   // Add a function to update user position
@@ -692,30 +738,35 @@ export default function SquadsPage() {
   }
 
   const teamMenuItems = useMemo(() => {
-    return (team: string, userSeq: number, intentType: string) => (
-      <>
-        {team !== TEAM.A_TEAM && (
-          <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.A_TEAM)}>A조</DropdownMenuItem>
-        )}
-        {team !== TEAM.B_TEAM && (
-          <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.B_TEAM)}>B조</DropdownMenuItem>
-        )}
-        {team !== TEAM.A_RESERVE && (
-          <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.A_RESERVE)}>A조 예비</DropdownMenuItem>
-        )}
-        {team !== TEAM.B_RESERVE && (
-          <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.B_RESERVE)}>B조 예비</DropdownMenuItem>
-        )}
-        {/* intentType이 AB_POSSIBLE인 경우에만 AB 가능 옵션 표시 */}
-        {team !== TEAM.AB_POSSIBLE && intentType === "AB_POSSIBLE" && (
-          <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.AB_POSSIBLE)}>AB 가능</DropdownMenuItem>
-        )}
-        {team !== TEAM.NONE && (
-          <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.NONE)}>미배정</DropdownMenuItem>
-        )}
-      </>
-    )
-  }, [moveUser])
+    return (team: string, userSeq: number, intentType: string) => {
+      // 이벤트 타입에 따른 필터링된 팀 옵션 가져오기
+      const filteredTeams = getFilteredTeams(selectedEvent?.eventType)
+      
+      return (
+        <>
+          {team !== TEAM.A_TEAM && filteredTeams.A_TEAM && (
+            <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.A_TEAM)}>A조</DropdownMenuItem>
+          )}
+          {team !== TEAM.B_TEAM && filteredTeams.B_TEAM && (
+            <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.B_TEAM)}>B조</DropdownMenuItem>
+          )}
+          {team !== TEAM.A_RESERVE && filteredTeams.A_RESERVE && (
+            <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.A_RESERVE)}>A조 예비</DropdownMenuItem>
+          )}
+          {team !== TEAM.B_RESERVE && filteredTeams.B_RESERVE && (
+            <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.B_RESERVE)}>B조 예비</DropdownMenuItem>
+          )}
+          {/* intentType이 AB_POSSIBLE인 경우에만 AB 가능 옵션 표시 (A+B팀 이벤트에서만) */}
+          {team !== TEAM.AB_POSSIBLE && filteredTeams.AB_POSSIBLE && intentType === "AB_POSSIBLE" && (
+            <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.AB_POSSIBLE)}>AB 가능</DropdownMenuItem>
+          )}
+          {team !== TEAM.NONE && filteredTeams.NONE && (
+            <DropdownMenuItem onClick={() => moveUser(userSeq, team, TEAM.NONE)}>미배정</DropdownMenuItem>
+          )}
+        </>
+      )
+    }
+  }, [moveUser, selectedEvent])
 
   const renderUserCard = (user: SquadMember, team: string) => {
     const isPreferenceMatched =
@@ -1087,6 +1138,7 @@ export default function SquadsPage() {
           teamAReserveMembers={squadMembers.A_RESERVE}
           teamBReserveMembers={squadMembers.B_RESERVE}
           reserveMembers={[]} // 제외 인원은 없음
+          eventType={selectedEvent?.eventType}
         />
       </div>
 
@@ -1123,37 +1175,39 @@ export default function SquadsPage() {
           </CardContent>
         </Card>
 
-        {/* B팀 */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
-              <CardTitle>B조 ({squadMembers.B_TEAM.length}/20)</CardTitle>
-              <div className="flex items-center gap-2">
-                {squadMembers.B_TEAM.length > 20 && <Badge variant="destructive">초과</Badge>}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => copyToClipboard(TEAM.B_TEAM)}
-                  title="멤버 목록 복사"
-                >
-                  <Clipboard className="h-4 w-4" />
-                  <span className="sr-only">멤버 목록 복사</span>
-                </Button>
+        {/* B팀 - A조만 사용하는 이벤트에서는 숨김 */}
+        {selectedEvent?.eventType !== DesertEventType.A_TEAM_ONLY && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle>B조 ({squadMembers.B_TEAM.length}/20)</CardTitle>
+                <div className="flex items-center gap-2">
+                  {squadMembers.B_TEAM.length > 20 && <Badge variant="destructive">초과</Badge>}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => copyToClipboard(TEAM.B_TEAM)}
+                    title="멤버 목록 복사"
+                  >
+                    <Clipboard className="h-4 w-4" />
+                    <span className="sr-only">멤버 목록 복사</span>
+                  </Button>
+                </div>
               </div>
-            </div>
-            <CardDescription>B조 주전 멤버</CardDescription>
-          </CardHeader>
-          <CardContent className="max-h-[400px] overflow-y-auto">
-            {getFilteredUsers(TEAM.B_TEAM as keyof GroupedSquadResponse).length > 0 ? (
-              getFilteredUsers(TEAM.B_TEAM as keyof GroupedSquadResponse).map((user) =>
-                renderUserCard(user, TEAM.B_TEAM),
-              )
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
-            )}
-          </CardContent>
-        </Card>
+              <CardDescription>B조 주전 멤버</CardDescription>
+            </CardHeader>
+            <CardContent className="max-h-[400px] overflow-y-auto">
+              {getFilteredUsers(TEAM.B_TEAM as keyof GroupedSquadResponse).length > 0 ? (
+                getFilteredUsers(TEAM.B_TEAM as keyof GroupedSquadResponse).map((user) =>
+                  renderUserCard(user, TEAM.B_TEAM),
+                )
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* A팀 예비 */}
         <Card>
@@ -1187,54 +1241,58 @@ export default function SquadsPage() {
           </CardContent>
         </Card>
 
-        {/* B팀 예비 */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
-              <CardTitle>B조 예비 ({squadMembers.B_RESERVE.length}/10)</CardTitle>
-              <div className="flex items-center gap-2">
-                {squadMembers.B_RESERVE.length > 10 && <Badge variant="destructive">초과</Badge>}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => copyToClipboard(TEAM.B_RESERVE)}
-                  title="멤버 목록 복사"
-                >
-                  <Clipboard className="h-4 w-4" />
-                  <span className="sr-only">멤버 목록 복사</span>
-                </Button>
+        {/* B팀 예비 - A조만 사용하는 이벤트에서는 숨김 */}
+        {selectedEvent?.eventType !== DesertEventType.A_TEAM_ONLY && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle>B조 예비 ({squadMembers.B_RESERVE.length}/10)</CardTitle>
+                <div className="flex items-center gap-2">
+                  {squadMembers.B_RESERVE.length > 10 && <Badge variant="destructive">초과</Badge>}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => copyToClipboard(TEAM.B_RESERVE)}
+                    title="멤버 목록 복사"
+                  >
+                    <Clipboard className="h-4 w-4" />
+                    <span className="sr-only">멤버 목록 복사</span>
+                  </Button>
+                </div>
               </div>
-            </div>
-            <CardDescription>B조 예비 멤버</CardDescription>
-          </CardHeader>
-          <CardContent className="max-h-[300px] overflow-y-auto">
-            {getFilteredUsers(TEAM.B_RESERVE as keyof GroupedSquadResponse).length > 0 ? (
-              getFilteredUsers(TEAM.B_RESERVE as keyof GroupedSquadResponse).map((user) =>
-                renderUserCard(user, TEAM.B_RESERVE),
-              )
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
-            )}
-          </CardContent>
-        </Card>
+              <CardDescription>B조 예비 멤버</CardDescription>
+            </CardHeader>
+            <CardContent className="max-h-[300px] overflow-y-auto">
+              {getFilteredUsers(TEAM.B_RESERVE as keyof GroupedSquadResponse).length > 0 ? (
+                getFilteredUsers(TEAM.B_RESERVE as keyof GroupedSquadResponse).map((user) =>
+                  renderUserCard(user, TEAM.B_RESERVE),
+                )
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-        {/* AB 가능 */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>AB 가능</CardTitle>
-            <CardDescription>A조/B조 모두 참여 가능한 인원</CardDescription>
-          </CardHeader>
-          <CardContent className="max-h-[300px] overflow-y-auto">
-            {getFilteredUsers(TEAM.AB_POSSIBLE as keyof GroupedSquadResponse).length > 0 ? (
-              getFilteredUsers(TEAM.AB_POSSIBLE as keyof GroupedSquadResponse).map((user) =>
-                renderUserCard(user, TEAM.AB_POSSIBLE),
-              )
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">AB 가능 유저가 없습니다.</div>
-            )}
-          </CardContent>
-        </Card>
+        {/* AB 가능 - A조만 사용하는 이벤트에서는 숨김 */}
+        {selectedEvent?.eventType !== DesertEventType.A_TEAM_ONLY && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>AB 가능</CardTitle>
+              <CardDescription>A조/B조 모두 참여 가능한 인원</CardDescription>
+            </CardHeader>
+            <CardContent className="max-h-[300px] overflow-y-auto">
+              {getFilteredUsers(TEAM.AB_POSSIBLE as keyof GroupedSquadResponse).length > 0 ? (
+                getFilteredUsers(TEAM.AB_POSSIBLE as keyof GroupedSquadResponse).map((user) =>
+                  renderUserCard(user, TEAM.AB_POSSIBLE),
+                )
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">AB 가능 유저가 없습니다.</div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* 미배정 인원 */}
         <Card className="lg:col-span-2">

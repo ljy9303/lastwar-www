@@ -46,6 +46,7 @@ import type { Desert, DesertResponse, DesertSearchParams } from "@/app/actions/e
 import { useMobile } from "@/hooks/use-mobile"
 import { DesertEditDialog } from "@/components/desert/desert-edit-dialog"
 import type { Desert as DesertType } from "@/types/desert"
+import { DesertEventType } from "@/types/desert"
 
 // 이번주 금요일 날짜 계산 함수
 function getThisFriday() {
@@ -74,6 +75,7 @@ export default function EventsPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [newEventName, setNewEventName] = useState("")
   const [newEventDate, setNewEventDate] = useState<Date | undefined>(getThisFriday())
+  const [newEventType, setNewEventType] = useState<DesertEventType>(DesertEventType.A_B_TEAM)
   const isMobile = useMobile()
 
   // 사막전 수정 관련 상태
@@ -288,6 +290,7 @@ export default function EventsPage() {
       const requestData = {
         title: newEventName,
         eventDate: format(newEventDate, "yyyy-MM-dd"),
+        eventType: newEventType,
       }
 
       await createDesert(requestData)
@@ -304,6 +307,7 @@ export default function EventsPage() {
       setIsCreateEventDialogOpen(false)
       setNewEventName("")
       setNewEventDate(getThisFriday())
+      setNewEventType(DesertEventType.A_B_TEAM)
     } catch (error) {
       console.error("사막전 생성 실패:", error)
 
@@ -474,6 +478,18 @@ export default function EventsPage() {
                     <Calendar mode="single" selected={newEventDate} onSelect={setNewEventDate} initialFocus />
                   </PopoverContent>
                 </Popover>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="event-type">사막전 유형</Label>
+                <Select value={newEventType} onValueChange={(value) => setNewEventType(value as DesertEventType)}>
+                  <SelectTrigger id="event-type">
+                    <SelectValue placeholder="사막전 유형 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={DesertEventType.A_B_TEAM}>A조, B조 모두 사용</SelectItem>
+                    <SelectItem value={DesertEventType.A_TEAM_ONLY}>A조만 사용</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>

@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DesertEventType } from "@/types/desert"
 
 // 전투력 포맷팅 함수 (1 = 1백만)
 const formatPower = (power: number): string => {
@@ -37,8 +38,8 @@ const formatPower = (power: number): string => {
   return `${power.toFixed(1)}M`
 }
 
-// 투표 옵션
-const preferenceOptions = [
+// 전체 투표 옵션
+const allPreferenceOptions = [
   { value: "A_TEAM", label: "A팀" },
   { value: "B_TEAM", label: "B팀" },
   { value: "A_RESERVE", label: "A팀 예비" },
@@ -46,6 +47,18 @@ const preferenceOptions = [
   { value: "AB_POSSIBLE", label: "모두 가능" },
   { value: "NONE", label: "미배정" },
 ]
+
+// 이벤트 타입에 따른 선호팀 옵션 필터링
+const getPreferenceOptions = (eventType?: string) => {
+  if (eventType === DesertEventType.A_TEAM_ONLY) {
+    // A조만 사용하는 이벤트의 경우 B팀 관련 옵션 제외
+    return allPreferenceOptions.filter(option => 
+      !["B_TEAM", "B_RESERVE", "AB_POSSIBLE"].includes(option.value)
+    )
+  }
+  // A_B_TEAM이거나 타입이 없는 경우 모든 옵션 사용
+  return allPreferenceOptions
+}
 
 export default function SurveysPage() {
   const searchParams = useSearchParams()
@@ -150,6 +163,9 @@ export default function SurveysPage() {
     }
   }, [])
 
+  // 현재 이벤트 타입에 맞는 선호팀 옵션 계산
+  const preferenceOptions = getPreferenceOptions(selectedEvent?.eventType)
+
   const getIntentTypeCounts = () => {
     const counts: Record<string, number> = {
       A_TEAM: 0,
@@ -168,6 +184,16 @@ export default function SurveysPage() {
         counts[roster.intentType]++
       }
     })
+    
+    // A조만 사용하는 이벤트의 경우 B팀 관련 카운트 제외
+    if (selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY) {
+      return {
+        A_TEAM: counts.A_TEAM,
+        A_RESERVE: counts.A_RESERVE,
+        NONE: counts.NONE + counts.B_TEAM + counts.B_RESERVE + counts.AB_POSSIBLE, // B팀 관련은 NONE에 합산
+      }
+    }
+    
     return counts
   }
 

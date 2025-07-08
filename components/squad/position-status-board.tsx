@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import type { SquadMember } from "@/app/actions/squad-actions"
+import { DesertEventType } from "@/types/desert"
 
 // 포지션 정보 타입
 interface PositionInfo {
@@ -37,6 +38,7 @@ interface PositionStatusBoardProps {
   teamAReserveMembers?: SquadMember[]
   teamBReserveMembers?: SquadMember[]
   reserveMembers?: SquadMember[] // 이전 버전과의 호환성을 위해 유지
+  eventType?: string // 이벤트 타입 추가
 }
 
 export function PositionStatusBoard({
@@ -45,6 +47,7 @@ export function PositionStatusBoard({
   teamAReserveMembers = [],
   teamBReserveMembers = [],
   reserveMembers = [],
+  eventType,
 }: PositionStatusBoardProps) {
   const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({
     teamA: true,
@@ -275,7 +278,7 @@ export function PositionStatusBoard({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${eventType !== DesertEventType.A_TEAM_ONLY ? 'lg:grid-cols-2' : 'lg:grid-cols-1'}`}>
         {/* A팀 포지션 현황 */}
         <Card className="border-red-200 dark:border-red-900/30 overflow-hidden">
           <CardHeader
@@ -321,50 +324,52 @@ export function PositionStatusBoard({
           )}
         </Card>
 
-        {/* B팀 포지션 현황 */}
-        <Card className="border-blue-200 dark:border-blue-900/30 overflow-hidden">
-          <CardHeader
-            className="pb-2 cursor-pointer bg-blue-50/50 dark:bg-blue-900/10"
-            onClick={() => toggleTeam("teamB")}
-          >
-            <CardTitle className="text-base flex items-center justify-between">
-              <div className="flex items-center">
-                {expandedTeams.teamB ? (
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 mr-1" />
-                )}
-                B조 포지션 현황
-                <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                  {teamBAssignedCount}/{teamBMembers?.length || 0}명
-                </Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  copyToClipboard("B")
-                }}
-                title="포지션 정보 복사"
-              >
-                <Copy className="h-4 w-4" />
-                <span className="sr-only">포지션 정보 복사</span>
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          {expandedTeams.teamB && (
-            <CardContent className="pt-4">
-              {renderPositionMembers(teamBPositions)}
-              {renderReserveMembers(teamBReserveMembers)}
-              {Object.values(teamBPositions).every((members) => members.length === 0) &&
-                teamBReserveMembers.length === 0 && (
-                  <div className="text-center py-3 text-xs text-muted-foreground">배정된 멤버가 없습니다.</div>
-                )}
-            </CardContent>
-          )}
-        </Card>
+        {/* B팀 포지션 현황 - A조만 사용하는 이벤트에서는 숨김 */}
+        {eventType !== DesertEventType.A_TEAM_ONLY && (
+          <Card className="border-blue-200 dark:border-blue-900/30 overflow-hidden">
+            <CardHeader
+              className="pb-2 cursor-pointer bg-blue-50/50 dark:bg-blue-900/10"
+              onClick={() => toggleTeam("teamB")}
+            >
+              <CardTitle className="text-base flex items-center justify-between">
+                <div className="flex items-center">
+                  {expandedTeams.teamB ? (
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 mr-1" />
+                  )}
+                  B조 포지션 현황
+                  <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                    {teamBAssignedCount}/{teamBMembers?.length || 0}명
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    copyToClipboard("B")
+                  }}
+                  title="포지션 정보 복사"
+                >
+                  <Copy className="h-4 w-4" />
+                  <span className="sr-only">포지션 정보 복사</span>
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            {expandedTeams.teamB && (
+              <CardContent className="pt-4">
+                {renderPositionMembers(teamBPositions)}
+                {renderReserveMembers(teamBReserveMembers)}
+                {Object.values(teamBPositions).every((members) => members.length === 0) &&
+                  teamBReserveMembers.length === 0 && (
+                    <div className="text-center py-3 text-xs text-muted-foreground">배정된 멤버가 없습니다.</div>
+                  )}
+              </CardContent>
+            )}
+          </Card>
+        )}
       </div>
     </div>
   )

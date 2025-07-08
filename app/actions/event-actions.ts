@@ -8,11 +8,13 @@ export interface Desert {
   title: string
   eventDate: string
   deleted: boolean
+  eventType: string
 }
 
 export interface DesertCreateRequest {
   title: string
   eventDate: string
+  eventType: string
 }
 
 export interface DesertSearchParams {

@@ -17,6 +17,7 @@ import { UserFilter } from "@/components/user/user-filter"
 import { UserHistoryList } from "@/components/user/user-history-list"
 import { NicknameSearch } from "@/components/user/nickname-search"
 import { CsvImportExplanationDialog } from "@/components/user/csv-import-explanation-dialog"
+import { UserMergeDialog } from "@/components/user/user-merge-dialog"
 import { useToast } from "@/hooks/use-toast"
 
 export default function UsersPage() {
@@ -30,6 +31,7 @@ export default function UsersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isImportExplanationOpen, setIsImportExplanationOpen] = useState(false)
+  const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false)
 
   // 유저 목록 로드
   const loadUsers = async (params: UserSearchParams = {}) => {
@@ -549,6 +551,7 @@ export default function UsersPage() {
           <TabsTrigger value="users">유저 목록</TabsTrigger>
           <TabsTrigger value="history">변경 히스토리</TabsTrigger>
           <TabsTrigger value="nickname-search">예전 닉네임 검색</TabsTrigger>
+          <TabsTrigger value="merge">데이터 통합</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -630,6 +633,58 @@ export default function UsersPage() {
         <TabsContent value="nickname-search">
           <NicknameSearch />
         </TabsContent>
+
+        <TabsContent value="merge">
+          <Card>
+            <CardHeader>
+              <CardTitle>사용자 데이터 통합</CardTitle>
+              <CardDescription>
+                닉네임을 변경한 사용자의 데이터를 기존 사용자로 통합합니다. 
+                예: "아빠"(신규) → "아빠꽁치"(기존)로 모든 데이터를 이관
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-yellow-600 mt-0.5">⚠️</div>
+                    <div>
+                      <h4 className="font-medium text-yellow-800 mb-2">주의사항</h4>
+                      <ul className="text-sm text-yellow-700 space-y-1">
+                        <li>• 이 작업은 되돌릴 수 없습니다</li>
+                        <li>• 소스 사용자의 모든 데이터가 타겟 사용자로 이관됩니다</li>
+                        <li>• 소스 사용자는 완전히 삭제됩니다</li>
+                        <li>• 로스터, 사막전 히스토리, 연맹 데이터 등이 모두 통합됩니다</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-blue-600 mt-0.5">💡</div>
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">사용 예시</h4>
+                      <p className="text-sm text-blue-700">
+                        "아빠꽁치" 사용자가 게임에서 닉네임을 "아빠"로 변경했고, 
+                        관리자가 실수로 "아빠"를 신규 사용자로 등록한 경우:
+                        <br />
+                        <span className="font-medium">소스: "아빠" (신규) → 타겟: "아빠꽁치" (기존)</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={() => setIsMergeDialogOpen(true)}
+                  className="w-full sm:w-auto"
+                >
+                  사용자 데이터 통합 시작
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* 유저 수정 다이얼로그 */}
@@ -657,6 +712,17 @@ export default function UsersPage() {
         isOpen={isImportExplanationOpen}
         onClose={() => setIsImportExplanationOpen(false)}
         onConfirm={handleConfirmImport}
+      />
+
+      {/* 사용자 데이터 통합 다이얼로그 */}
+      <UserMergeDialog
+        isOpen={isMergeDialogOpen}
+        onClose={() => setIsMergeDialogOpen(false)}
+        onMergeComplete={() => {
+          setIsMergeDialogOpen(false)
+          loadUsers(searchParams) // 사용자 목록 새로고침
+        }}
+        users={users}
       />
 
     </div>

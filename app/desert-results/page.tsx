@@ -17,6 +17,7 @@ import {
   type DesertRosterResult,
   type DesertResultSummary,
 } from "../actions/desert-result-actions"
+import { DesertEventType } from "@/types/desert"
 import { fetchFromAPI } from "@/lib/api-service"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -39,10 +40,8 @@ export default function DesertResultsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [showOnlyParticipated, setShowOnlyParticipated] = useState(false)
-  const [teamCounts, setTeamCounts] = useState<Record<string, number>>({
-    A: 0,
-    B: 0,
-  })
+  // 초기 팀 카운트 - 초기 로딩 시에는 기본값 사용
+  const [teamCounts, setTeamCounts] = useState<Record<string, number>>({ A: 0, B: 0 })
 
   const [sortBy, setSortBy] = useState<"name" | "team" | null>(null)
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
@@ -223,11 +222,16 @@ export default function DesertResultsPage() {
   // 탭 변경 시 해당 팀 데이터 로드
   const handleTabChange = useCallback(
     (value: string) => {
+      // A조만 사용하는 이벤트에서 B팀 탭 선택 차단
+      if (selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY && value === "b") {
+        return // B팀 탭 전환 무시
+      }
+      
       setActiveTab(value)
       loadTeamData(value.toUpperCase())
       loadDesertHistory(value) // 사막전 결과 히스토리도 함께 로드
     },
-    [loadTeamData, loadDesertHistory],
+    [loadTeamData, loadDesertHistory, selectedEvent],
   )
 
   // 이벤트 및 결과 데이터 로드
@@ -242,12 +246,14 @@ export default function DesertResultsPage() {
         setIsLoading(true)
 
         // 사막전 정보 로드
+        let eventData
         try {
-          const eventData = await getDesertById(desertSeq)
+          eventData = await getDesertById(desertSeq)
           setSelectedEvent(eventData)
         } catch (error) {
           console.error("사막전 정보 로드 실패:", error)
-          setSelectedEvent({ title: `사막전 #${desertSeq}` })
+          eventData = { title: `사막전 #${desertSeq}` }
+          setSelectedEvent(eventData)
         }
 
         // 사막전 결과 로드
@@ -257,14 +263,18 @@ export default function DesertResultsPage() {
           setResults(resultsData)
           setFilteredResults(resultsData)
 
-          // 팀별 인원 수 계산
-          const counts = { A: 0, B: 0 }
+          // 이벤트 타입에 따른 팀별 인원 수 계산
+          const counts: Record<string, number> = eventData?.eventType === DesertEventType.A_TEAM_ONLY 
+            ? { A: 0 } // A조만 사용하는 이벤트에서는 A팀만 카운트
+            : { A: 0, B: 0 } // 기본적으로 A, B 모두 카운트
+
           resultsData.forEach((result) => {
             const teamType = result.desertType.toUpperCase()
             if (teamType.startsWith("A")) {
               counts.A++
-            } else if (teamType.startsWith("B")) {
-              counts.B++
+            } else if (teamType.startsWith("B") && eventData?.eventType !== DesertEventType.A_TEAM_ONLY) {
+              // A조만 사용하는 이벤트에서는 B팀 카운트 제외
+              counts.B = (counts.B || 0) + 1
             }
           })
           setTeamCounts(counts)
@@ -282,6 +292,11 @@ export default function DesertResultsPage() {
         // 사막전 결과 요약 로드
         const summaryData = await getDesertResultSummary(desertSeq)
         setEventSummary(summaryData)
+
+        // 이벤트 타입에 따른 초기 탭 설정
+        if (eventData?.eventType === DesertEventType.A_TEAM_ONLY) {
+          setActiveTab("a") // A조만 사용하는 이벤트에서는 A팀 탭 고정
+        }
       } catch (error) {
         console.error("데이터 로드 실패:", error)
         toast({
@@ -538,16 +553,26 @@ export default function DesertResultsPage() {
             <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
               <TabsList>
                 <TabsTrigger value="a">A팀</TabsTrigger>
-                <TabsTrigger value="b">B팀</TabsTrigger>
+                {selectedEvent?.eventType !== DesertEventType.A_TEAM_ONLY && (
+                  <TabsTrigger value="b">B팀</TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
 
             {/* 사막전 결과 입력 섹션 - 탭 안으로 이동 */}
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>{activeTab === "a" ? "A팀" : "B팀"} 사막전 결과 입력</CardTitle>
+                <CardTitle>
+                  {selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY 
+                    ? "A팀" 
+                    : (activeTab === "a" ? "A팀" : "B팀")
+                  } 사막전 결과 입력
+                </CardTitle>
                 <CardDescription>
-                  {activeTab === "a" ? "A팀" : "B팀"}의 사막전 결과를 입력하고 저장합니다.
+                  {selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY 
+                    ? "A팀" 
+                    : (activeTab === "a" ? "A팀" : "B팀")
+                  }의 사막전 결과를 입력하고 저장합니다.
                 </CardDescription>
               </CardHeader>
               <CardContent>
