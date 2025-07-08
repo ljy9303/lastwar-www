@@ -176,7 +176,6 @@ export function UserMergeDialog({ isOpen, onClose, onMergeComplete, users }: Use
   const { toast } = useToast()
   const [sourceUser, setSourceUser] = useState<User | null>(null)
   const [targetUser, setTargetUser] = useState<User | null>(null)
-  const [isForce, setIsForce] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [mergeResult, setMergeResult] = useState<UserMergeResponse | null>(null)
   const [step, setStep] = useState<"setup" | "confirm" | "result">("setup")
@@ -185,7 +184,6 @@ export function UserMergeDialog({ isOpen, onClose, onMergeComplete, users }: Use
   const resetDialog = () => {
     setSourceUser(null)
     setTargetUser(null)
-    setIsForce(false)
     setMergeResult(null)
     setStep("setup")
   }
@@ -223,7 +221,7 @@ export function UserMergeDialog({ isOpen, onClose, onMergeComplete, users }: Use
         body: JSON.stringify({
           sourceUserSeq: sourceUser.userSeq,
           targetUserSeq: targetUser.userSeq,
-          force: isForce,
+          force: false,
         }),
       })
 
@@ -316,18 +314,6 @@ export function UserMergeDialog({ isOpen, onClose, onMergeComplete, users }: Use
                 onUserSelect={setTargetUser}
                 excludeUser={sourceUser}
               />
-            </div>
-
-            {/* 강제 통합 옵션 */}
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="force-merge"
-                checked={isForce}
-                onCheckedChange={setIsForce}
-              />
-              <Label htmlFor="force-merge" className="text-sm">
-                강제 통합 (데이터 충돌이 있어도 강제로 통합)
-              </Label>
             </div>
 
             {/* 미리보기 */}

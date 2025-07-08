@@ -68,7 +68,7 @@ export default function DesertResultsPage() {
         const historyData = await fetchFromAPI(url)
 
         // API 응답이 null이거나 빈 응답인 경우 처리
-        if (!historyData) {
+        if (!historyData || Object.keys(historyData).length === 0) {
           console.log("사막전 결과 히스토리가 없습니다.")
           setDesertHistory(null)
           // 데이터가 없으면 폼 초기화
@@ -113,7 +113,10 @@ export default function DesertResultsPage() {
         console.error("사막전 결과 히스토리 로드 실패:", error)
 
         // JSON 파싱 에러나 빈 응답인 경우 처리
-        if (error instanceof Error && error.message.includes("Unexpected end of JSON input")) {
+        if (error instanceof Error && 
+            (error.message.includes("Unexpected end of JSON input") || 
+             error.message.includes("JSON 파싱 오류") ||
+             error.message.includes("Failed to execute 'json'"))) {
           console.log("사막전 결과 히스토리가 비어있거나 유효하지 않습니다.")
           setDesertHistory(null)
         }
@@ -498,7 +501,7 @@ export default function DesertResultsPage() {
   return (
     <div className="container mx-auto">
       <div className="flex items-center gap-2 mb-6">
-        <h1 className="text-3xl font-bold">사막전 결과 {selectedEvent && `- ${selectedEvent.title}`}</h1>
+        <h1 className="text-3xl font-bold">{selectedEvent ? selectedEvent.title : '사막전 결과'}</h1>
         <div className="ml-auto">
           <div className="flex gap-2">
             <Button variant="outline" asChild>
@@ -519,8 +522,8 @@ export default function DesertResultsPage() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>참여자 성과 관리</CardTitle>
-                <CardDescription>사막전 참여자들의 성과와 참여 여부를 관리합니다.</CardDescription>
+                <CardTitle>참여자 출석여부 관리</CardTitle>
+                <CardDescription>사막전 참여자들의 출석 여부를 관리합니다.</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button

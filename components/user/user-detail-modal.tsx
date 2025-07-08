@@ -11,6 +11,7 @@ import { getUserDetail, getUserHistory, getUserDesertRecords } from "@/lib/api-s
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { UserHistoryChange } from "./user-history-change"
 
 interface UserDetailModalProps {
   isOpen: boolean
@@ -126,21 +127,6 @@ export default function UserDetailModal({ isOpen, onClose, userSeq }: UserDetail
     }
   }
 
-  // 필드명을 한국어로 변환하는 함수
-  const getFieldLabel = (field: string): string => {
-    const fieldMap: { [key: string]: string } = {
-      'user_name': '닉네임',
-      'user_level': '레벨',
-      'user_power': '전투력',
-      'user_grade': '등급',
-      'is_leave': '탈퇴 여부',
-      'power': '전투력',
-      'level': '레벨',
-      'name': '닉네임',
-      'grade': '등급'
-    }
-    return fieldMap[field] || field
-  }
 
   // 포지션 값을 라벨로 변환하는 함수
   const getPositionLabel = (position: number | null): string => {
@@ -181,75 +167,6 @@ export default function UserDetailModal({ isOpen, onClose, userSeq }: UserDetail
     return "미배정"
   }
 
-  // 전투력 값에 M 단위 추가하는 함수 (이미 M 단위로 저장되어 있음)
-  const formatPowerValue = (value: any): string => {
-    const numValue = Number(value)
-    if (!isNaN(numValue)) {
-      return `${numValue}M`
-    }
-    return String(value)
-  }
-
-  // Boolean 값을 한국어로 변환하는 함수
-  const formatBooleanValue = (value: any): string => {
-    if (typeof value === 'boolean') {
-      return value ? '예' : '아니오'
-    }
-    if (value === 'true') return '예'
-    if (value === 'false') return '아니오'
-    return String(value)
-  }
-
-  // 변경 값을 포맷팅하는 함수
-  const formatChangeValue = (field: string, change: any): string => {
-    // 전투력 필드인지 확인 (더 포괄적으로)
-    const isPowerField = field.toLowerCase().includes('power') || 
-                        field.includes('전투력') || 
-                        field === 'user_power'
-    
-    // Boolean 필드인지 확인
-    const isBooleanField = field === 'is_leave' || field.includes('leave')
-    
-    if (typeof change === 'object' && change !== null) {
-      if ('before' in change && 'after' in change) {
-        let beforeValue = change.before
-        let afterValue = change.after
-        
-        if (isPowerField) {
-          beforeValue = formatPowerValue(beforeValue)
-          afterValue = formatPowerValue(afterValue)
-        } else if (isBooleanField) {
-          beforeValue = formatBooleanValue(beforeValue)
-          afterValue = formatBooleanValue(afterValue)
-        }
-        
-        return `${beforeValue} → ${afterValue}`
-      }
-      if ('old' in change && 'new' in change) {
-        let oldValue = change.old
-        let newValue = change.new
-        
-        if (isPowerField) {
-          oldValue = formatPowerValue(oldValue)
-          newValue = formatPowerValue(newValue)
-        } else if (isBooleanField) {
-          oldValue = formatBooleanValue(oldValue)
-          newValue = formatBooleanValue(newValue)
-        }
-        
-        return `${oldValue} → ${newValue}`
-      }
-      return JSON.stringify(change)
-    }
-    
-    if (isPowerField) {
-      return formatPowerValue(change)
-    } else if (isBooleanField) {
-      return formatBooleanValue(change)
-    }
-    
-    return String(change)
-  }
 
   const getPowerChartData = (powerHistory: UserPowerHistory[]) => {
     return powerHistory.map((item) => ({
@@ -386,12 +303,7 @@ export default function UserDetailModal({ isOpen, onClose, userSeq }: UserDetail
                               </span>
                             </div>
                             <div className="space-y-2">
-                              {Object.entries(history.changes).map(([field, change]) => (
-                                <div key={field} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                  <span className="text-sm font-medium text-gray-700">{getFieldLabel(field)}</span>
-                                  <span className="text-sm text-gray-900 font-semibold">{formatChangeValue(field, change)}</span>
-                                </div>
-                              ))}
+                              <UserHistoryChange changes={history.changes} />
                             </div>
                           </div>
                         ))}

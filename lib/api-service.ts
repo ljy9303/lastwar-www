@@ -34,7 +34,22 @@ export async function fetchFromAPI<T = any>(endpoint: string, options: RequestIn
       return {} as T // 204 No Content 응답 시 빈 객체 반환
     }
 
-    return response.json()
+    // 응답 본문이 비어있는지 확인
+    const contentLength = response.headers.get('content-length')
+    if (contentLength === '0') {
+      return {} as T
+    }
+
+    try {
+      const text = await response.text()
+      if (!text || text.trim() === '') {
+        return {} as T
+      }
+      return JSON.parse(text)
+    } catch (parseError) {
+      console.error('JSON 파싱 오류:', parseError, 'Response text:', text)
+      return {} as T
+    }
   } catch (error) {
     if (error instanceof Error && "status" in error) {
       // 이미 처리된 HTTP 에러는 그대로 전달

@@ -667,6 +667,95 @@ export default function SquadsPage() {
     }
   }
 
+  // AB 가능 인원 자동 배정 함수
+  const autoDistributeABUsers = () => {
+    if (squadMembers.AB_POSSIBLE.length === 0) return
+
+    const abUsers = [...squadMembers.AB_POSSIBLE]
+    const aTeamCount = squadMembers.A_TEAM.length
+    const bTeamCount = squadMembers.B_TEAM.length
+    
+    // 전투력 순으로 정렬 (높은 순)
+    abUsers.sort((a, b) => (b.userPower || 0) - (a.userPower || 0))
+    
+    const newSquadMembers = { ...squadMembers }
+    const newPendingChanges = { ...pendingChanges }
+    
+    // AB 가능 인원 목록 초기화
+    newSquadMembers.AB_POSSIBLE = []
+    
+    // 각 유저를 A팀/B팀에 균등하게 배분 (전투력을 고려하여 교대로 배치)
+    abUsers.forEach((user, index) => {
+      // A팀과 B팀의 현재 인원 수를 고려하여 배정
+      const currentACount = newSquadMembers.A_TEAM.length
+      const currentBCount = newSquadMembers.B_TEAM.length
+      
+      let targetTeam: string
+      
+      if (currentACount < currentBCount) {
+        targetTeam = TEAM.A_TEAM
+      } else if (currentBCount < currentACount) {
+        targetTeam = TEAM.B_TEAM
+      } else {
+        // 인원이 같을 때는 교대로 배치 (높은 전투력부터 A팀, B팀 순)
+        targetTeam = index % 2 === 0 ? TEAM.A_TEAM : TEAM.B_TEAM
+      }
+      
+      // 해당 팀에 유저 추가 및 정렬
+      const teamKey = targetTeam as keyof GroupedSquadResponse
+      newSquadMembers[teamKey] = sortUsers([...newSquadMembers[teamKey], user], sortPowerDirection)
+      
+      // 변경사항 기록
+      newPendingChanges[user.userSeq] = {
+        desertType: targetTeam,
+        position: -1
+      }
+    })
+    
+    setSquadMembers(newSquadMembers)
+    setPendingChanges(newPendingChanges)
+    
+    toast({
+      title: "스마트 배정 완료",
+      description: `${abUsers.length}명의 AB 가능 인원이 A팀/B팀에 균등하게 배정되었습니다.`,
+    })
+  }
+
+  // 팀 전투력 통계 계산
+  const getTeamStats = (teamMembers: SquadMember[]) => {
+    if (teamMembers.length === 0) {
+      return {
+        totalPower: 0,
+        averagePower: 0,
+        averageLevel: 0,
+        topPowerUser: null,
+        zScoreDistribution: {}
+      }
+    }
+
+    const totalPower = teamMembers.reduce((sum, user) => sum + (user.userPower || 0), 0)
+    const averagePower = totalPower / teamMembers.length
+    const averageLevel = teamMembers.reduce((sum, user) => sum + (user.userLevel || 0), 0) / teamMembers.length
+    const topPowerUser = teamMembers.reduce((max, user) => 
+      (user.userPower || 0) > (max.userPower || 0) ? user : max, teamMembers[0]
+    )
+
+    // Z-Score 분포 계산
+    const zScoreDistribution: Record<string, number> = {}
+    teamMembers.forEach(user => {
+      const zscore = user.zScore || 'unknown'
+      zScoreDistribution[zscore] = (zScoreDistribution[zscore] || 0) + 1
+    })
+
+    return {
+      totalPower,
+      averagePower,
+      averageLevel,
+      topPowerUser,
+      zScoreDistribution
+    }
+  }
+
   // 필터링된 유저 목록
   const getFilteredUsers = (team: keyof GroupedSquadResponse) => {
     return squadMembers[team].filter((user) => user.userName.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -699,12 +788,14 @@ export default function SquadsPage() {
     switch (zscore) {
       case "top1":
         return { label: "상위 1%", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" }
+      case "top5":
+        return { label: "상위 5%", color: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300" }
       case "top10":
         return { label: "상위 10%", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" }
       case "top30":
         return { label: "상위 30%", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" }
       case "middle":
-        return { label: "중간층", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" }
+        return { label: "중간", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" }
       case "bottom30":
         return { label: "하위 30%", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" }
       case "bottom10":
@@ -787,46 +878,79 @@ export default function SquadsPage() {
 
     return (
       <div key={user.userSeq} className="p-3 mb-2 rounded-lg border bg-background" id={`user-${user.userSeq}`}>
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-            <div className="font-medium truncate max-w-[120px] sm:max-w-none">{user.userName}</div>
-            <div className="text-sm text-muted-foreground flex items-center gap-1">
-              Lv.{user.userLevel} | {formatPower(user.userPower)}
-              {user.zscore !== undefined && getZScoreLabel(user.zscore) && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ml-1 ${getZScoreLabel(user.zscore)?.color}`}>
-                  {getZScoreLabel(user.zscore)?.label}
-                </span>
-              )}
+        {/* 상단: 닉네임과 핵심 정보 - 한 줄 레이아웃 */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {/* 닉네임 - 말줄임표 적용 */}
+            <div className="font-medium text-sm truncate max-w-[100px] lg:max-w-[140px]" title={user.userName}>
+              {user.userName}
             </div>
-            <Badge variant={isPreferenceMatched ? "outline" : "secondary"} size="sm">
-              {getPreferenceLabel(user.intentType)}
-            </Badge>
-            {currentPosition >= 0 && (
-              <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
-                {getPositionLabel(currentPosition)}
-              </Badge>
+            
+            {/* 기본 정보 - 컴팩트하게 */}
+            <div className="text-xs text-muted-foreground whitespace-nowrap">
+              Lv.{user.userLevel} | {formatPower(user.userPower)}
+            </div>
+
+            {/* Z-Score 배지 - 작게 */}
+            {user.zscore !== undefined && getZScoreLabel(user.zscore) && (
+              <span className={`text-xs px-1 py-0.5 rounded-full text-[10px] font-medium ${getZScoreLabel(user.zscore)?.color}`}>
+                {getZScoreLabel(user.zscore)?.label}
+              </span>
             )}
           </div>
 
-          <div className="flex flex-wrap gap-1 mt-2 sm:mt-0">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 w-7 p-0"
-              onClick={() => fetchUserHistory(user.userSeq)}
-              disabled={isLoadingHistory}
-              title="히스토리 조회"
-            >
-              {isLoadingHistory ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock className="h-3 w-3" />}
-              <span className="sr-only">히스토리 조회</span>
-            </Button>
+          {/* 우측 액션 버튼들과 히스토리 정보 */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* 4주 참석 현황 - 한 줄로 표시 */}
+            {userHistory ? (
+              <div className="flex items-center gap-1 text-xs">
+                {/* 4주 참석 현황 점표시 - 클릭 가능 */}
+                <div 
+                  className="flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 p-1 rounded"
+                  onClick={() => setExpandedHistories((prev) => ({ ...prev, [user.userSeq]: !prev[user.userSeq] }))}
+                  title="클릭하면 상세 정보를 볼 수 있습니다"
+                >
+                  {[1, 2, 3, 4].map((week) => {
+                    const weekKey = `week${week}` as keyof UserHistory
+                    const played = userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
+                    const desertType = userHistory[`${weekKey}DesertType` as keyof UserHistory] as string
+
+                    return (
+                      <div
+                        key={week}
+                        className={`w-2 h-2 rounded-full border ${
+                          played
+                            ? "bg-green-500 border-green-600"
+                            : desertType !== "NONE"
+                              ? "bg-red-500 border-red-600"
+                              : "bg-gray-300 border-gray-400"
+                        }`}
+                        title={`${week}주전: ${getTeamName(desertType)} ${played ? "참석" : "불참"}`}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              !isLoadingHistory && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-1 text-xs"
+                  onClick={() => fetchUserHistory(user.userSeq)}
+                  title="4주 참석 현황 조회"
+                >
+                  {isLoadingHistory ? <Loader2 className="h-3 w-3 animate-spin" /> : "4주참석"}
+                </Button>
+              )
+            )}
 
             {/* AB 가능 섹션에서는 미배정 버튼 표시 */}
             {team === TEAM.AB_POSSIBLE && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-100"
                 onClick={() => moveUser(user.userSeq, team, TEAM.NONE)}
                 title="미배정으로 이동"
               >
@@ -840,12 +964,13 @@ export default function SquadsPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7"
+                  className="h-6 px-2 text-xs"
                   data-state="closed"
                   aria-haspopup="menu"
                   tabIndex={0}
+                  title="팀 변경"
                 >
-                  팀 변경
+                  팀변경
                   <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
@@ -858,7 +983,12 @@ export default function SquadsPage() {
             {(team === TEAM.A_TEAM || team === TEAM.B_TEAM) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-7">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-6 px-1 text-xs"
+                    title="포지션 설정"
+                  >
                     포지션
                     <ChevronDown className="ml-1 h-3 w-3" />
                   </Button>
@@ -879,11 +1009,11 @@ export default function SquadsPage() {
                             {(() => {
                               if (position.value === 0) return "공격/지원"
                               if (position.value === -1) return position.label
-                              return `${position.value}시 - ${position.label}`
+                              return `${position.value}시`
                             })()}
                           </span>
-                          <Badge variant="outline" className="ml-2">
-                            {positionCounts[position.value]}명
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            {positionCounts[position.value]}
                           </Badge>
                         </div>
                       </DropdownMenuItem>
@@ -895,85 +1025,56 @@ export default function SquadsPage() {
           </div>
         </div>
 
-        {/* 히스토리 정보 표시 */}
-        {userHistory && (
-          <div className="mt-2">
-            <button
-              onClick={() => setExpandedHistories((prev) => ({ ...prev, [user.userSeq]: !prev[user.userSeq] }))}
-              className="w-full p-2 bg-muted/30 rounded border-l-2 border-l-primary/20 hover:bg-muted/50 transition-colors text-left"
+        {/* 하단: 배지들 - 두 번째 줄 */}
+        <div className="flex items-center gap-1 flex-wrap">
+          <Badge 
+            variant={isPreferenceMatched ? "outline" : "secondary"} 
+            className="text-xs px-2 py-0.5 h-5"
+          >
+            {getPreferenceLabel(user.intentType)}
+          </Badge>
+          
+          {currentPosition >= 0 && (
+            <Badge 
+              variant="outline" 
+              className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 h-5"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">최근 4주 참석률</span>
-                <div className="flex items-center gap-2">
-                  <div className="flex">
-                    {[1, 2, 3, 4].map((week) => {
-                      const weekKey = `week${week}` as keyof UserHistory
-                      const played = userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
-                      const desertType = userHistory[`${weekKey}DesertType` as keyof UserHistory] as string
+              {getPositionLabel(currentPosition)}
+            </Badge>
+          )}
+        </div>
 
-                      return (
-                        <div
-                          key={week}
-                          className={`w-3 h-3 mx-0.5 rounded-full border ${
-                            played
-                              ? "bg-green-500 border-green-600"
-                              : desertType !== "NONE"
-                                ? "bg-red-500 border-red-600"
-                                : "bg-gray-300 border-gray-400"
-                          }`}
-                          title={`${week}주전: ${getTeamName(desertType)} ${played ? "참석" : "불참"}`}
-                        />
-                      )
-                    })}
-                  </div>
-                  {(() => {
-                    const totalWeeks = 4
-                    const participatedWeeks = [1, 2, 3, 4].filter((week) => {
-                      const weekKey = `week${week}` as keyof UserHistory
-                      return userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
-                    }).length
-                    const participationRate = Math.round((participatedWeeks / totalWeeks) * 100)
+        {/* 4주 상세 정보 펼치기 */}
+        {userHistory && expandedHistories[user.userSeq] && (
+          <div className="mt-2 p-2 bg-muted/20 rounded text-xs border">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              {[1, 2, 3, 4].map((week) => {
+                const weekKey = `week${week}` as keyof UserHistory
+                const desertType = userHistory[`${weekKey}DesertType` as keyof UserHistory] as string
+                const surveyType = userHistory[`${weekKey}SurveyType` as keyof UserHistory] as string
+                const played = userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
 
-                    return (
-                      <Badge
-                        variant={
-                          participationRate >= 75 ? "default" : participationRate >= 50 ? "secondary" : "destructive"
-                        }
-                        className="text-xs px-1.5 py-0.5"
-                      >
-                        {participationRate}%
-                      </Badge>
-                    )
-                  })()}
-                  <ChevronDown
-                    className={`h-3 w-3 transition-transform ${expandedHistories[user.userSeq] ? "rotate-180" : ""}`}
-                  />
-                </div>
-              </div>
-            </button>
-            {expandedHistories[user.userSeq] && (
-              <div className="mt-1 p-2 bg-muted/20 rounded text-xs">
-                <div className="grid grid-cols-4 gap-2">
-                  {[1, 2, 3, 4].map((week) => {
-                    const weekKey = `week${week}` as keyof UserHistory
-                    const desertType = userHistory[`${weekKey}DesertType` as keyof UserHistory] as string
-                    const surveyType = userHistory[`${weekKey}SurveyType` as keyof UserHistory] as string
-                    const played = userHistory[`${weekKey}Played` as keyof UserHistory] as boolean
-
-                    return (
-                      <div key={week} className="text-center p-1 border rounded">
-                        <div className="font-medium">{week}주전</div>
-                        <div className="text-muted-foreground">{getPreferenceLabel(desertType, false)}</div>
-                        <div className="text-muted-foreground">투표: {getPreferenceLabel(surveyType, true)}</div>
-                        <div className={played ? "text-green-600" : "text-red-600"}>{played ? "✓ 참석" : "✗ 불참"}</div>
+                return (
+                  <div key={week} className="text-center p-2 border rounded bg-background">
+                    <div className="font-medium text-xs mb-1">{week}주전</div>
+                    <div className="space-y-1">
+                      <div className="text-muted-foreground text-xs">
+                        <span className="font-medium">배정:</span> {getPreferenceLabel(desertType, false)}
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+                      <div className="text-muted-foreground text-xs">
+                        <span className="font-medium">투표:</span> {getPreferenceLabel(surveyType, true)}
+                      </div>
+                      <div className={`text-xs font-medium ${played ? "text-green-600" : "text-red-600"}`}>
+                        {played ? "✓ 참석" : "✗ 불참"}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
+
       </div>
     )
   }
@@ -1094,7 +1195,7 @@ export default function SquadsPage() {
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  변경사항 저장 ({Object.keys(pendingChanges).length})
+                  임시 저장 ({Object.keys(pendingChanges).length})
                 </>
               )}
             </Button>
@@ -1103,8 +1204,7 @@ export default function SquadsPage() {
           <Button
             onClick={confirmSquads}
             disabled={isConfirming || squadMembers.AB_POSSIBLE.length > 0 || !eventId}
-            className="flex-1 md:flex-auto"
-            variant="outline"
+            className="flex-1 md:flex-auto bg-green-600 hover:bg-green-700 text-white"
           >
             {isConfirming ? (
               <>
@@ -1113,12 +1213,33 @@ export default function SquadsPage() {
               </>
             ) : (
               <>
-                <CheckCircle className="mr-2 h-4 w-4" />팀 확정
+                <CheckCircle className="mr-2 h-4 w-4" />
+                팀 구성 확정
               </>
             )}
           </Button>
         </div>
       </div>
+
+      {/* AB 가능 인원 안내 메시지 */}
+      {squadMembers.AB_POSSIBLE.length > 0 && eventId && (
+        <Alert className="mb-6 border-amber-200 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-900/10">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription>
+            <div className="space-y-1">
+              <div className="font-medium text-amber-800 dark:text-amber-200">
+                팀 구성 확정을 위해 "{squadMembers.AB_POSSIBLE.length}명"의 AB 가능 인원을 구체적인 팀으로 배정해주세요.
+              </div>
+              <div className="text-sm text-amber-700 dark:text-amber-300">
+                • 임시 저장: 현재 변경사항만 저장 (개별 유저의 desert_type 변경)
+              </div>
+              <div className="text-sm text-amber-700 dark:text-amber-300">
+                • 팀 구성 확정: 모든 팀원의 최종 팀 배정 완료 (AB 가능 인원이 없어야 실행 가능)
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* 동기화 중 오버레이 */}
       {isSyncing && (
@@ -1142,12 +1263,22 @@ export default function SquadsPage() {
         />
       </div>
 
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* A팀 */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
-              <CardTitle>A조 ({squadMembers.A_TEAM.length}/20)</CardTitle>
+              <div className="flex items-center gap-4">
+                <CardTitle>A조 ({squadMembers.A_TEAM.length}/20)</CardTitle>
+                {squadMembers.A_TEAM.length > 0 && (
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span>총 {formatPower(getTeamStats(squadMembers.A_TEAM).totalPower)}</span>
+                    <span>평균 {formatPower(getTeamStats(squadMembers.A_TEAM).averagePower)}</span>
+                    <span>LV {Math.round(getTeamStats(squadMembers.A_TEAM).averageLevel)}</span>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 {squadMembers.A_TEAM.length > 20 && <Badge variant="destructive">초과</Badge>}
                 <Button
@@ -1164,7 +1295,7 @@ export default function SquadsPage() {
             </div>
             <CardDescription>A조 출전 멤버</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[400px] overflow-y-auto">
+          <CardContent className="max-h-[500px] overflow-y-auto">
             {getFilteredUsers(TEAM.A_TEAM as keyof GroupedSquadResponse).length > 0 ? (
               getFilteredUsers(TEAM.A_TEAM as keyof GroupedSquadResponse).map((user) =>
                 renderUserCard(user, TEAM.A_TEAM),
@@ -1180,7 +1311,16 @@ export default function SquadsPage() {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
-                <CardTitle>B조 ({squadMembers.B_TEAM.length}/20)</CardTitle>
+                <div className="flex items-center gap-4">
+                  <CardTitle>B조 ({squadMembers.B_TEAM.length}/20)</CardTitle>
+                  {squadMembers.B_TEAM.length > 0 && (
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span>총 {formatPower(getTeamStats(squadMembers.B_TEAM).totalPower)}</span>
+                      <span>평균 {formatPower(getTeamStats(squadMembers.B_TEAM).averagePower)}</span>
+                      <span>LV {Math.round(getTeamStats(squadMembers.B_TEAM).averageLevel)}</span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   {squadMembers.B_TEAM.length > 20 && <Badge variant="destructive">초과</Badge>}
                   <Button
@@ -1197,7 +1337,7 @@ export default function SquadsPage() {
               </div>
               <CardDescription>B조 주전 멤버</CardDescription>
             </CardHeader>
-            <CardContent className="max-h-[400px] overflow-y-auto">
+            <CardContent className="max-h-[500px] overflow-y-auto">
               {getFilteredUsers(TEAM.B_TEAM as keyof GroupedSquadResponse).length > 0 ? (
                 getFilteredUsers(TEAM.B_TEAM as keyof GroupedSquadResponse).map((user) =>
                   renderUserCard(user, TEAM.B_TEAM),
@@ -1230,7 +1370,7 @@ export default function SquadsPage() {
             </div>
             <CardDescription>A조 예비 멤버</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[300px] overflow-y-auto">
+          <CardContent className="max-h-[400px] overflow-y-auto">
             {getFilteredUsers(TEAM.A_RESERVE as keyof GroupedSquadResponse).length > 0 ? (
               getFilteredUsers(TEAM.A_RESERVE as keyof GroupedSquadResponse).map((user) =>
                 renderUserCard(user, TEAM.A_RESERVE),
@@ -1263,7 +1403,7 @@ export default function SquadsPage() {
               </div>
               <CardDescription>B조 예비 멤버</CardDescription>
             </CardHeader>
-            <CardContent className="max-h-[300px] overflow-y-auto">
+            <CardContent className="max-h-[400px] overflow-y-auto">
               {getFilteredUsers(TEAM.B_RESERVE as keyof GroupedSquadResponse).length > 0 ? (
                 getFilteredUsers(TEAM.B_RESERVE as keyof GroupedSquadResponse).map((user) =>
                   renderUserCard(user, TEAM.B_RESERVE),
@@ -1279,10 +1419,24 @@ export default function SquadsPage() {
         {selectedEvent?.eventType !== DesertEventType.A_TEAM_ONLY && (
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>AB 가능</CardTitle>
-              <CardDescription>A조/B조 모두 참여 가능한 인원</CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>AB 가능 ({squadMembers.AB_POSSIBLE.length}명)</CardTitle>
+                  <CardDescription>A조/B조 모두 참여 가능한 인원</CardDescription>
+                </div>
+                {squadMembers.AB_POSSIBLE.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={autoDistributeABUsers}
+                    className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                  >
+                    스마트 배정
+                  </Button>
+                )}
+              </div>
             </CardHeader>
-            <CardContent className="max-h-[300px] overflow-y-auto">
+            <CardContent className="max-h-[400px] overflow-y-auto">
               {getFilteredUsers(TEAM.AB_POSSIBLE as keyof GroupedSquadResponse).length > 0 ? (
                 getFilteredUsers(TEAM.AB_POSSIBLE as keyof GroupedSquadResponse).map((user) =>
                   renderUserCard(user, TEAM.AB_POSSIBLE),
@@ -1312,7 +1466,7 @@ export default function SquadsPage() {
             </div>
             <CardDescription>참여 제외된 인원</CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[300px] overflow-y-auto">
+          <CardContent className="max-h-[400px] overflow-y-auto">
             {getFilteredUsers(TEAM.NONE as keyof GroupedSquadResponse).length > 0 ? (
               getFilteredUsers(TEAM.NONE as keyof GroupedSquadResponse).map((user) => renderUserCard(user, TEAM.NONE))
             ) : (
