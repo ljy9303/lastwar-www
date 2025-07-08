@@ -156,26 +156,21 @@ export default function SquadsPage() {
   // const [sortNameDirection, setSortNameDirection] = useState<"asc" | "desc">("asc")
   const [sortPowerDirection, setSortPowerDirection] = useState<"asc" | "desc">("desc")
 
-  // 이벤트 ID가 없으면 이벤트 목록 페이지로 리다이렉트
-  useEffect(() => {
-    if (!eventId) {
-      router.push("/events")
-    }
-  }, [eventId, router])
+  // 이벤트 ID는 선택적 - 없으면 일반 스쿼드 관리 모드
 
   // 이벤트 정보와 스쿼드 데이터 로드
   useEffect(() => {
     const loadData = async () => {
-      if (!eventId) return
-
       setIsLoading(true)
       try {
-        // 이벤트 정보 로드
-        const eventData = await getDesertById(Number(eventId))
-        setSelectedEvent(eventData)
+        // 이벤트 정보 로드 (eventId가 있을 때만)
+        if (eventId) {
+          const eventData = await getDesertById(Number(eventId))
+          setSelectedEvent(eventData)
+        }
 
         // 스쿼드 데이터 로드
-        const squadData = await getSquads(Number(eventId))
+        const squadData = await getSquads(eventId ? Number(eventId) : null)
 
         // API가 이미 그룹화된 데이터를 제공하므로 직접 설정
         setSquadMembers(squadData)
@@ -481,6 +476,16 @@ export default function SquadsPage() {
   const saveChanges = async () => {
     if (Object.keys(pendingChanges).length === 0) return
 
+    // eventId가 없으면 일반 모드 경고
+    if (!eventId) {
+      toast({
+        title: "저장 불가",
+        description: "일반 스쿼드 관리 모드에서는 저장이 지원되지 않습니다. 특정 사막전을 선택해주세요.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSaving(true)
     try {
       const request = {
@@ -533,6 +538,16 @@ export default function SquadsPage() {
 
   // 팀 확정 함수
   const confirmSquads = async () => {
+    // eventId가 null인지 먼저 확인
+    if (!eventId) {
+      toast({
+        title: "이벤트 ID 없음",
+        description: "팀 확정을 위해서는 특정 사막전을 선택해야 합니다.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (squadMembers.AB_POSSIBLE.length > 0) {
       toast({
         title: "AB 가능 인원 존재",
@@ -918,16 +933,7 @@ export default function SquadsPage() {
     setIsTeamMembersDialogOpen(true)
   }
 
-  if (!eventId) {
-    return (
-      <div className="container mx-auto">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>스쿼드를 조회할 사막전 ID가 필요합니다. 사막전 관리 페이지로 이동합니다.</AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
+  // eventId가 없어도 일반 스쿼드 관리 모드로 실행
 
   if (isLoading) {
     return (
@@ -941,21 +947,36 @@ export default function SquadsPage() {
   return (
     <div className="container mx-auto">
       <div className="flex items-center gap-2 mb-6">
-        <h1 className="text-3xl font-bold">스쿼드 관리 {selectedEvent && `- ${selectedEvent.title}`}</h1>
+        <h1 className="text-3xl font-bold">
+          {selectedEvent ? selectedEvent.title : '스쿼드 관리'}
+        </h1>
         <div className="ml-auto">
           <div className="flex gap-2">
             <Button variant="outline" asChild>
               <Link href="/events">사막전 관리</Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/surveys?eventId=${eventId}`}>사전조사</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/desert-results?eventId=${eventId}`}>사막전 결과</Link>
-            </Button>
+            {eventId && (
+              <>
+                <Button variant="outline" asChild>
+                  <Link href={`/surveys?eventId=${eventId}`}>사전조사</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href={`/desert-results?eventId=${eventId}`}>사막전 결과</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
+      
+      {!eventId && (
+        <Alert className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            일반 스쿼드 관리 모드입니다. 특정 사막전을 선택하려면 사막전 관리 페이지에서 이동해주세요.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div className="relative w-full md:w-auto md:flex-1">
@@ -1013,7 +1034,7 @@ export default function SquadsPage() {
 
         <div className="flex gap-2 w-full md:w-auto">
           {Object.keys(pendingChanges).length > 0 && (
-            <Button onClick={saveChanges} disabled={isSaving} className="flex-1 md:flex-auto">
+            <Button onClick={saveChanges} disabled={isSaving || !eventId} className="flex-1 md:flex-auto">
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1030,7 +1051,7 @@ export default function SquadsPage() {
 
           <Button
             onClick={confirmSquads}
-            disabled={isConfirming || squadMembers.AB_POSSIBLE.length > 0}
+            disabled={isConfirming || squadMembers.AB_POSSIBLE.length > 0 || !eventId}
             className="flex-1 md:flex-auto"
             variant="outline"
           >

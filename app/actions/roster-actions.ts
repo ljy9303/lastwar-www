@@ -10,6 +10,7 @@ export interface Roster {
   userLevel: number
   userPower: number
   intentType: string
+  userGrade?: string
 }
 
 export interface RosterUpdateRequest {

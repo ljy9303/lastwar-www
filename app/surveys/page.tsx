@@ -44,7 +44,7 @@ const preferenceOptions = [
   { value: "A_RESERVE", label: "A팀 예비" },
   { value: "B_RESERVE", label: "B팀 예비" },
   { value: "AB_POSSIBLE", label: "모두 가능" },
-  { value: "NONE", label: "미참여" },
+  { value: "NONE", label: "미배정" },
 ]
 
 export default function SurveysPage() {
@@ -324,7 +324,7 @@ export default function SurveysPage() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
         <div className="flex items-center gap-2">
           <h1 className="text-xl sm:text-3xl font-bold truncate">
-            사전조사 관리 {selectedEvent && `- ${selectedEvent.title}`}
+            {selectedEvent ? selectedEvent.title : '사전조사 관리'}
           </h1>
         </div>
         <div className="flex items-center gap-2 ml-auto">
@@ -547,6 +547,9 @@ export default function SurveysPage() {
                       )}
                     </div>
                   </TableHead>
+                  <TableHead className="hidden sm:table-cell">
+                    유저 등급
+                  </TableHead>
                   <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => requestSort("intentType")}>
                     <div className="flex items-center">
                       선호 팀
@@ -576,6 +579,7 @@ export default function SurveysPage() {
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{roster.userLevel}</TableCell>
                       <TableCell className="hidden sm:table-cell">{formatPower(roster.userPower)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{roster.userGrade || '-'}</TableCell>
                       <TableCell>
                         {isMobileDevice ? (
                           <Select
@@ -624,7 +628,7 @@ export default function SurveysPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
+                    <TableCell colSpan={7} className="text-center py-4">
                       {searchTerm ? "검색 결과가 없습니다." : "사전조사 데이터가 없습니다."}
                     </TableCell>
                   </TableRow>
