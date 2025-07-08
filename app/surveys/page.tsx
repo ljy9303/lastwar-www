@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, Pencil, Trash, Loader2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Search, Pencil, Loader2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getRosters, updateRoster, saveRosters, type Roster } from "@/app/actions/roster-actions"
 import { getDesertById } from "@/app/actions/event-actions"
+import { getUserById } from "@/app/actions/user-actions"
 import { useToast } from "@/hooks/use-toast"
 import { UserForm } from "@/components/user/user-form"
 import type { User } from "@/types/user"
@@ -20,16 +21,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DesertEventType } from "@/types/desert"
 
-// 투표 옵션
-const preferenceOptions = [
+// 전투력 포맷팅 함수 (1 = 1백만)
+const formatPower = (power: number): string => {
+  if (power === 0) return "0"
+  if (power < 1) {
+    return `${(power * 100).toFixed(0)}만`
+  }
+  if (power >= 1000) {
+    return `${(power / 1000).toFixed(1)}B`
+  }
+  if (power >= 100) {
+    return `${power.toFixed(0)}M`
+  }
+  return `${power.toFixed(1)}M`
+}
+
+// 전체 투표 옵션
+const allPreferenceOptions = [
   { value: "A_TEAM", label: "A팀" },
   { value: "B_TEAM", label: "B팀" },
   { value: "A_RESERVE", label: "A팀 예비" },
   { value: "B_RESERVE", label: "B팀 예비" },
   { value: "AB_POSSIBLE", label: "모두 가능" },
-  { value: "NONE", label: "미참여" },
+  { value: "NONE", label: "미배정" },
 ]
+
+// 이벤트 타입에 따른 선호팀 옵션 필터링
+const getPreferenceOptions = (eventType?: string) => {
+  if (eventType === DesertEventType.A_TEAM_ONLY) {
+    // A조만 사용하는 이벤트의 경우 B팀 관련 옵션 제외
+    return allPreferenceOptions.filter(option => 
+      !["B_TEAM", "B_RESERVE", "AB_POSSIBLE"].includes(option.value)
+    )
+  }
+  // A_B_TEAM이거나 타입이 없는 경우 모든 옵션 사용
+  return allPreferenceOptions
+}
 
 export default function SurveysPage() {
   const searchParams = useSearchParams()
@@ -48,6 +77,7 @@ export default function SurveysPage() {
         editLevel?: number
         editPower?: number
         editLeave?: boolean
+        userGrade?: string
       })
     | null
   >(null)
@@ -133,6 +163,9 @@ export default function SurveysPage() {
     }
   }, [])
 
+  // 현재 이벤트 타입에 맞는 선호팀 옵션 계산
+  const preferenceOptions = getPreferenceOptions(selectedEvent?.eventType)
+
   const getIntentTypeCounts = () => {
     const counts: Record<string, number> = {
       A_TEAM: 0,
@@ -151,6 +184,16 @@ export default function SurveysPage() {
         counts[roster.intentType]++
       }
     })
+    
+    // A조만 사용하는 이벤트의 경우 B팀 관련 카운트 제외
+    if (selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY) {
+      return {
+        A_TEAM: counts.A_TEAM,
+        A_RESERVE: counts.A_RESERVE,
+        NONE: counts.NONE + counts.B_TEAM + counts.B_RESERVE + counts.AB_POSSIBLE, // B팀 관련은 NONE에 합산
+      }
+    }
+    
     return counts
   }
 
@@ -203,15 +246,28 @@ export default function SurveysPage() {
     }),
   )
 
-  const openEditDialog = (roster: Roster) => {
-    setCurrentRoster({
-      ...roster,
-      editName: roster.userName,
-      editLevel: roster.userLevel,
-      editPower: roster.userPower,
-      editLeave: false,
-    })
-    setIsEditDialogOpen(true)
+  const openEditDialog = async (roster: Roster) => {
+    try {
+      // Fetch complete user information including userGrade
+      const userData = await getUserById(roster.userSeq)
+      
+      setCurrentRoster({
+        ...roster,
+        editName: userData.name,
+        editLevel: userData.level,
+        editPower: userData.power,
+        editLeave: userData.leave,
+        userGrade: userData.userGrade,
+      })
+      setIsEditDialogOpen(true)
+    } catch (error) {
+      console.error("사용자 정보 조회 실패:", error)
+      toast({
+        title: "오류 발생",
+        description: "사용자 정보를 불러오는 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleEditSuccess = async (updatedUser: User) => {
@@ -222,26 +278,6 @@ export default function SurveysPage() {
       title: "수정 완료",
       description: `${updatedUser.name}님의 정보가 수정되었습니다.`,
     })
-  }
-
-  const handleDeleteRoster = async (roster: Roster) => {
-    if (window.confirm(`${roster.userName}님의 사전조사를 삭제하시겠습니까?`)) {
-      try {
-        await updateRoster(roster.desertSeq, roster.userSeq, "NONE")
-        setRosters((prev) => prev.map((r) => (r.userSeq === roster.userSeq ? { ...r, intentType: "NONE" } : r)))
-        toast({
-          title: "삭제 완료",
-          description: `${roster.userName}님의 사전조사가 삭제되었습니다.`,
-        })
-      } catch (error) {
-        console.error("사전조사 삭제 실패:", error)
-        toast({
-          title: "오류 발생",
-          description: "사전조사 삭제 중 오류가 발생했습니다.",
-          variant: "destructive",
-        })
-      }
-    }
   }
 
   const getPreferenceLabel = (preference: string) => {
@@ -314,7 +350,7 @@ export default function SurveysPage() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
         <div className="flex items-center gap-2">
           <h1 className="text-xl sm:text-3xl font-bold truncate">
-            사전조사 관리 {selectedEvent && `- ${selectedEvent.title}`}
+            {selectedEvent ? selectedEvent.title : '사전조사 관리'}
           </h1>
         </div>
         <div className="flex items-center gap-2 ml-auto">
@@ -470,7 +506,7 @@ export default function SurveysPage() {
                               {teamMembers.slice(0, 10).map((member) => (
                                 <li key={member.userSeq} className="text-sm">
                                   {member.userName}{" "}
-                                  <span className="text-xs text-muted-foreground">Lv.{member.userLevel}</span>
+                                  <span className="text-xs text-muted-foreground">Lv.{member.userLevel} | {formatPower(member.userPower)}</span>
                                 </li>
                               ))}
                               {teamMembers.length > 10 && (
@@ -495,7 +531,6 @@ export default function SurveysPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="hidden md:table-cell">ID</TableHead>
                   <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => requestSort("userName")}>
                     <div className="flex items-center">
                       닉네임
@@ -538,6 +573,9 @@ export default function SurveysPage() {
                       )}
                     </div>
                   </TableHead>
+                  <TableHead className="hidden sm:table-cell">
+                    유저 등급
+                  </TableHead>
                   <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => requestSort("intentType")}>
                     <div className="flex items-center">
                       선호 팀
@@ -557,17 +595,17 @@ export default function SurveysPage() {
                 {filteredRosters.length > 0 ? (
                   filteredRosters.map((roster) => (
                     <TableRow key={roster.userSeq} id={`user-${roster.userSeq}`}>
-                      <TableCell className="hidden md:table-cell">{roster.userSeq}</TableCell>
                       <TableCell>
                         <div>
                           <div>{roster.userName}</div>
                           <div className="sm:hidden text-xs text-muted-foreground">
-                            Lv.{roster.userLevel} | {roster.userPower.toLocaleString()}
+                            Lv.{roster.userLevel} | {formatPower(roster.userPower)}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{roster.userLevel}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{roster.userPower.toLocaleString()}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{formatPower(roster.userPower)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{roster.userGrade || '-'}</TableCell>
                       <TableCell>
                         {isMobileDevice ? (
                           <Select
@@ -610,16 +648,13 @@ export default function SurveysPage() {
                           <Button variant="ghost" size="icon" onClick={() => openEditDialog(roster)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteRoster(roster)}>
-                            <Trash className="h-4 w-4" />
-                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
+                    <TableCell colSpan={7} className="text-center py-4">
                       {searchTerm ? "검색 결과가 없습니다." : "사전조사 데이터가 없습니다."}
                     </TableCell>
                   </TableRow>
@@ -641,10 +676,11 @@ export default function SurveysPage() {
               mode="edit"
               user={{
                 userSeq: currentRoster.userSeq,
-                name: currentRoster.userName,
-                level: currentRoster.userLevel,
-                power: currentRoster.userPower,
-                leave: false,
+                name: currentRoster.editName || currentRoster.userName,
+                level: currentRoster.editLevel || currentRoster.userLevel,
+                power: currentRoster.editPower || currentRoster.userPower,
+                leave: currentRoster.editLeave || false,
+                userGrade: currentRoster.userGrade || "R5",
                 id: 0,
                 createdAt: "",
                 updatedAt: "",
@@ -673,7 +709,7 @@ export default function SurveysPage() {
                     <div>
                       <div className="font-medium">{member.userName}</div>
                       <div className="text-xs text-muted-foreground">
-                        Lv.{member.userLevel} | {member.userPower.toLocaleString()}
+                        Lv.{member.userLevel} | {formatPower(member.userPower)}
                       </div>
                     </div>
                     <Button

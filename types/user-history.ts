@@ -58,3 +58,33 @@ export interface UserHistoryParams {
   page?: number
   size?: number
 }
+
+export interface UserNicknameHistoryResponse {
+  currentUser: {
+    userSeq: number
+    name: string
+    level: number
+    power: number
+    leave: boolean
+    userGrade: string
+    createdAt: string
+    updatedAt: string
+  } | null
+  nicknameHistory: UserHistory[]
+  allHistory: UserHistory[]
+}
+
+export interface UserSearchResult {
+  userSeq: number
+  name: string
+  level: number
+  power: number
+  leave: boolean
+  userGrade: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UserNicknameSearchResponse {
+  matchedUsers: UserSearchResult[]
+}

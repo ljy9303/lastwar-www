@@ -8,11 +8,13 @@ export interface Desert {
   title: string
   eventDate: string
   deleted: boolean
+  eventType: string
 }
 
 export interface DesertCreateRequest {
   title: string
   eventDate: string
+  eventType: string
 }
 
 export interface DesertSearchParams {
@@ -21,6 +23,7 @@ export interface DesertSearchParams {
   toDate?: string
   page?: number
   size?: number
+  sortBy?: "EVENT_DATE" | "CREATE_DATE" | "UPDATE_AT"
   sortOrder?: "ASC" | "DESC"
 }
 

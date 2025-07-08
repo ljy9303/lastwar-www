@@ -36,7 +36,7 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
           level: 1,
           power: 0,
           leave: false,
-          userGrade: "R5",
+          userGrade: "R1",
         },
   )
 
@@ -110,7 +110,27 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
           min={0}
           value={formData.power || ""}
           onChange={(e) => handleChange("power", Number.parseFloat(e.target.value))}
+          placeholder="예: 150.5 (1억 5천만)"
         />
+        <p className="text-xs text-muted-foreground">
+          소수점 입력 가능 (1 = 1백만, 1000 = 10억, 0.01 = 1만)
+        </p>
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="userGrade">유저 등급</Label>
+        <Select value={formData.userGrade || "R1"} onValueChange={(value) => handleChange("userGrade", value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="유저 등급 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="R5">R5</SelectItem>
+            <SelectItem value="R4">R4</SelectItem>
+            <SelectItem value="R3">R3</SelectItem>
+            <SelectItem value="R2">R2</SelectItem>
+            <SelectItem value="R1">R1</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-2">

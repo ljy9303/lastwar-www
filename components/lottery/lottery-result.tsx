@@ -3,8 +3,8 @@
 import { useState } from "react"
 import type { User } from "@/types/user"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download, Share2 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Copy } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -17,90 +17,24 @@ interface LotteryResultProps {
 
 export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResultProps) {
   const { toast } = useToast()
-  const [isExporting, setIsExporting] = useState(false)
 
   if (winners.length === 0) {
     return null
   }
 
-  // 결과 내보내기 (CSV)
-  const exportResults = () => {
-    setIsExporting(true)
+  // 닉네임 복사 기능
+  const copyNickname = async (nickname: string) => {
     try {
-      const headers = ["순위", "닉네임", "레벨", "전투력", "연맹 상태", "확률"]
-      const csvContent = [
-        headers.join(","),
-        ...winners.map((winner, index) => {
-          const probability = drawCount / totalSelected
-          return [
-            index + 1,
-            winner.name,
-            winner.level,
-            winner.power,
-            winner.leave ? "탈퇴" : "활동중",
-            (probability * 100).toFixed(2) + "%",
-          ].join(",")
-        }),
-      ].join("\n")
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.setAttribute("href", url)
-      link.setAttribute("download", `연맹원_랜덤뽑기_결과_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`)
-      link.style.visibility = "hidden"
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
+      await navigator.clipboard.writeText(nickname)
       toast({
-        title: "내보내기 성공",
-        description: "추첨 결과가 CSV 파일로 저장되었습니다.",
+        title: "복사 완료",
+        description: `"${nickname}" 닉네임이 클립보드에 복사되었습니다.`,
       })
     } catch (error) {
-      console.error("내보내기 실패:", error)
+      console.error("복사 실패:", error)
       toast({
-        title: "내보내기 실패",
-        description: "파일 저장 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsExporting(false)
-    }
-  }
-
-  // 결과 공유
-  const shareResults = async () => {
-    try {
-      const text =
-        `연맹원 랜덤뽑기 결과 (${format(new Date(), "yyyy년 MM월 dd일", { locale: ko })})\n\n` +
-        `${totalSelected}명 중 ${drawCount}명 추첨\n\n` +
-        winners
-          .map(
-            (winner, index) =>
-              `${index + 1}. ${winner.name} (Lv.${winner.level}) - 확률: ${((drawCount / totalSelected) * 100).toFixed(
-                2,
-              )}%`,
-          )
-          .join("\n")
-
-      if (navigator.share) {
-        await navigator.share({
-          title: "연맹원 랜덤뽑기 결과",
-          text: text,
-        })
-      } else {
-        await navigator.clipboard.writeText(text)
-        toast({
-          title: "클립보드에 복사됨",
-          description: "추첨 결과가 클립보드에 복사되었습니다.",
-        })
-      }
-    } catch (error) {
-      console.error("공유 실패:", error)
-      toast({
-        title: "공유 실패",
-        description: "결과를 공유하는 중 오류가 발생했습니다.",
+        title: "복사 실패",
+        description: "닉네임 복사 중 오류가 발생했습니다.",
         variant: "destructive",
       })
     }
@@ -142,24 +76,25 @@ export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResu
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col items-end">
-                <div className="text-sm font-medium">{winner.leave ? "탈퇴" : "활동중"}</div>
-                <div className="text-xs text-muted-foreground">확률: {formatProbability(probability)}</div>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col items-end">
+                  <div className="text-sm font-medium">{winner.leave ? "탈퇴" : "활동중"}</div>
+                  <div className="text-xs text-muted-foreground">확률: {formatProbability(probability)}</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyNickname(winner.name)}
+                  className="h-8 w-8 p-0"
+                  title={`"${winner.name}" 닉네임 복사`}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           ))}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={shareResults}>
-          <Share2 className="h-4 w-4 mr-2" />
-          공유하기
-        </Button>
-        <Button onClick={exportResults} disabled={isExporting}>
-          <Download className="h-4 w-4 mr-2" />
-          {isExporting ? "내보내는 중..." : "CSV 내보내기"}
-        </Button>
-      </CardFooter>
     </Card>
   )
 }

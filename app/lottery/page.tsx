@@ -16,6 +16,21 @@ import { UserSelection } from "@/components/lottery/user-selection"
 import { LotteryAnimation } from "@/components/lottery/lottery-animation"
 import { LotteryResult } from "@/components/lottery/lottery-result"
 
+// 전투력 포맷팅 함수 (1 = 1백만)
+const formatPower = (power: number): string => {
+  if (power === 0) return "0"
+  if (power < 1) {
+    return `${(power * 100).toFixed(0)}만`
+  }
+  if (power >= 1000) {
+    return `${(power / 1000).toFixed(1)}B`
+  }
+  if (power >= 100) {
+    return `${power.toFixed(0)}M`
+  }
+  return `${power.toFixed(1)}M`
+}
+
 export default function LotteryPage() {
   const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
@@ -109,11 +124,8 @@ export default function LotteryPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
-          <TabsTrigger value="selection" disabled={isAnimating}>
+          <TabsTrigger value="selection">
             유저 선택
-          </TabsTrigger>
-          <TabsTrigger value="animation" disabled={!isAnimating && winners.length === 0}>
-            추첨 중
           </TabsTrigger>
           <TabsTrigger value="result" disabled={winners.length === 0}>
             추첨 결과
@@ -172,6 +184,7 @@ export default function LotteryPage() {
                         value={drawCount}
                         onChange={handleDrawCountChange}
                         placeholder="추첨할 인원 수를 입력하세요"
+                        disabled={isAnimating}
                       />
                       <p className="text-xs text-muted-foreground">
                         선택된 {selectedUsers.length}명 중 {drawCount}명을 추첨합니다.
@@ -182,6 +195,7 @@ export default function LotteryPage() {
                       <Button
                         type="submit"
                         disabled={
+                          isAnimating ||
                           selectedUsers.length === 0 ||
                           drawCount === "" ||
                           drawCount <= 0 ||
@@ -190,7 +204,7 @@ export default function LotteryPage() {
                         className="w-full"
                       >
                         <Shuffle className="mr-2 h-4 w-4" />
-                        추첨 시작
+                        {isAnimating ? "추첨 중..." : "추첨 시작"}
                       </Button>
                     </div>
                   </form>
@@ -212,7 +226,7 @@ export default function LotteryPage() {
                           <div key={user.userSeq} className="text-sm p-2 border-b">
                             <div className="font-medium">{user.name}</div>
                             <div className="text-xs text-muted-foreground">
-                              Lv.{user.level} | {user.power.toLocaleString()}
+                              Lv.{user.level} | {formatPower(user.power)}
                             </div>
                           </div>
                         ))
@@ -227,21 +241,10 @@ export default function LotteryPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="animation">
-          <div className="flex flex-col items-center justify-center py-8">
-            <LotteryAnimation
-              selectedUsers={selectedUsers}
-              winnerCount={drawCount}
-              isAnimating={isAnimating}
-              onAnimationComplete={handleAnimationComplete}
-            />
-          </div>
-        </TabsContent>
-
         <TabsContent value="result">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <LotteryResult winners={winners} drawCount={drawCount} totalSelected={selectedUsers.length} />
+              <LotteryResult winners={winners} drawCount={typeof drawCount === "number" ? drawCount : 0} totalSelected={selectedUsers.length} />
             </div>
             <div>
               <Card>
@@ -256,7 +259,6 @@ export default function LotteryPage() {
                   <Button
                     onClick={() => {
                       setIsAnimating(true)
-                      setActiveTab("animation")
                     }}
                     variant="outline"
                     className="w-full"
@@ -269,6 +271,18 @@ export default function LotteryPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* 추첨 애니메이션 오버레이 */}
+      {isAnimating && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <LotteryAnimation
+            selectedUsers={selectedUsers}
+            winnerCount={typeof drawCount === "number" ? drawCount : 0}
+            isAnimating={isAnimating}
+            onAnimationComplete={handleAnimationComplete}
+          />
+        </div>
+      )}
     </div>
   )
 }
