@@ -22,6 +22,7 @@ export interface AccountInfo {
   status: string
   serverInfo?: number
   allianceTag?: string
+  serverAllianceId?: number
   registrationComplete: boolean
 }
 
@@ -38,6 +39,13 @@ export interface SignupRequest {
   nickname: string
 }
 
+export interface TestLoginRequest {
+  email: string
+  nickname: string
+  serverInfo?: number
+  allianceTag?: string
+}
+
 export interface SignupResponse {
   success: boolean
   message: string
@@ -51,12 +59,6 @@ export interface SessionCheckResponse {
   user?: AccountInfo
 }
 
-export interface AllianceTagInfo {
-  id: number
-  serverNumber: number
-  allianceTag: string
-  memberCount: number
-}
 
 // OAuth API 함수들
 export const authAPI = {
@@ -93,6 +95,16 @@ export const authAPI = {
   },
 
   /**
+   * 테스트용 이메일 로그인
+   */
+  async testLogin(request: TestLoginRequest): Promise<LoginResponse> {
+    return fetchFromAPI<LoginResponse>('/auth/test/login', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    })
+  },
+
+  /**
    * 세션 확인
    */
   async checkSession(): Promise<SessionCheckResponse> {
@@ -122,43 +134,10 @@ export const authAPI = {
     return fetchFromAPI<any>('/auth/session/info')
   },
 
-  /**
-   * 특정 서버의 연맹 태그 목록 조회
-   */
-  async getAlliancesByServer(serverNumber: number): Promise<AllianceTagInfo[]> {
-    return fetchFromAPI<AllianceTagInfo[]>(`/auth/server/${serverNumber}/alliances`)
-  }
 }
 
-// 로컬 스토리지 관리
+// 로컬 스토리지 관리 (사용자 정보만 저장, 세션은 서버에서 자동 관리)
 export const authStorage = {
-  /**
-   * 세션 ID 저장
-   */
-  setSessionId(sessionId: string): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('lastwar_session_id', sessionId)
-    }
-  },
-
-  /**
-   * 세션 ID 조회
-   */
-  getSessionId(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('lastwar_session_id')
-    }
-    return null
-  },
-
-  /**
-   * 세션 ID 삭제
-   */
-  removeSessionId(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('lastwar_session_id')
-    }
-  },
 
   /**
    * 사용자 정보 저장
@@ -190,10 +169,9 @@ export const authStorage = {
   },
 
   /**
-   * 모든 인증 정보 삭제
+   * 모든 인증 정보 삭제 (세션은 서버에서 자동 처리)
    */
   clearAll(): void {
-    this.removeSessionId()
     this.removeUserInfo()
   }
 }
@@ -209,10 +187,10 @@ export const authUtils = {
   },
 
   /**
-   * 사용자가 로그인되어 있는지 확인
+   * 사용자가 로그인되어 있는지 확인 (사용자 정보 기준)
    */
   isLoggedIn(): boolean {
-    return authStorage.getSessionId() !== null
+    return authStorage.getUserInfo() !== null
   },
 
   /**
@@ -229,6 +207,14 @@ export const authUtils = {
   isRegistrationComplete(): boolean {
     const user = authStorage.getUserInfo()
     return user?.registrationComplete === true
+  },
+
+  /**
+   * 현재 사용자의 server alliance ID 조회
+   */
+  getCurrentServerAllianceId(): number | null {
+    const user = authStorage.getUserInfo()
+    return user?.serverAllianceId || null
   },
 
   /**

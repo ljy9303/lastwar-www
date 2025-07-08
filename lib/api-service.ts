@@ -4,16 +4,12 @@ export async function fetchFromAPI<T = any>(endpoint: string, options: RequestIn
   const url = `${API_BASE_URL}${endpoint}`
   console.log("전체 API URL:", url)
 
-  // 세션 ID를 헤더에 추가
-  const sessionId = typeof window !== 'undefined' ? localStorage.getItem('lastwar_session_id') : null
-  
   try {
     const response = await fetch(url, {
       ...options,
-      credentials: 'include', // 쿠키 포함
+      credentials: 'include', // 쿠키를 통한 세션 자동 관리
       headers: {
         "Content-Type": "application/json",
-        ...(sessionId && { "X-Session-ID": sessionId }), // 세션 ID 헤더 추가
         ...options.headers,
       },
     })

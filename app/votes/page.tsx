@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // 임시 유저 데이터
 const initialUsers = [
@@ -235,9 +236,15 @@ export default function VotesPage() {
           </div>
 
           {votes.length === 0 ? (
-            <Alert>
-              <AlertDescription>등록된 투표가 없습니다. 새 투표를 등록해주세요.</AlertDescription>
-            </Alert>
+            <EmptyState
+              variant="events"
+              title="등록된 투표가 없습니다"
+              description="사막전 팀 희망 투표가 아직 등록되지 않았습니다. 새 투표를 등록해보세요."
+              action={{
+                label: "투표 등록",
+                onClick: () => setIsVoteDialogOpen(true)
+              }}
+            />
           ) : (
             <div className="rounded-md border">
               <Table>

@@ -77,12 +77,7 @@ export default function KakaoCallbackPage() {
           state: state || undefined
         })
 
-        // 세션 ID 저장
-        if (loginResponse.sessionId) {
-          authStorage.setSessionId(loginResponse.sessionId)
-        }
-
-        // 사용자 정보 저장
+        // 사용자 정보만 저장 (세션은 서버에서 자동 관리)
         if (loginResponse.user) {
           authStorage.setUserInfo(loginResponse.user)
         }
@@ -103,13 +98,8 @@ export default function KakaoCallbackPage() {
           }, 2000)
           
         } else if (loginResponse.status === 'signup_required') {
-          // 회원가입 필요
-          setStatus('signup_required')
-          setMessage('회원가입이 필요합니다.')
-          
-          setTimeout(() => {
-            router.push('/signup')
-          }, 2000)
+          // 회원가입 필요 - 즉시 이동
+          router.push('/signup')
           
         } else {
           // 기타 오류

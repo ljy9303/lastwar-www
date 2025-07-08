@@ -18,6 +18,7 @@ import {
 import { deleteUser } from "@/app/actions/user-actions"
 import { useToast } from "@/hooks/use-toast"
 import UserDetailModal from "./user-detail-modal"
+import { EmptyState } from "@/components/ui/empty-state"
 
 interface UserListProps {
   users: User[]
@@ -105,6 +106,19 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
     e.stopPropagation()
     setSelectedUserSeq(userSeq)
     setIsDetailModalOpen(true)
+  }
+
+  // 빈 상태 처리
+  if (users.length === 0) {
+    return (
+      <EmptyState
+        variant="users"
+        action={{
+          label: "새 사용자 추가",
+          onClick: () => onEdit?.({} as User)
+        }}
+      />
+    )
   }
 
   return (
@@ -260,8 +274,10 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  검색 결과가 없습니다.
+                <TableCell colSpan={6} className="text-center py-8">
+                  <div className="flex flex-col items-center">
+                    <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

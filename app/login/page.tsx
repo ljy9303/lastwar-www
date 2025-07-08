@@ -138,6 +138,17 @@ export default function LoginPage() {
                 이메일 중복 방지를 위해 카카오톡 로그인만 지원합니다
               </p>
             </div>
+
+            {/* 테스트 로그인 링크 */}
+            <div className="pt-4 border-t border-gray-200">
+              <Button 
+                variant="ghost" 
+                className="w-full text-gray-600 hover:text-gray-800"
+                onClick={() => router.push('/test-login')}
+              >
+                개발자용 테스트 로그인
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

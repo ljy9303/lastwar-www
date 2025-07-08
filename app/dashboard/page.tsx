@@ -9,6 +9,7 @@ import Link from "next/link"
 import { fetchFromAPI } from "@/lib/api-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // 전투력 포맷팅 함수 (1 = 1백만)
 const formatPower = (power: number): string => {
@@ -281,7 +282,8 @@ export default function DashboardPage() {
                             </TableCell>
                           </TableRow>
                         ))
-                    : desertStats?.recentRosters.slice(0, 5).map((roster) => (
+                    : desertStats?.recentRosters && desertStats.recentRosters.length > 0
+                    ? desertStats.recentRosters.slice(0, 5).map((roster) => (
                         <TableRow key={`${roster.desertSeq}-${roster.desertType}`}>
                           <TableCell>
                             <div>
@@ -317,7 +319,17 @@ export default function DashboardPage() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))
+                    : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8">
+                            <div className="flex flex-col items-center">
+                              <CalendarDays className="h-8 w-8 text-muted-foreground mb-2" />
+                              <p className="text-sm text-muted-foreground">아직 사막전 기록이 없습니다</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
                 </TableBody>
               </Table>
             </div>
@@ -345,9 +357,9 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : userStats?.levelDistribution && userStats.levelDistribution.length > 0 ? (
               <div className="space-y-3">
-                {userStats?.levelDistribution
+                {userStats.levelDistribution
                   .sort((a, b) => b.level - a.level)
                   .map((item) => {
                     const percentage = (item.count / (userStats?.totalUsers || 1)) * 100
@@ -366,6 +378,11 @@ export default function DashboardPage() {
                       </div>
                     )
                   })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center py-8">
+                <Users className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">레벨 분포 데이터가 없습니다</p>
               </div>
             )}
           </CardContent>
@@ -411,7 +428,8 @@ export default function DashboardPage() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : userStats?.recentJoinUsers.map((user) => (
+                  : userStats?.recentJoinUsers && userStats.recentJoinUsers.length > 0
+                  ? userStats.recentJoinUsers.map((user) => (
                       <TableRow key={user.userSeq}>
                         <TableCell>
                           <div>
@@ -425,7 +443,17 @@ export default function DashboardPage() {
                         <TableCell className="hidden sm:table-cell">{formatPower(user.power)}</TableCell>
                         <TableCell>{formatDate(user.createdAt)}</TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                  : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8">
+                          <div className="flex flex-col items-center">
+                            <Users className="h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">최근 가입한 유저가 없습니다</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
               </TableBody>
             </Table>
           </div>

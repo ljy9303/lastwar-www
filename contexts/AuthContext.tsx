@@ -20,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // 인증이 필요 없는 페이지들
 const PUBLIC_ROUTES = [
   '/login',
+  '/test-login',
   '/auth/kakao/callback',
   '/signup'
 ]
@@ -122,7 +123,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [pathname, user, isLoading, router])
 
   const login = (sessionId: string, userData: AccountInfo) => {
-    authStorage.setSessionId(sessionId)
+    // 세션은 서버에서 자동 관리, 사용자 정보만 저장
     authStorage.setUserInfo(userData)
     setUser(userData)
   }

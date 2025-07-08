@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Plus, Trash } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // 임시 관리자 데이터
 const initialAdmins = [
@@ -185,36 +186,48 @@ export default function SettingsPage() {
                 </Dialog>
               </div>
 
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>아이디</TableHead>
-                      <TableHead>이름</TableHead>
-                      <TableHead>권한</TableHead>
-                      <TableHead>히스토리 열람</TableHead>
-                      <TableHead className="text-right">관리</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {admins.map((admin) => (
-                      <TableRow key={admin.id}>
-                        <TableCell>{admin.id}</TableCell>
-                        <TableCell>{admin.username}</TableCell>
-                        <TableCell>{admin.name}</TableCell>
-                        <TableCell>{getRoleLabel(admin.role)}</TableCell>
-                        <TableCell>{admin.canViewHistory ? "O" : "X"}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteAdmin(admin.id)}>
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+              {admins.length === 0 ? (
+                <EmptyState
+                  variant="users"
+                  title="등록된 관리자가 없습니다"
+                  description="시스템을 관리할 관리자 계정을 추가해주세요."
+                  action={{
+                    label: "관리자 추가",
+                    onClick: () => setIsAddDialogOpen(true)
+                  }}
+                />
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>아이디</TableHead>
+                        <TableHead>이름</TableHead>
+                        <TableHead>권한</TableHead>
+                        <TableHead>히스토리 열람</TableHead>
+                        <TableHead className="text-right">관리</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {admins.map((admin) => (
+                        <TableRow key={admin.id}>
+                          <TableCell>{admin.id}</TableCell>
+                          <TableCell>{admin.username}</TableCell>
+                          <TableCell>{admin.name}</TableCell>
+                          <TableCell>{getRoleLabel(admin.role)}</TableCell>
+                          <TableCell>{admin.canViewHistory ? "O" : "X"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteAdmin(admin.id)}>
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

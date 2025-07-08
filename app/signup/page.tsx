@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { UserPlus, Server, Shield, User, ArrowLeft, Loader2, Plus, Users } from "lucide-react"
-import { authAPI, authStorage, authUtils, type SignupRequest, type AllianceTagInfo } from "@/lib/auth-api"
+import { UserPlus, Server, Shield, User, ArrowLeft, Loader2 } from "lucide-react"
+import { authAPI, authStorage, authUtils, type SignupRequest } from "@/lib/auth-api"
 import { toast } from "@/components/ui/use-toast"
 
 export default function SignupPage() {
@@ -24,10 +24,6 @@ export default function SignupPage() {
   })
   
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [availableAlliances, setAvailableAlliances] = useState<AllianceTagInfo[]>([])
-  const [loadingAlliances, setLoadingAlliances] = useState(false)
-  const [hasSearchedAlliances, setHasSearchedAlliances] = useState(false)
-  const [lastSearchedServer, setLastSearchedServer] = useState<number | null>(null)
 
   // 페이지 로드 시 인증 상태 확인
   useEffect(() => {
@@ -76,35 +72,6 @@ export default function SignupPage() {
     checkAuthStatus()
   }, [router])
 
-  // 서버 번호 변경 시 연맹 목록 조회
-  const loadAlliances = async (serverNumber: number) => {
-    if (!serverNumber || serverNumber < 1) {
-      setAvailableAlliances([])
-      setHasSearchedAlliances(false)
-      setLastSearchedServer(null)
-      return
-    }
-
-    // 이미 같은 서버로 조회했다면 중복 조회 방지
-    if (lastSearchedServer === serverNumber) {
-      return
-    }
-
-    setLoadingAlliances(true)
-    setHasSearchedAlliances(false)
-    setLastSearchedServer(serverNumber)
-    try {
-      const alliances = await authAPI.getAlliancesByServer(serverNumber)
-      setAvailableAlliances(alliances)
-      setHasSearchedAlliances(true)
-    } catch (error) {
-      console.error('연맹 목록 조회 실패:', error)
-      setAvailableAlliances([])
-      setHasSearchedAlliances(true)
-    } finally {
-      setLoadingAlliances(false)
-    }
-  }
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -117,9 +84,9 @@ export default function SignupPage() {
     // 연맹 태그 검증
     if (!formData.allianceTag) {
       newErrors.allianceTag = '연맹 태그는 필수입니다'
-    } else if (formData.allianceTag.length !== 4) {
-      newErrors.allianceTag = '연맹 태그는 정확히 4자리여야 합니다'
-    } else if (!/^[a-zA-Z0-9]{4}$/.test(formData.allianceTag)) {
+    } else if (formData.allianceTag.length < 3 || formData.allianceTag.length > 4) {
+      newErrors.allianceTag = '연맹 태그는 3~4자리여야 합니다'
+    } else if (!/^[a-zA-Z0-9]{3,4}$/.test(formData.allianceTag)) {
       newErrors.allianceTag = '연맹 태그는 영문자와 숫자만 사용할 수 있습니다'
     }
 
@@ -143,32 +110,8 @@ export default function SignupPage() {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
-
-    // 서버 번호가 변경되면 이전 조회 기록 초기화
-    if (field === 'serverInfo') {
-      setLastSearchedServer(null)
-      setHasSearchedAlliances(false)
-      setAvailableAlliances([])
-    }
   }
 
-  // 서버 번호 포커스아웃 또는 엔터키 시 연맹 목록 조회
-  const handleServerInfoBlur = () => {
-    if (formData.serverInfo && formData.serverInfo > 0) {
-      loadAlliances(formData.serverInfo)
-    }
-  }
-
-  const handleServerInfoKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleServerInfoBlur()
-    }
-  }
-
-  // 연맹 선택 시 태그 입력창에 채우기
-  const handleAllianceSelect = (allianceTag: string) => {
-    setFormData(prev => ({ ...prev, allianceTag }))
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -183,12 +126,7 @@ export default function SignupPage() {
       const signupResponse = await authAPI.signup(formData)
 
       if (signupResponse.success) {
-        // 새로운 세션 ID 저장
-        if (signupResponse.sessionId) {
-          authStorage.setSessionId(signupResponse.sessionId)
-        }
-        
-        // 업데이트된 사용자 정보 저장
+        // 업데이트된 사용자 정보만 저장 (세션은 서버에서 자동 관리)
         if (signupResponse.user) {
           authStorage.setUserInfo(signupResponse.user)
         }
@@ -298,8 +236,6 @@ export default function SignupPage() {
                       handleInputChange('serverInfo', value ? parseInt(value) : 0)
                     }
                   }}
-                  onBlur={handleServerInfoBlur}
-                  onKeyPress={handleServerInfoKeyPress}
                   className={errors.serverInfo ? "border-red-500" : ""}
                 />
                 {errors.serverInfo && (
@@ -323,7 +259,7 @@ export default function SignupPage() {
                   id="allianceTag"
                   type="text"
                   maxLength={4}
-                  placeholder="소속 연맹의 4자리 태그 (예: ROKK, ABCD, 1234)"
+                  placeholder="소속 연맹의 3~4자리 태그 (예: ROK, ROKK, ABC, ABCD)"
                   value={formData.allianceTag}
                   onChange={(e) => handleInputChange('allianceTag', e.target.value.toUpperCase())}
                   className={errors.allianceTag ? "border-red-500" : ""}
@@ -333,50 +269,8 @@ export default function SignupPage() {
                   <p className="text-sm text-red-500">{errors.allianceTag}</p>
                 )}
                 
-                {/* 연맹 목록 표시 - 실제 조회가 완료된 경우만 */}
-                {hasSearchedAlliances && (
-                  <div className="space-y-3">
-                    {loadingAlliances ? (
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm text-gray-600">서버 {formData.serverInfo}의 연맹 목록을 불러오는 중...</span>
-                      </div>
-                    ) : availableAlliances.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-sm text-gray-700 font-medium">서버 {formData.serverInfo}의 기존 연맹 (클릭하여 선택):</p>
-                        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                          {availableAlliances.map((alliance) => (
-                            <Button
-                              key={alliance.id}
-                              type="button"
-                              variant={formData.allianceTag === alliance.allianceTag ? "default" : "outline"}
-                              className="h-auto p-2 text-left justify-start"
-                              onClick={() => handleAllianceSelect(alliance.allianceTag)}
-                            >
-                              <div className="flex flex-col items-start w-full">
-                                <div className="flex items-center gap-2">
-                                  <Shield className="h-3 w-3" />
-                                  <span className="font-mono text-sm font-bold">{alliance.allianceTag}</span>
-                                </div>
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                  <Users className="h-3 w-3" />
-                                  {alliance.memberCount}명
-                                </div>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : hasSearchedAlliances && !loadingAlliances && (
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <p className="text-sm text-blue-700">서버 {formData.serverInfo}에 등록된 연맹이 없습니다. 새로운 연맹 태그를 입력해주세요.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
                 <p className="text-xs text-gray-500">
-                  • 게임 내 연맹 정보에서 확인 가능한 정확히 4자리 태그
+                  • 게임 내 연맹 정보에서 확인 가능한 3~4자리 태그
                   <br />
                   • 영문자(A-Z)와 숫자(0-9)만 입력 가능, 자동으로 대문자 변환
                   <br />
