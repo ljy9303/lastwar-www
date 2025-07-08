@@ -3,13 +3,13 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard } from "lucide-react" // LogIn, LogOut removed
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
-// useAuth removed
+import { useAuth } from "@/contexts/AuthContext"
 
 const navItems = [
   {
@@ -40,7 +40,7 @@ export default function Sidebar() {
   const isMobile = useMobile()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [pendingCount, setPendingCount] = useState(3)
-  // isAuthenticated, user, logout removed
+  const { user, logout } = useAuth()
   const [windowWidth, setWindowWidth] = useState(0)
 
   useEffect(() => {
@@ -101,7 +101,46 @@ export default function Sidebar() {
             </Link>
           ))}
         </nav>
-        {/* Auth related div removed from here */}
+        {/* 사용자 정보 및 로그아웃 */}
+        <div className="p-4 border-t mt-auto">
+          {!isSidebarCollapsed ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-accent/50">
+                <User className="h-8 w-8 p-1.5 rounded-full bg-primary text-primary-foreground flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{user?.nickname}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {user?.serverInfo ? `${user.serverInfo}서버` : '미설정'} • {user?.role === 'MASTER' ? '마스터' : '일반'}
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={logout}
+                className="w-full justify-start gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                로그아웃
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex justify-center">
+                <User className="h-8 w-8 p-1.5 rounded-full bg-primary text-primary-foreground" />
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={logout}
+                className="w-full"
+                title="로그아웃"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 모바일 헤더 */}
@@ -144,7 +183,32 @@ export default function Sidebar() {
                 </Link>
               ))}
             </nav>
-            {/* Auth related div removed from here */}
+            {/* 모바일 사용자 정보 및 로그아웃 */}
+            <div className="p-4 border-t mt-auto">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-accent/50">
+                  <User className="h-8 w-8 p-1.5 rounded-full bg-primary text-primary-foreground flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{user?.nickname}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {user?.serverInfo ? `${user.serverInfo}서버` : '미설정'} • {user?.role === 'MASTER' ? '마스터' : '일반'}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setOpen(false)
+                    logout()
+                  }}
+                  className="w-full justify-start gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  로그아웃
+                </Button>
+              </div>
+            </div>
           </SheetContent>
         </Sheet>
         <h1 className="text-lg font-bold truncate flex items-center">
