@@ -30,7 +30,7 @@ const authOptions: AuthOptions = {
 
           const data = await response.json()
 
-          if (response.ok && data.status === 'login') {
+          if (response.ok && (data.status === 'login' || data.status === 'signup_required')) {
             return {
               id: data.user.userId.toString(),
               email: data.user.email,
