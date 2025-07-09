@@ -149,7 +149,7 @@ export default function LoginPage() {
 
         {/* 제작자 정보 */}
         <div className="text-center text-xs text-gray-500">
-          Made by 1242 춘식ee
+          Made by 1242 튼튼이네집
         </div>
       </div>
     </div>
