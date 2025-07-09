@@ -23,6 +23,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getSquads, saveSquads, type SquadMember, type GroupedSquadResponse } from "@/app/actions/squad-actions"
 import { getDesertById } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
+import { fetchFromAPI } from "@/lib/api-service"
 import { DesertEventType } from "@/types/desert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -43,8 +44,7 @@ const formatPower = (power: number): string => {
   return `${power.toFixed(1)}M`
 }
 
-// API 기본 URL 설정
-const API_BASE_URL = "https://api.chunsik.site"
+// API 기본 URL 설정 제거 (fetchFromAPI에서 자동 처리)
 
 // 팀 상수
 const TEAM = {
@@ -246,18 +246,7 @@ export default function SquadsPage() {
     setLoadingHistories((prev) => ({ ...prev, [userSeq]: true }))
 
     try {
-      const response = await fetch(`${API_BASE_URL}/user/desert/history/${userSeq}?desertSeq=${eventId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`히스토리 조회 실패: ${response.status} ${response.statusText}`)
-      }
-
-      const historyData: UserHistory = await response.json()
+      const historyData: UserHistory = await fetchFromAPI(`/user/desert/history/${userSeq}?desertSeq=${eventId}`)
       setUserHistories((prev) => ({ ...prev, [userSeq]: historyData }))
     } catch (error) {
       console.error("유저 히스토리 조회 실패:", error)
@@ -278,16 +267,7 @@ export default function SquadsPage() {
     setIsSyncing(true)
     try {
       // 동기화 API 호출
-      const response = await fetch(`${API_BASE_URL}/desert/roster/sync/${eventId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`동기화 실패: ${response.status} ${response.statusText}`)
-      }
+      await fetchFromAPI(`/desert/roster/sync/${eventId}`)
 
       // 최소 1초간 로딩 표시
       await new Promise((resolve) => setTimeout(resolve, 1000))
