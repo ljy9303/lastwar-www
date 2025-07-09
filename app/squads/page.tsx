@@ -64,7 +64,7 @@ const DESERT_TYPE = {
   B_RESERVE: "B_RESERVE",
   AB_POSSIBLE: "AB_POSSIBLE",
   UNASSIGNED: "UNASSIGNED",
-  NONE: "NONE",
+  NONE: "NONE"
 }
 
 // 이벤트 타입에 따른 필터링된 팀 상수 생성
@@ -74,7 +74,7 @@ const getFilteredTeams = (eventType?: string) => {
     return {
       A_TEAM: TEAM.A_TEAM,
       A_RESERVE: TEAM.A_RESERVE,
-      NONE: TEAM.NONE,
+      NONE: TEAM.NONE
     }
   }
   // A_B_TEAM이거나 타입이 없는 경우 모든 팀 사용
@@ -87,7 +87,7 @@ const getFilteredDesertTypes = (eventType?: string) => {
     return {
       A_TEAM: DESERT_TYPE.A_TEAM,
       A_RESERVE: DESERT_TYPE.A_RESERVE,
-      NONE: DESERT_TYPE.NONE,
+      NONE: DESERT_TYPE.NONE
     }
   }
   return DESERT_TYPE
@@ -164,7 +164,7 @@ export default function SquadsPage() {
       A_RESERVE: [],
       B_RESERVE: [],
       AB_POSSIBLE: [],
-      NONE: [],
+      NONE: []
     }
   }
 
@@ -197,6 +197,7 @@ export default function SquadsPage() {
     const loadData = async () => {
       setIsLoading(true)
       try {
+        
         // 이벤트 정보 로드 (eventId가 있을 때만)
         let eventData = null
         if (eventId) {
@@ -219,12 +220,16 @@ export default function SquadsPage() {
         }
 
         setSquadMembers(sortedSquadData)
+        console.log('스쿼드 데이터 로드 완료:', {
+          eventId, 
+          totalMembers: Object.values(sortedSquadData).reduce((sum, members) => sum + members.length, 0) 
+        })
       } catch (error) {
         console.error("데이터 로드 실패:", error)
         toast({
           title: "오류 발생",
           description: "데이터를 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         })
       } finally {
         setIsLoading(false)
@@ -232,7 +237,7 @@ export default function SquadsPage() {
     }
 
     loadData()
-  }, [eventId, toast, sortPowerDirection])
+  }, [eventId, sortPowerDirection])
 
   // 유저 히스토리 조회 함수
   const fetchUserHistory = async (userSeq: number) => {
@@ -259,7 +264,7 @@ export default function SquadsPage() {
       toast({
         title: "히스토리 조회 실패",
         description: "유저 히스토리를 불러오는 중 오류가 발생했습니다.",
-        variant: "destructive",
+        variant: "destructive"
       })
     } finally {
       setLoadingHistories((prev) => ({ ...prev, [userSeq]: false }))
@@ -305,14 +310,14 @@ export default function SquadsPage() {
 
       toast({
         title: "동기화 완료",
-        description: "유저 정보가 성공적으로 동기화되었습니다.",
+        description: "유저 정보가 성공적으로 동기화되었습니다."
       })
     } catch (error) {
       console.error("유저 정보 동기화 실패:", error)
       toast({
         title: "동기화 실패",
         description: "유저 정보 동기화 중 오류가 발생했습니다.",
-        variant: "destructive",
+        variant: "destructive"
       })
     } finally {
       setIsSyncing(false)
@@ -362,7 +367,7 @@ export default function SquadsPage() {
         toast({
           title: "복사 실패",
           description: "클립보드 복사 중 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         })
         console.error("클립보드 복사 실패:", err)
       })
@@ -393,13 +398,14 @@ export default function SquadsPage() {
   // Update the moveUser function to include position information
   const moveUser = useCallback(
     (userId: number, fromTeam: string, toTeam: string) => {
+      
       // A조만 사용하는 이벤트에서 B팀 관련 이동 차단
       if (selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY) {
         if (toTeam === TEAM.B_TEAM || toTeam === TEAM.B_RESERVE || toTeam === TEAM.AB_POSSIBLE) {
           toast({
             title: "이동 불가",
             description: "A조만 사용하는 이벤트에서는 B팀 관련 옵션을 선택할 수 없습니다.",
-            variant: "destructive",
+            variant: "destructive"
           })
           return
         }
@@ -413,7 +419,7 @@ export default function SquadsPage() {
         toast({
           title: "인원 초과",
           description: "주전 인원이 20명을 초과했습니다.",
-          variant: "warning",
+          variant: "warning"
         })
       }
 
@@ -425,7 +431,7 @@ export default function SquadsPage() {
         toast({
           title: "인원 초과",
           description: "예비 인원이 10명을 초과했습니다.",
-          variant: "warning",
+          variant: "warning"
         })
       }
 
@@ -468,11 +474,11 @@ export default function SquadsPage() {
         }))
       }
     },
-    [squadMembers, toast, sortPowerDirection, selectedEvent],
   )
 
   // Add a function to update user position
   const updateUserPosition = (userId: number, position: number) => {
+    
     // 모든 팀에서 사용자 찾기
     let userTeam: keyof GroupedSquadResponse | null = null
     let user: SquadMember | null = null
@@ -525,15 +531,20 @@ export default function SquadsPage() {
     // eventId가 없으면 일반 모드 경고
     if (!eventId) {
       toast({
-        title: "저장 불가",
-        description: "일반 스쿼드 관리 모드에서는 저장이 지원되지 않습니다. 특정 사막전을 선택해주세요.",
-        variant: "destructive",
-      })
+          title: "저장 불가",
+          description: "일반 스쿼드 관리 모드에서는 저장이 지원되지 않습니다. 특정 사막전을 선택해주세요.",
+          variant: "destructive"
+        })
       return
     }
 
     setIsSaving(true)
     try {
+      console.log('스쿼드 저장 시작:', {
+        changeCount: Object.keys(pendingChanges).length,
+        eventId 
+      })
+      
       const request = {
         desertSeq: Number(eventId),
         rosters: Object.entries(pendingChanges).map(([userSeq, change]) => {
@@ -558,7 +569,7 @@ export default function SquadsPage() {
         A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
         B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
-        NONE: squadData.NONE || [],
+        NONE: squadData.NONE || []
       }
 
       setSquadMembers(sortedSquadData)
@@ -567,16 +578,16 @@ export default function SquadsPage() {
       setPendingChanges({})
 
       toast({
-        title: "저장 완료",
-        description: "스쿼드 변경 사항이 저장되었습니다.",
-      })
+          title: "저장 완료",
+          description: "스쿼드 변경 사항이 저장되었습니다."
+        })
     } catch (error) {
       console.error("스쿼드 저장 실패:", error)
       toast({
-        title: "오류 발생",
-        description: "스쿼드 저장 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
+          title: "오류 발생",
+          description: "스쿼드 저장 중 오류가 발생했습니다.",
+          variant: "destructive"
+        })
     } finally {
       setIsSaving(false)
     }
@@ -587,24 +598,25 @@ export default function SquadsPage() {
     // eventId가 null인지 먼저 확인
     if (!eventId) {
       toast({
-        title: "이벤트 ID 없음",
-        description: "팀 확정을 위해서는 특정 사막전을 선택해야 합니다.",
-        variant: "destructive",
-      })
+          title: "이벤트 ID 없음",
+          description: "팀 확정을 위해서는 특정 사막전을 선택해야 합니다.",
+          variant: "destructive"
+        })
       return
     }
 
     if (squadMembers.AB_POSSIBLE.length > 0) {
       toast({
-        title: "AB 가능 인원 존재",
-        description: "AB 가능 인원이 존재합니다. 모든 AB 가능 인원을 팀에 배정해주세요.",
-        variant: "destructive",
-      })
+          title: "AB 가능 인원 존재",
+          description: "AB 가능 인원이 존재합니다. 모든 AB 가능 인원을 팀에 배정해주세요.",
+          variant: "destructive"
+        })
       return
     }
 
     setIsConfirming(true)
     try {
+      
       // 모든 인원에 대한 변경사항 생성 (미배정 인원 제외)
       const allChanges: Record<number, { desertType: string; position: number }> = {}
 
@@ -643,7 +655,7 @@ export default function SquadsPage() {
         A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
         B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
-        NONE: squadData.NONE || [],
+        NONE: squadData.NONE || []
       }
 
       setSquadMembers(sortedSquadData)
@@ -652,16 +664,16 @@ export default function SquadsPage() {
       setPendingChanges({})
 
       toast({
-        title: "팀 확정 완료",
-        description: "스쿼드 구성이 확정되었습니다.",
-      })
+          title: "팀 확정 완료",
+          description: "스쿼드 구성이 확정되었습니다."
+        })
     } catch (error) {
       console.error("팀 확정 실패:", error)
       toast({
-        title: "오류 발생",
-        description: "팀 확정 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
+          title: "오류 발생",
+          description: "팀 확정 중 오류가 발생했습니다.",
+          variant: "destructive"
+        })
     } finally {
       setIsConfirming(false)
     }
@@ -670,6 +682,10 @@ export default function SquadsPage() {
   // AB 가능 인원 자동 배정 함수
   const autoDistributeABUsers = () => {
     if (squadMembers.AB_POSSIBLE.length === 0) return
+
+    console.log('AB 가능 인원 자동 배정 시작:', {
+      abUserCount: squadMembers.AB_POSSIBLE.length 
+    })
 
     const abUsers = [...squadMembers.AB_POSSIBLE]
     const aTeamCount = squadMembers.A_TEAM.length

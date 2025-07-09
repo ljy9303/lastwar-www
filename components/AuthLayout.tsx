@@ -1,9 +1,9 @@
 "use client"
 
-import { useAuth } from '@/contexts/AuthContext'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Sidebar from './sidebar'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
+import { useSession } from 'next-auth/react'
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -12,18 +12,45 @@ interface AuthLayoutProps {
 // 사이드바를 표시하지 않을 페이지들
 const NO_SIDEBAR_ROUTES = [
   '/login',
+  '/test-login',
   '/signup', 
   '/auth/kakao/callback'
 ]
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { data: session, status } = useSession()
   const pathname = usePathname()
+  const router = useRouter()
+  const redirectedRef = useRef(false) // 리다이렉트 중복 방지
 
+  const isLoading = status === 'loading'
+  const isAuthenticated = status === 'authenticated' && !!session?.user
   const shouldShowSidebar = isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)
 
-  // 로딩 중일 때
-  if (isLoading) {
+  // 안전한 리다이렉트 처리
+  useEffect(() => {
+    if (isLoading || redirectedRef.current) return
+
+    if (!isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {
+      redirectedRef.current = true
+      router.push('/login')
+    }
+  }, [isLoading, isAuthenticated, pathname, router])
+
+  // 인증이 실패한 경우 로그인 페이지로 리다이렉트 중 표시
+  if (!isLoading && !isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600">로그인 페이지로 이동 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 로딩 중일 때 (단, 로그인 페이지는 로딩 상태를 보여주지 않음)
+  if (isLoading && !NO_SIDEBAR_ROUTES.includes(pathname)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center space-y-4">

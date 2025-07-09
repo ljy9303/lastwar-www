@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Search, Save, Filter, ArrowUpDown } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { getDesertById } from "../actions/event-actions"
 import {
@@ -53,7 +53,7 @@ export default function DesertResultsPage() {
     battleServer: "",
     battleUnion: "",
     battleUnionAlias: "",
-    battleUnionRank: "",
+    battleUnionRank: ""
   })
   const [isSavingResult, setIsSavingResult] = useState(false)
   const [desertHistory, setDesertHistory] = useState<any>(null)
@@ -79,7 +79,7 @@ export default function DesertResultsPage() {
             battleServer: "",
             battleUnion: "",
             battleUnionAlias: "",
-            battleUnionRank: "",
+            battleUnionRank: ""
           })
           return
         }
@@ -95,19 +95,19 @@ export default function DesertResultsPage() {
             battleServer: historyData.battleServer ? historyData.battleServer.toString() : "",
             battleUnion: historyData.battleUnion || "",
             battleUnionAlias: historyData.battleUnionAlias || "",
-            battleUnionRank: historyData.battleUnionRank ? historyData.battleUnionRank.toString() : "",
+            battleUnionRank: historyData.battleUnionRank ? historyData.battleUnionRank.toString() : ""
           })
         } else {
           // 데이터가 유효하지 않으면 폼 초기화
           setDesertResultForm({
-            desertType: "",
-            desertResult: null,
-            desertDescription: "",
-            battleServer: "",
-            battleUnion: "",
-            battleUnionAlias: "",
-            battleUnionRank: "",
-          })
+              desertType: "",
+              desertResult: null,
+              desertDescription: "",
+              battleServer: "",
+              battleUnion: "",
+              battleUnionAlias: "",
+              battleUnionRank: ""
+            })
         }
       } catch (error) {
         console.error("사막전 결과 히스토리 로드 실패:", error)
@@ -123,14 +123,14 @@ export default function DesertResultsPage() {
 
         // 에러 시 폼 초기화
         setDesertResultForm({
-          desertType: "",
-          desertResult: null,
-          desertDescription: "",
-          battleServer: "",
-          battleUnion: "",
-          battleUnionAlias: "",
-          battleUnionRank: "",
-        })
+            desertType: "",
+            desertResult: null,
+            desertDescription: "",
+            battleServer: "",
+            battleUnion: "",
+            battleUnionAlias: "",
+            battleUnionRank: ""
+          })
       }
     },
     [desertSeq],
@@ -140,10 +140,10 @@ export default function DesertResultsPage() {
   const saveDesertResult = useCallback(async () => {
     if (!desertSeq || desertResultForm.desertResult === null) {
       toast({
-        title: "입력 오류",
-        description: "결과를 선택해주세요.",
-        variant: "destructive",
-      })
+          title: "입력 오류",
+          description: "결과를 선택해주세요.",
+          variant: "destructive"
+        })
       return
     }
 
@@ -164,7 +164,7 @@ export default function DesertResultsPage() {
 
       await fetchFromAPI(`/desert/result/save`, {
         method: "POST",
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(requestData)
       })
 
       toast({
@@ -174,10 +174,10 @@ export default function DesertResultsPage() {
     } catch (error) {
       console.error("사막전 결과 저장 실패:", error)
       toast({
-        title: "저장 실패",
-        description: "사막전 결과 저장 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
+          title: "저장 실패",
+          description: "사막전 결과 저장 중 오류가 발생했습니다.",
+          variant: "destructive"
+        })
     } finally {
       setIsSavingResult(false)
     }
@@ -211,10 +211,10 @@ export default function DesertResultsPage() {
       } catch (error) {
         console.error("팀별 결과 로드 실패:", error)
         toast({
-          title: "결과 로드 실패",
-          description: "팀별 결과를 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
-        })
+            title: "결과 로드 실패",
+            description: "팀별 결과를 불러오는 중 오류가 발생했습니다.",
+            variant: "destructive"
+          })
       } finally {
         setIsLoading(false)
       }
@@ -284,10 +284,10 @@ export default function DesertResultsPage() {
         } catch (error) {
           console.error("사막전 결과 로드 실패:", error)
           toast({
-            title: "결과 로드 실패",
-            description: "사막전 결과를 불러오는 중 오류가 발생했습니다.",
-            variant: "destructive",
-          })
+              title: "결과 로드 실패",
+              description: "사막전 결과를 불러오는 중 오류가 발생했습니다.",
+              variant: "destructive"
+            })
           setResults([])
           setFilteredResults([])
         }
@@ -303,10 +303,10 @@ export default function DesertResultsPage() {
       } catch (error) {
         console.error("데이터 로드 실패:", error)
         toast({
-          title: "데이터 로드 실패",
-          description: "사막전 결과를 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
-        })
+            title: "데이터 로드 실패",
+            description: "사막전 결과를 불러오는 중 오류가 발생했습니다.",
+            variant: "destructive"
+          })
       } finally {
         setIsLoading(false)
       }
@@ -385,13 +385,13 @@ export default function DesertResultsPage() {
         rosters: Object.values(pendingChanges).map((result) => ({
           userSeq: result.userSeq,
           isPlayed: result.isPlayed,
-          description: result.description || "",
+          description: result.description || ""
         })),
       }
 
       await fetchFromAPI(`/desert/roster/final/save`, {
         method: "POST",
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(requestData)
       })
 
       setPendingChanges({})
@@ -403,10 +403,10 @@ export default function DesertResultsPage() {
     } catch (error) {
       console.error("결과 업데이트 실패:", error)
       toast({
-        title: "저장 실패",
-        description: "결과를 저장하는 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
+          title: "저장 실패",
+          description: "결과를 저장하는 중 오류가 발생했습니다.",
+          variant: "destructive"
+        })
     } finally {
       setIsSaving(false)
     }
@@ -667,10 +667,10 @@ export default function DesertResultsPage() {
                   onClick={async () => {
                     if (!desertSeq || desertResultForm.desertResult === null) {
                       toast({
-                        title: "입력 오류",
-                        description: "결과를 선택해주세요.",
-                        variant: "destructive",
-                      })
+                          title: "입력 오류",
+                          description: "결과를 선택해주세요.",
+                          variant: "destructive"
+                        })
                       return
                     }
 
@@ -693,20 +693,20 @@ export default function DesertResultsPage() {
 
                       const response = await fetchFromAPI(`/desert/history/${desertSeq}`, {
                         method: "PATCH",
-                        body: JSON.stringify(requestData),
+                        body: JSON.stringify(requestData)
                       })
 
                       // 응답 데이터로 폼 업데이트 (초기화하지 않음)
                       if (response && typeof response === "object") {
                         setDesertResultForm({
-                          desertType: response.desertType || "",
-                          desertResult: response.desertResult !== null ? response.desertResult : null,
-                          desertDescription: response.desertDescription || "",
-                          battleServer: response.battleServer ? response.battleServer.toString() : "",
-                          battleUnion: response.battleUnion || "",
-                          battleUnionAlias: response.battleUnionAlias || "",
-                          battleUnionRank: response.battleUnionRank ? response.battleUnionRank.toString() : "",
-                        })
+                            desertType: response.desertType || "",
+                            desertResult: response.desertResult !== null ? response.desertResult : null,
+                            desertDescription: response.desertDescription || "",
+                            battleServer: response.battleServer ? response.battleServer.toString() : "",
+                            battleUnion: response.battleUnion || "",
+                            battleUnionAlias: response.battleUnionAlias || "",
+                            battleUnionRank: response.battleUnionRank ? response.battleUnionRank.toString() : ""
+                          })
                         setDesertHistory(response)
                       }
 
@@ -717,10 +717,10 @@ export default function DesertResultsPage() {
                     } catch (error) {
                       console.error("사막전 결과 저장 실패:", error)
                       toast({
-                        title: "저장 실패",
-                        description: "사막전 결과 저장 중 오류가 발생했습니다.",
-                        variant: "destructive",
-                      })
+                          title: "저장 실패",
+                          description: "사막전 결과 저장 중 오류가 발생했습니다.",
+                          variant: "destructive"
+                        })
                     } finally {
                       setIsSavingResult(false)
                     }

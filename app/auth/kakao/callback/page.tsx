@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
 import { authAPI, authStorage, authUtils } from "@/lib/auth-api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 
 export default function KakaoCallbackPage() {
   const router = useRouter()
@@ -77,6 +77,9 @@ export default function KakaoCallbackPage() {
           state: state || undefined
         })
 
+        console.log('[FRONTEND] 카카오 로그인 API 응답:', loginResponse)
+        console.log('[FRONTEND] 사용자 정보:', loginResponse.user)
+
         // 사용자 정보만 저장 (세션은 서버에서 자동 관리)
         if (loginResponse.user) {
           authStorage.setUserInfo(loginResponse.user)
@@ -119,9 +122,8 @@ export default function KakaoCallbackPage() {
         toast({
           title: "로그인 실패",
           description: "잠시 후 다시 시도해주세요.",
-          variant: "destructive",
+          variant: "destructive"
         })
-        
         setTimeout(() => {
           router.push('/login')
         }, 3000)

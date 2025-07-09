@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
-import { useAuth } from "@/contexts/AuthContext"
+import { signOut, useSession } from "next-auth/react"
 
 const navItems = [
   {
@@ -40,7 +40,10 @@ export default function Sidebar() {
   const isMobile = useMobile()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [pendingCount, setPendingCount] = useState(3)
-  const { user, logout } = useAuth()
+  const { data: session } = useSession()
+  const user = session?.user
+  
+  // 세션 정보 로깅 제거 (불필요한 리렌더링 방지)
   const [windowWidth, setWindowWidth] = useState(0)
 
   useEffect(() => {
@@ -73,7 +76,9 @@ export default function Sidebar() {
         <div className="p-4 border-b flex items-center justify-between">
           {!isSidebarCollapsed && (
             <Link href="/dashboard">
-              <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">1242 ROKK</h1>
+              <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">
+                {user?.serverInfo && user?.allianceTag ? `${user.serverInfo} ${user.allianceTag}` : "1242 ROKK"}
+              </h1>
             </Link>
           )}
           <Button
@@ -108,16 +113,16 @@ export default function Sidebar() {
               <div className="flex items-center gap-3 p-2 rounded-lg bg-accent/50">
                 <User className="h-8 w-8 p-1.5 rounded-full bg-primary text-primary-foreground flex-shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{user?.nickname}</p>
                   <p className="text-xs text-muted-foreground">
-                    {user?.serverInfo ? `${user.serverInfo}서버` : '미설정'} • {user?.role === 'MASTER' ? '마스터' : '일반'}
+                    {user?.serverInfo ? `${user.serverInfo}서버` : '미설정'} • {user?.allianceTag || '미설정'}
                   </p>
+                  <p className="text-sm font-medium truncate">{user?.nickname || user?.name}</p>
                 </div>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={logout}
+                onClick={() => signOut({ callbackUrl: '/login' })}
                 className="w-full justify-start gap-2"
               >
                 <LogOut className="h-4 w-4" />
@@ -132,7 +137,7 @@ export default function Sidebar() {
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={logout}
+                onClick={() => signOut({ callbackUrl: '/login' })}
                 className="w-full"
                 title="로그아웃"
               >
@@ -154,7 +159,9 @@ export default function Sidebar() {
           </SheetTrigger>
           <SheetContent side="left" className="w-[80%] max-w-[300px] p-0">
             <div className="p-4 border-b flex items-center justify-between">
-              <h1 className="text-xl font-bold">1242 ROKK</h1>
+              <h1 className="text-xl font-bold">
+                {user?.serverInfo && user?.allianceTag ? `${user.serverInfo} ${user.allianceTag}` : "1242 ROKK"}
+              </h1>
               <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
                 <X className="h-5 w-5" />
               </Button>
@@ -189,10 +196,10 @@ export default function Sidebar() {
                 <div className="flex items-center gap-3 p-2 rounded-lg bg-accent/50">
                   <User className="h-8 w-8 p-1.5 rounded-full bg-primary text-primary-foreground flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{user?.nickname}</p>
                     <p className="text-xs text-muted-foreground">
-                      {user?.serverInfo ? `${user.serverInfo}서버` : '미설정'} • {user?.role === 'MASTER' ? '마스터' : '일반'}
+                      {user?.serverInfo ? `${user.serverInfo}서버` : '미설정'} • {user?.allianceTag || '미설정'}
                     </p>
+                    <p className="text-sm font-medium truncate">{user?.nickname || user?.name}</p>
                   </div>
                 </div>
                 <Button 
@@ -200,7 +207,7 @@ export default function Sidebar() {
                   size="sm" 
                   onClick={() => {
                     setOpen(false)
-                    logout()
+                    signOut({ callbackUrl: '/login' })
                   }}
                   className="w-full justify-start gap-2"
                 >
@@ -212,7 +219,7 @@ export default function Sidebar() {
           </SheetContent>
         </Sheet>
         <h1 className="text-lg font-bold truncate flex items-center">
-          {navItems.find((item) => pathname === item.href)?.title || "1242 ROKK"}
+          {navItems.find((item) => pathname === item.href)?.title || (user?.serverInfo && user?.allianceTag ? `${user.serverInfo} ${user.allianceTag}` : "1242 ROKK")}
           {pathname !== "/" &&
             navItems.find((item) => pathname === item.href)?.title && ( // Added check for title existence
               <Badge variant="outline" className="ml-2 text-xs">

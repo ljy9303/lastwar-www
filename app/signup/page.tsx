@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { UserPlus, Server, Shield, User, ArrowLeft, Loader2 } from "lucide-react"
 import { authAPI, authStorage, authUtils, type SignupRequest } from "@/lib/auth-api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 
 export default function SignupPage() {
   const router = useRouter()
@@ -133,7 +133,7 @@ export default function SignupPage() {
 
         toast({
           title: "회원가입 완료",
-          description: "환영합니다! 메인 페이지로 이동합니다.",
+          description: "환영합니다! 메인 페이지로 이동합니다."
         })
 
         setTimeout(() => {
@@ -144,7 +144,7 @@ export default function SignupPage() {
         toast({
           title: "회원가입 실패",
           description: signupResponse.message,
-          variant: "destructive",
+          variant: "destructive"
         })
       }
 
@@ -153,7 +153,7 @@ export default function SignupPage() {
       toast({
         title: "회원가입 오류",
         description: "회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-        variant: "destructive",
+        variant: "destructive"
       })
     } finally {
       setIsLoading(false)

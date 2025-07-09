@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -45,10 +45,14 @@ export default function VotesPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentVote, setCurrentVote] = useState(null)
 
+  useEffect(() => {
+    // 초기 로드 시 필요한 작업이 있다면 여기에 추가
+  }, [])
+
   // 새 투표 폼 상태
   const [newVote, setNewVote] = useState({
     userId: "",
-    preference: "",
+    preference: ""
   })
 
   // 필터링된 투표 목록
@@ -82,7 +86,7 @@ export default function VotesPage() {
     const newVoteWithId = {
       id,
       userId: Number.parseInt(newVote.userId),
-      preference: newVote.preference,
+      preference: newVote.preference
     }
 
     setVotes([...votes, newVoteWithId])
@@ -90,7 +94,7 @@ export default function VotesPage() {
     // 폼 초기화
     setNewVote({
       userId: "",
-      preference: "",
+      preference: ""
     })
 
     setIsVoteDialogOpen(false)

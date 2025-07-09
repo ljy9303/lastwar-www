@@ -1,8 +1,7 @@
-"use server"
+"use client"
 
 import { fetchFromAPI, buildQueryString } from "@/lib/api-service"
 import type { User, UserCreateRequest, UserSearchParams, UserUpdateRequest } from "@/types/user"
-import { revalidatePath } from "next/cache"
 
 /**
  * 유저 목록을 조회합니다.
@@ -39,7 +38,6 @@ export async function createUser(userData: UserCreateRequest): Promise<User> {
       body: JSON.stringify(userData),
     })
 
-    revalidatePath("/users")
     return newUser
   } catch (error) {
     console.error("유저 생성 실패:", error)
@@ -61,7 +59,6 @@ export async function updateUser(userSeq: number, userData: UserUpdateRequest): 
       body: JSON.stringify(userData),
     })
 
-    revalidatePath("/users")
     return updatedUser
   } catch (error) {
     console.error(`유저 Seq ${userSeq} 수정 실패:`, error)
@@ -78,7 +75,6 @@ export async function deleteUser(userSeq: number): Promise<void> {
       method: "DELETE",
     })
 
-    revalidatePath("/users")
   } catch (error) {
     console.error(`유저 Seq ${userSeq} 삭제 실패:`, error)
     throw error

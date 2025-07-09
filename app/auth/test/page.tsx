@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { authAPI, authStorage } from '@/lib/auth-api'
+import { useSession } from 'next-auth/react'
+import { authAPI } from '@/lib/auth-api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +18,11 @@ interface SessionInfo {
 }
 
 export default function AuthTestPage() {
-  const { user, isAuthenticated, isMaster, isRegistrationComplete, refreshUser } = useAuth()
+  const { data: session, status } = useSession()
+  const user = session?.user
+  const isAuthenticated = status === 'authenticated'
+  const isMaster = user?.role === 'MASTER'
+  const isRegistrationComplete = user?.registrationComplete === true
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,7 +47,6 @@ export default function AuthTestPage() {
   }, [isAuthenticated])
 
   const handleRefresh = async () => {
-    await refreshUser()
     await fetchSessionInfo()
   }
 

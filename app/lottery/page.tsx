@@ -46,6 +46,7 @@ export default function LotteryPage() {
 
   // 유저 목록 로드
   useEffect(() => {
+    
     const loadUsers = async () => {
       setIsLoading(true)
       try {
@@ -56,7 +57,7 @@ export default function LotteryPage() {
         toast({
           title: "오류 발생",
           description: "유저 목록을 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         })
       } finally {
         setIsLoading(false)
@@ -64,7 +65,7 @@ export default function LotteryPage() {
     }
 
     loadUsers()
-  }, [toast])
+  }, [])
 
   // 추첨 시작
   const startLottery = () => {
@@ -72,7 +73,7 @@ export default function LotteryPage() {
       toast({
         title: "선택된 유저 없음",
         description: "추첨할 유저를 선택해주세요.",
-        variant: "destructive",
+        variant: "destructive"
       })
       return
     }
@@ -81,10 +82,15 @@ export default function LotteryPage() {
       toast({
         title: "유효하지 않은 추첨 인원",
         description: `추첨 인원은 1명에서 ${selectedUsers.length}명 사이여야 합니다.`,
-        variant: "destructive",
+        variant: "destructive"
       })
       return
     }
+
+    console.log('추첨 시작:', {
+      selectedCount: selectedUsers.length,
+      drawCount: Number(drawCount) 
+    })
 
     setIsAnimating(true)
     setActiveTab("animation")
@@ -95,6 +101,11 @@ export default function LotteryPage() {
     setWinners(winners)
     setIsAnimating(false)
     setActiveTab("result")
+    
+    console.log('추첨 완료:', {
+      winnerCount: winners.length,
+      winners: winners.map(w => w.name)
+    })
   }
 
   // 새로운 추첨 시작

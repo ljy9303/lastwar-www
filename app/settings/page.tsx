@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -39,8 +39,13 @@ export default function SettingsPage() {
     username: "",
     name: "",
     role: "",
-    canViewHistory: false,
+    canViewHistory: false
   })
+
+  // 페이지 방문 로그
+  useEffect(() => {
+    // 페이지 방문 시 로그 (필요시 추가)
+  }, [])
 
   // 시스템 설정
   const [settings, setSettings] = useState({
@@ -50,7 +55,7 @@ export default function SettingsPage() {
     allowTeamEdit: true,
     showPowerInSquad: true,
     enableNotifications: false,
-    backupFrequency: "daily",
+    backupFrequency: "daily"
   })
 
   // 관리자 추가 함수
@@ -61,7 +66,7 @@ export default function SettingsPage() {
       username: newAdmin.username,
       name: newAdmin.name,
       role: newAdmin.role,
-      canViewHistory: newAdmin.canViewHistory,
+      canViewHistory: newAdmin.canViewHistory
     }
 
     setAdmins([...admins, newAdminWithId])
@@ -71,7 +76,7 @@ export default function SettingsPage() {
       username: "",
       name: "",
       role: "",
-      canViewHistory: false,
+      canViewHistory: false
     })
 
     setIsAddDialogOpen(false)
@@ -80,6 +85,7 @@ export default function SettingsPage() {
   // 관리자 삭제 함수
   const handleDeleteAdmin = (id) => {
     if (window.confirm("정말로 이 관리자를 삭제하시겠습니까?")) {
+      const deletedAdmin = admins.find((admin) => admin.id === id)
       setAdmins(admins.filter((admin) => admin.id !== id))
     }
   }

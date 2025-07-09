@@ -2,48 +2,27 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, Shield, Users, BarChart3 } from "lucide-react"
 import { authAPI, authUtils, authStorage } from "@/lib/auth-api"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [isLoading, setIsLoading] = useState(false)
-  const [checkingSession, setCheckingSession] = useState(true)
 
-  // 페이지 로드 시 세션 확인
+  // 페이지 방문 로그 제거
+  // useEffect(() => {
+
+  // 이미 로그인되어 있으면 대시보드로 리다이렉트
   useEffect(() => {
-    const checkExistingSession = async () => {
-      try {
-        if (authUtils.isLoggedIn()) {
-          const sessionCheck = await authAPI.checkSession()
-          if (sessionCheck.valid && sessionCheck.user) {
-            authStorage.setUserInfo(sessionCheck.user)
-            
-            if (sessionCheck.user.registrationComplete) {
-              router.push('/')
-              return
-            } else {
-              router.push('/signup')
-              return
-            }
-          } else {
-            // 유효하지 않은 세션은 제거
-            authStorage.clearAll()
-          }
-        }
-      } catch (error) {
-        console.error('세션 확인 중 오류:', error)
-        authStorage.clearAll()
-      } finally {
-        setCheckingSession(false)
-      }
+    if (status === 'authenticated' && session?.user) {
+      router.push('/dashboard')
     }
-
-    checkExistingSession()
-  }, [router])
+  }, [status, session, router])
 
   const handleKakaoLogin = async () => {
     if (isLoading) return
@@ -69,27 +48,41 @@ export default function LoginPage() {
       const redirectUri = authUtils.generateRedirectUri()
       const { loginUrl } = await authAPI.getKakaoLoginUrl(redirectUri)
       
+      console.log('[FRONTEND] 카카오 로그인 URL 조회 완료 - redirectUri:', redirectUri)
+      
       // 3. 카카오 로그인 페이지로 리다이렉트
       window.location.href = loginUrl
       
     } catch (error) {
-      console.error('카카오 로그인 URL 조회 실패:', error)
+      console.error('[FRONTEND] 카카오 로그인 URL 조회 실패:', error)
       toast({
         title: "로그인 오류",
         description: "카카오 로그인을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.",
-        variant: "destructive",
+        variant: "destructive"
       })
       setIsLoading(false)
     }
   }
 
-  // 세션 확인 중일 때 로딩 화면
-  if (checkingSession) {
+  // 세션 로딩 중일 때 로딩 화면 표시
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">로그인 상태를 확인하는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 이미 로그인되어 있으면 빈 화면 (리다이렉트 중)
+  if (status === 'authenticated') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">대시보드로 이동 중...</p>
         </div>
       </div>
     )
@@ -144,7 +137,9 @@ export default function LoginPage() {
               <Button 
                 variant="ghost" 
                 className="w-full text-gray-600 hover:text-gray-800"
-                onClick={() => router.push('/test-login')}
+                onClick={() => {
+                  router.push('/test-login')
+                }}
               >
                 개발자용 테스트 로그인
               </Button>

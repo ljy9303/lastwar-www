@@ -1,4 +1,5 @@
 import { fetchFromAPI } from './api-service'
+import { signIn, signOut, getSession } from "next-auth/react"
 
 // OAuth 관련 타입 정의
 export interface KakaoLoginUrlResponse {
@@ -78,10 +79,32 @@ export const authAPI = {
    * 카카오 OAuth 로그인
    */
   async kakaoLogin(request: LoginRequest): Promise<LoginResponse> {
-    return fetchFromAPI<LoginResponse>('/auth/kakao/login', {
-      method: 'POST',
-      body: JSON.stringify(request)
+    const result = await signIn('kakao', {
+      code: request.code,
+      redirectUri: request.redirectUri,
+      redirect: false
     })
+    
+    if (result?.ok) {
+      const session = await getSession()
+      return {
+        status: 'login',
+        user: {
+          userId: parseInt(session?.user?.id || '0'),
+          kakaoId: '',
+          email: session?.user?.email || '',
+          nickname: session?.user?.name || '',
+          profileImageUrl: session?.user?.image,
+          role: session?.user?.role || 'USER',
+          status: 'ACTIVE',
+          serverAllianceId: session?.user?.serverAllianceId,
+          registrationComplete: session?.user?.registrationComplete || false
+        },
+        message: '로그인 성공'
+      }
+    }
+    
+    throw new Error('로그인 실패')
   },
 
   /**
@@ -98,33 +121,93 @@ export const authAPI = {
    * 테스트용 이메일 로그인
    */
   async testLogin(request: TestLoginRequest): Promise<LoginResponse> {
-    return fetchFromAPI<LoginResponse>('/auth/test/login', {
-      method: 'POST',
-      body: JSON.stringify(request)
+    const result = await signIn('test', {
+      email: request.email,
+      nickname: request.nickname,
+      redirect: false
     })
+    
+    if (result?.ok) {
+      const session = await getSession()
+      return {
+        status: 'login',
+        user: {
+          userId: parseInt(session?.user?.id || '0'),
+          kakaoId: '',
+          email: session?.user?.email || '',
+          nickname: session?.user?.name || '',
+          profileImageUrl: session?.user?.image,
+          role: session?.user?.role || 'USER',
+          status: 'ACTIVE',
+          serverAllianceId: session?.user?.serverAllianceId,
+          registrationComplete: session?.user?.registrationComplete || false
+        },
+        message: '로그인 성공'
+      }
+    }
+    
+    throw new Error('로그인 실패')
   },
 
   /**
    * 세션 확인
    */
   async checkSession(): Promise<SessionCheckResponse> {
-    return fetchFromAPI<SessionCheckResponse>('/auth/session/check')
+    const session = await getSession()
+    
+    if (session?.user) {
+      return {
+        valid: true,
+        message: '유효한 세션입니다',
+        user: {
+          userId: parseInt(session.user.id),
+          kakaoId: '',
+          email: session.user.email || '',
+          nickname: session.user.name || '',
+          profileImageUrl: session.user.image,
+          role: session.user.role || 'USER',
+          status: 'ACTIVE',
+          serverAllianceId: session.user.serverAllianceId,
+          registrationComplete: session.user.registrationComplete || false
+        }
+      }
+    }
+    
+    return {
+      valid: false,
+      message: '유효하지 않은 세션입니다'
+    }
   },
 
   /**
    * 로그아웃
    */
   async logout(): Promise<{ success: boolean; message: string }> {
-    return fetchFromAPI<{ success: boolean; message: string }>('/auth/logout', {
-      method: 'POST'
-    })
+    await signOut({ redirect: false })
+    return { success: true, message: '로그아웃 되었습니다' }
   },
 
   /**
    * 현재 사용자 정보 조회
    */
   async getCurrentUser(): Promise<AccountInfo> {
-    return fetchFromAPI<AccountInfo>('/auth/me')
+    const session = await getSession()
+    
+    if (session?.user) {
+      return {
+        userId: parseInt(session.user.id),
+        kakaoId: '',
+        email: session.user.email || '',
+        nickname: session.user.name || '',
+        profileImageUrl: session.user.image,
+        role: session.user.role || 'USER',
+        status: 'ACTIVE',
+        serverAllianceId: session.user.serverAllianceId,
+        registrationComplete: session.user.registrationComplete || false
+      }
+    }
+    
+    throw new Error('로그인되지 않은 사용자입니다')
   },
 
   /**
@@ -136,47 +219,40 @@ export const authAPI = {
 
 }
 
-// 로컬 스토리지 관리 (사용자 정보만 저장, 세션은 서버에서 자동 관리)
+// NextAuth 기반 스토리지 관리 (NextAuth가 자동으로 관리)
 export const authStorage = {
 
   /**
-   * 사용자 정보 저장
+   * 사용자 정보 저장 (NextAuth가 자동 관리)
    */
   setUserInfo(user: AccountInfo): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('lastwar_user_info', JSON.stringify(user))
-    }
+    // NextAuth가 자동으로 관리하므로 별도 저장 불필요
   },
 
   /**
-   * 사용자 정보 조회
+   * 사용자 정보 조회 (NextAuth에서 조회)
    */
   getUserInfo(): AccountInfo | null {
-    if (typeof window !== 'undefined') {
-      const userInfo = localStorage.getItem('lastwar_user_info')
-      return userInfo ? JSON.parse(userInfo) : null
-    }
+    // NextAuth를 통해 실시간으로 조회해야 하므로 null 반환
     return null
   },
 
   /**
-   * 사용자 정보 삭제
+   * 사용자 정보 삭제 (NextAuth가 자동 관리)
    */
   removeUserInfo(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('lastwar_user_info')
-    }
+    // NextAuth가 자동으로 관리하므로 별도 삭제 불필요
   },
 
   /**
-   * 모든 인증 정보 삭제 (세션은 서버에서 자동 처리)
+   * 모든 인증 정보 삭제 (NextAuth가 자동 관리)
    */
   clearAll(): void {
-    this.removeUserInfo()
+    // NextAuth가 자동으로 관리하므로 별도 삭제 불필요
   }
 }
 
-// 유틸리티 함수들
+// NextAuth 기반 유틸리티 함수들
 export const authUtils = {
   /**
    * 현재 페이지 URL을 카카오 리다이렉트 URI로 생성
@@ -187,34 +263,35 @@ export const authUtils = {
   },
 
   /**
-   * 사용자가 로그인되어 있는지 확인 (사용자 정보 기준)
+   * 사용자가 로그인되어 있는지 확인 (NextAuth 세션 기준)
    */
-  isLoggedIn(): boolean {
-    return authStorage.getUserInfo() !== null
+  async isLoggedIn(): Promise<boolean> {
+    const session = await getSession()
+    return !!session?.user
   },
 
   /**
    * 사용자가 마스터 권한을 가지고 있는지 확인
    */
-  isMaster(): boolean {
-    const user = authStorage.getUserInfo()
-    return user?.role === 'MASTER'
+  async isMaster(): Promise<boolean> {
+    const session = await getSession()
+    return session?.user?.role === 'MASTER'
   },
 
   /**
    * 회원가입이 완료되었는지 확인
    */
-  isRegistrationComplete(): boolean {
-    const user = authStorage.getUserInfo()
-    return user?.registrationComplete === true
+  async isRegistrationComplete(): Promise<boolean> {
+    const session = await getSession()
+    return session?.user?.registrationComplete === true
   },
 
   /**
    * 현재 사용자의 server alliance ID 조회
    */
-  getCurrentServerAllianceId(): number | null {
-    const user = authStorage.getUserInfo()
-    return user?.serverAllianceId || null
+  async getCurrentServerAllianceId(): Promise<number | null> {
+    const session = await getSession()
+    return session?.user?.serverAllianceId || null
   },
 
   /**
@@ -226,7 +303,6 @@ export const authUtils = {
     } catch (error) {
       console.error('로그아웃 API 호출 실패:', error)
     } finally {
-      authStorage.clearAll()
       window.location.href = '/login'
     }
   }

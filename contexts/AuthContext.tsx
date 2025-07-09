@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { authAPI, authStorage, authUtils, type AccountInfo } from '@/lib/auth-api'
 
 interface AuthContextType {
@@ -37,90 +38,49 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AccountInfo | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+  const { data: session, status } = useSession()
   const pathname = usePathname()
+  
+  const isLoading = status === 'loading'
 
-  // 초기 인증 상태 확인
+  // NextAuth 세션 기반으로 사용자 정보 업데이트
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // 공개 페이지는 인증 확인하지 않음
-        if (PUBLIC_ROUTES.includes(pathname)) {
-          setIsLoading(false)
-          return
-        }
+    if (status === 'loading') return
 
-        // 로컬 스토리지에 세션이 없으면 로그인 페이지로
-        if (!authUtils.isLoggedIn()) {
-          router.push('/login')
-          setIsLoading(false)
-          return
-        }
-
-        // 서버에서 세션 유효성 확인
-        const sessionCheck = await authAPI.checkSession()
-        
-        if (sessionCheck.valid && sessionCheck.user) {
-          setUser(sessionCheck.user)
-          authStorage.setUserInfo(sessionCheck.user)
-
-          // 회원가입이 완료되지 않은 경우
-          if (!sessionCheck.user.registrationComplete) {
-            if (!INCOMPLETE_REGISTRATION_ROUTES.includes(pathname)) {
-              router.push('/signup')
-            }
-          }
-        } else {
-          // 유효하지 않은 세션
-          authStorage.clearAll()
-          setUser(null)
-          router.push('/login')
-        }
-      } catch (error) {
-        console.error('인증 초기화 실패:', error)
-        authStorage.clearAll()
-        setUser(null)
-        
-        if (!PUBLIC_ROUTES.includes(pathname)) {
-          router.push('/login')
-        }
-      } finally {
-        setIsLoading(false)
+    if (session?.user) {
+      const userData: AccountInfo = {
+        userId: parseInt(session.user.id),
+        kakaoId: '',
+        email: session.user.email || '',
+        nickname: session.user.name || '',
+        profileImageUrl: session.user.image,
+        role: session.user.role || 'USER',
+        status: 'ACTIVE',
+        serverAllianceId: session.user.serverAllianceId,
+        registrationComplete: session.user.registrationComplete || false
       }
+      
+      // 현재 사용자와 다를 때만 업데이트
+      if (!user || user.userId !== userData.userId || user.email !== userData.email) {
+        setUser(userData)
+      }
+    } else if (user) {
+      setUser(null)
     }
+  }, [session, status]) // user 의존성 제거
 
-    initializeAuth()
-  }, [pathname, router])
-
-  // 페이지 변경 시 권한 체크
+  // 페이지 변경 시 권한 체크 (제한적으로만 실행)
   useEffect(() => {
-    if (isLoading) return
+    if (isLoading || status === 'loading') return
 
     // 공개 페이지는 접근 허용
     if (PUBLIC_ROUTES.includes(pathname)) {
       return
     }
 
-    // 인증되지 않은 사용자
-    if (!user) {
-      router.push('/login')
-      return
-    }
+    // AuthLayout에서 리다이렉트 처리하므로 여기서는 제거
 
-    // 회원가입이 완료되지 않은 사용자
-    if (!user.registrationComplete && !INCOMPLETE_REGISTRATION_ROUTES.includes(pathname)) {
-      router.push('/signup')
-      return
-    }
-
-    // 마스터 권한이 필요한 페이지 (필요시 추가 구현)
-    // if (MASTER_REQUIRED_ROUTES.includes(pathname) && user.role !== 'MASTER') {
-    //   router.push('/')
-    //   return
-    // }
-
-  }, [pathname, user, isLoading, router])
+  }, [pathname, status, isLoading]) // user와 router 의존성 제거
 
   const login = (sessionId: string, userData: AccountInfo) => {
     // 세션은 서버에서 자동 관리, 사용자 정보만 저장
@@ -141,18 +101,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const refreshUser = async () => {
-    try {
-      const sessionCheck = await authAPI.checkSession()
-      
-      if (sessionCheck.valid && sessionCheck.user) {
-        setUser(sessionCheck.user)
-        authStorage.setUserInfo(sessionCheck.user)
-      } else {
-        await logout()
+    // NextAuth 세션은 자동으로 관리되므로 별도 새로고침 불필요
+    // 필요시 강제로 세션을 다시 가져올 수 있음
+    if (session?.user) {
+      const userData: AccountInfo = {
+        userId: parseInt(session.user.id),
+        kakaoId: '',
+        email: session.user.email || '',
+        nickname: session.user.name || '',
+        profileImageUrl: session.user.image,
+        role: session.user.role || 'USER',
+        status: 'ACTIVE',
+        serverAllianceId: session.user.serverAllianceId,
+        registrationComplete: session.user.registrationComplete || false
       }
-    } catch (error) {
-      console.error('사용자 정보 새로고침 실패:', error)
-      await logout()
+      setUser(userData)
     }
   }
 

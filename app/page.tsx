@@ -106,6 +106,11 @@ export default function Home() {
         setUserStats(userStatsData)
         setDesertStats(desertStatsData)
         setError(null)
+
+        console.log('데이터 로드 완료:', {
+          totalUsers: userStatsData?.totalUsers,
+          totalDesert: desertStatsData?.totalDesert 
+        })
       } catch (err) {
         console.error("데이터를 불러오는데 실패했습니다:", err)
         setError("데이터를 불러오는데 실패했습니다.")
@@ -126,7 +131,7 @@ export default function Home() {
     bTeamWinRate: desertStats?.desertRate?.bteamWinRate || 0,
     totalDesert: desertStats?.totalDesert || 0,
     newUsersToday: userStats?.recentJoinUserCount || 0,
-    withdrawalsToday: userStats?.recentLeftUserCount || 0,
+    withdrawalsToday: userStats?.recentLeftUserCount || 0
   }
 
   // 에러 표시
@@ -137,7 +142,9 @@ export default function Home() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button onClick={() => window.location.reload()}>새로고침</Button>
+        <Button onClick={() => {
+          window.location.reload()
+        }}>새로고침</Button>
       </div>
     )
   }
@@ -241,7 +248,6 @@ export default function Home() {
             <div className="flex justify-between items-center">
               <CardTitle>최근 이벤트</CardTitle>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/events">모두 보기</Link>
               </Button>
             </div>
           </CardHeader>
@@ -378,7 +384,6 @@ export default function Home() {
           <div className="flex justify-between items-center">
             <CardTitle>최근 가입 유저</CardTitle>
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/users">모두 보기</Link>
             </Button>
           </div>
         </CardHeader>

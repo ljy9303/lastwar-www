@@ -88,7 +88,7 @@ export default function SurveysPage() {
   const [sortConfig, setSortConfig] = useState<{
     keys: { key: string; direction: "ascending" | "descending" }[]
   }>({
-    keys: [],
+    keys: []
   })
 
   const isMobileDevice = useMobile() // useMobile 훅 사용
@@ -111,6 +111,7 @@ export default function SurveysPage() {
 
       setIsLoading(true)
       try {
+        
         // 이벤트 정보 로드
         const eventData = await getDesertById(Number(eventId))
         setSelectedEvent(eventData)
@@ -118,12 +119,17 @@ export default function SurveysPage() {
         // 사전조사 데이터 로드
         const rostersData = await getRosters(Number(eventId))
         setRosters(rostersData)
+        
+        console.log('데이터 로드 완료:', {
+          eventId,
+          rostersCount: rostersData.length 
+        })
       } catch (error) {
         console.error("데이터 로드 실패:", error)
         toast({
           title: "오류 발생",
           description: "데이터를 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         })
       } finally {
         setIsLoading(false)
@@ -131,7 +137,7 @@ export default function SurveysPage() {
     }
 
     loadData()
-  }, [eventId, toast])
+  }, [eventId])
 
   // 글로벌 키보드 입력 시 검색창으로 포커스 이동
   useEffect(() => {
@@ -173,7 +179,7 @@ export default function SurveysPage() {
       A_RESERVE: 0,
       B_RESERVE: 0,
       AB_POSSIBLE: 0,
-      NONE: 0,
+      NONE: 0
     }
     const effectiveRosters = rosters.map((roster) => ({
       ...roster,
@@ -257,7 +263,7 @@ export default function SurveysPage() {
         editLevel: userData.level,
         editPower: userData.power,
         editLeave: userData.leave,
-        userGrade: userData.userGrade,
+        userGrade: userData.userGrade
       })
       setIsEditDialogOpen(true)
     } catch (error) {
@@ -265,7 +271,7 @@ export default function SurveysPage() {
       toast({
         title: "오류 발생",
         description: "사용자 정보를 불러오는 중 오류가 발생했습니다.",
-        variant: "destructive",
+        variant: "destructive"
       })
     }
   }
@@ -309,14 +315,14 @@ export default function SurveysPage() {
       setPendingChanges({})
       toast({
         title: "저장 완료",
-        description: "사전조사 변경 사항이 저장되었습니다.",
+        description: "사전조사 변경 사항이 저장되었습니다."
       })
     } catch (error) {
       console.error("사전조사 저장 실패:", error)
       toast({
         title: "오류 발생",
         description: "사전조사 저장 중 오류가 발생했습니다.",
-        variant: "destructive",
+        variant: "destructive"
       })
     } finally {
       setIsSaving(false)
@@ -683,7 +689,7 @@ export default function SurveysPage() {
                 userGrade: currentRoster.userGrade || "R5",
                 id: 0,
                 createdAt: "",
-                updatedAt: "",
+                updatedAt: ""
               }}
               onSuccess={handleEditSuccess}
               onCancel={() => setIsEditDialogOpen(false)}

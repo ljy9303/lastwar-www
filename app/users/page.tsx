@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 import type { User, UserSearchParams } from "@/types/user"
-import { getUsers } from "@/app/actions/user-actions"
+import { fetchFromAPI, buildQueryString } from "@/lib/api-service"
 import { autoUpsertUsers } from "@/lib/api-service"
 import { UserForm } from "@/components/user/user-form"
 import { UserList } from "@/components/user/user-list"
@@ -37,14 +37,15 @@ export default function UsersPage() {
   const loadUsers = async (params: UserSearchParams = {}) => {
     setIsLoading(true)
     try {
-      const data = await getUsers(params)
+      const queryString = buildQueryString(params)
+      const data = await fetchFromAPI(`/user${queryString}`)
       setUsers(data)
     } catch (error) {
       console.error("유저 목록 로드 실패:", error)
       toast({
         title: "오류 발생",
         description: "유저 목록을 불러오는 중 오류가 발생했습니다.",
-        variant: "destructive",
+        variant: "destructive"
       })
     } finally {
       setIsLoading(false)
@@ -343,7 +344,7 @@ export default function UsersPage() {
       toast({
         title: "오류",
         description: error,
-        variant: "destructive",
+        variant: "destructive"
       })
       return
     }
@@ -356,7 +357,7 @@ export default function UsersPage() {
       toast({
         title: "오류",
         description: error,
-        variant: "destructive",
+        variant: "destructive"
       })
       return
     }
@@ -400,7 +401,7 @@ export default function UsersPage() {
           toast({
             title: "오류",
             description: "유효한 데이터가 없습니다. 콘솔에서 자세한 정보를 확인하세요.",
-            variant: "destructive",
+            variant: "destructive"
           })
           return
         }
@@ -413,7 +414,7 @@ export default function UsersPage() {
         toast({
           title: "오류",
           description: "파일 처리 중 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         })
       } finally {
         setIsUploading(false)
@@ -444,7 +445,7 @@ export default function UsersPage() {
           toast({
             title: "CSV 파일 파싱 오류",
             description: `CSV 파일을 읽을 수 없습니다. 오류: ${error.message || error}`,
-            variant: "destructive",
+            variant: "destructive"
           })
           setIsUploading(false)
         }
@@ -464,7 +465,7 @@ export default function UsersPage() {
         toast({
           title: "Excel 파일 파싱 오류",
           description: `Excel 파일을 읽을 수 없습니다. 오류: ${error instanceof Error ? error.message : String(error)}`,
-          variant: "destructive",
+          variant: "destructive"
         })
         setIsUploading(false)
       }
@@ -508,7 +509,7 @@ export default function UsersPage() {
           title: "CSV 가져오기 완료",
           description: message,
           variant: result.failedCount > 0 ? "destructive" : "default",
-          duration: 8000,
+          duration: 8000
         })
       }
       
@@ -518,7 +519,7 @@ export default function UsersPage() {
           title: "처리 실패 항목",
           description: `실패: ${result.failedNames.join(', ')}`,
           variant: "destructive",
-          duration: 10000,
+          duration: 10000
         })
       }
       
@@ -527,7 +528,7 @@ export default function UsersPage() {
       toast({
         title: "오류",
         description: "CSV 처리 중 오류가 발생했습니다.",
-        variant: "destructive",
+        variant: "destructive"
       })
     } finally {
       // 상태 초기화 및 유저 목록 새로고침

@@ -88,7 +88,7 @@ export default function EventsPage() {
       page: parseInt(urlSearchParams.get('page') || '0'),
       size: parseInt(urlSearchParams.get('size') || '10'),
       sortBy: (urlSearchParams.get('sortBy') as "EVENT_DATE" | "CREATE_DATE" | "UPDATE_AT") || "EVENT_DATE",
-      sortOrder: (urlSearchParams.get('sortOrder') as "ASC" | "DESC") || "DESC",
+      sortOrder: (urlSearchParams.get('sortOrder') as "ASC" | "DESC") || "DESC"
     }
   }
 
@@ -109,7 +109,7 @@ export default function EventsPage() {
   // 임시 필터 상태 (필터 다이얼로그에서 사용)
   const [tempFilters, setTempFilters] = useState({
     fromDate: undefined as Date | undefined,
-    toDate: undefined as Date | undefined,
+    toDate: undefined as Date | undefined
   })
 
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false)
@@ -133,14 +133,13 @@ export default function EventsPage() {
         toast({
           title: "오류 발생",
           description: "사막전 목록을 불러오는 중 오류가 발생했습니다.",
-          variant: "destructive",
+          variant: "destructive"
         })
       } finally {
         setIsLoading(false)
         setIsInitialLoad(false)
       }
     },
-    [searchParams, searchTerm, tempFilters.fromDate, tempFilters.toDate, toast],
   )
 
   // 디바운싱된 검색 처리
@@ -172,7 +171,7 @@ export default function EventsPage() {
   // 초기 로드
   useEffect(() => {
     loadDeserts()
-  }, [loadDeserts])
+  }, [])
 
   // 검색 처리
   const handleSearch = () => {
@@ -219,6 +218,11 @@ export default function EventsPage() {
 
   // 필터 적용
   const applyFilters = () => {
+    // 필터 적용 로그 (userLogger 대신 console.log 사용)
+    console.log('필터 적용:', {
+      fromDate: tempFilters.fromDate,
+      toDate: tempFilters.toDate 
+    })
     const newParams = {
       ...searchParams,
       page: 0,
@@ -237,7 +241,7 @@ export default function EventsPage() {
   const resetFilters = () => {
     const defaultFilters = {
       fromDate: undefined as Date | undefined,
-      toDate: undefined as Date | undefined,
+      toDate: undefined as Date | undefined
     }
 
     setTempFilters(defaultFilters)
@@ -248,7 +252,7 @@ export default function EventsPage() {
       page: 0,
       size: 10,
       sortBy: "EVENT_DATE" as "EVENT_DATE" | "CREATE_DATE" | "UPDATE_AT",
-      sortOrder: "DESC" as "ASC" | "DESC",
+      sortOrder: "DESC" as "ASC" | "DESC"
     }
 
     setSearchParams(newParams)
@@ -258,7 +262,7 @@ export default function EventsPage() {
       size: 10,
       title: undefined,
       fromDate: undefined,
-      toDate: undefined,
+      toDate: undefined
     })
 
     setIsFilterDialogOpen(false)
@@ -270,7 +274,7 @@ export default function EventsPage() {
       toast({
         title: "입력 오류",
         description: "이벤트 이름을 입력해주세요.",
-        variant: "destructive",
+        variant: "destructive"
       })
       return
     }
@@ -279,7 +283,7 @@ export default function EventsPage() {
       toast({
         title: "입력 오류",
         description: "이벤트 날짜를 선택해주세요.",
-        variant: "destructive",
+        variant: "destructive"
       })
       return
     }
@@ -321,7 +325,7 @@ export default function EventsPage() {
       toast({
         title: "사막전 생성 실패",
         description: isDuplicateError ? "이미 동일한 제목 또는 날짜의 사막전이 존재합니다." : errorMessage,
-        variant: "destructive",
+        variant: "destructive"
       })
     } finally {
       setIsCreating(false)
