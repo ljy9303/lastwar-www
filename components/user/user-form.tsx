@@ -133,22 +133,6 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
         </Select>
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="userGrade">유저 등급</Label>
-        <Select value={formData.userGrade || "R5"} onValueChange={(value) => handleChange("userGrade", value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="유저 등급 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="R5">R5</SelectItem>
-            <SelectItem value="R4">R4</SelectItem>
-            <SelectItem value="R3">R3</SelectItem>
-            <SelectItem value="R2">R2</SelectItem>
-            <SelectItem value="R1">R1</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="flex items-center gap-2">
         <Switch
           id="leave"
