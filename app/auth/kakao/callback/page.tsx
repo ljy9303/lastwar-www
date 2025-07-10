@@ -79,6 +79,8 @@ export default function KakaoCallbackPage() {
 
         console.log('[FRONTEND] 카카오 로그인 API 응답:', loginResponse)
         console.log('[FRONTEND] 사용자 정보:', loginResponse.user)
+        console.log('[FRONTEND] 로그인 상태:', loginResponse.status)
+        console.log('[FRONTEND] 회원가입 완료 여부:', loginResponse.user?.registrationComplete)
 
         // 사용자 정보만 저장 (세션은 서버에서 자동 관리)
         if (loginResponse.user) {
@@ -101,8 +103,19 @@ export default function KakaoCallbackPage() {
           }, 2000)
           
         } else if (loginResponse.status === 'signup_required') {
-          // 회원가입 필요 - 즉시 이동
-          router.push('/signup')
+          // 회원가입 필요
+          setStatus('signup_required')
+          setMessage('회원가입이 필요합니다. 서버 및 연맹 정보를 설정해주세요.')
+          
+          toast({
+            title: "회원가입 필요",
+            description: "서버 및 연맹 정보를 설정하신 후 이용하실 수 있습니다.",
+            variant: "default"
+          })
+          
+          setTimeout(() => {
+            router.push('/signup')
+          }, 2000)
           
         } else {
           // 기타 오류

@@ -29,7 +29,8 @@ export default function SignupPage() {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        if (!authUtils.isLoggedIn()) {
+        const isLoggedIn = await authUtils.isLoggedIn()
+        if (!isLoggedIn) {
           router.push('/login')
           return
         }
