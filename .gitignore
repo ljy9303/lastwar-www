@@ -48,3 +48,13 @@ node_modules/
 # Task files
 # tasks.json
 # tasks/ 
+
+# AI Editor directories
+.cursor/
+.roo/
+.windsurf/
+.trae/
+
+# Claude Code usage tracking
+uploads/
+usage_tracking*.json
