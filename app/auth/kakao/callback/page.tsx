@@ -101,7 +101,7 @@ export default function KakaoCallbackPage() {
           }, 2000)
           
         } else if (loginResponse.status === 'signup_required') {
-          // 회원가입 필요 - 즉시 이동
+          // 회원가입 필요 - 바로 이동
           router.push('/signup')
           
         } else {

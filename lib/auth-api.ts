@@ -87,19 +87,32 @@ export const authAPI = {
     
     if (result?.ok) {
       const session = await getSession()
+      const userInfo = {
+        userId: parseInt(session?.user?.id || '0'),
+        kakaoId: session?.user?.kakaoId || '',
+        email: session?.user?.email || '',
+        nickname: session?.user?.name || '',
+        profileImageUrl: session?.user?.image,
+        role: session?.user?.role || 'USER',
+        status: 'ACTIVE',
+        serverInfo: session?.user?.serverInfo,
+        allianceTag: session?.user?.allianceTag,
+        serverAllianceId: session?.user?.serverAllianceId,
+        registrationComplete: session?.user?.registrationComplete || false
+      }
+
+      // 회원가입 완료 여부에 따라 상태 결정
+      if (!userInfo.registrationComplete) {
+        return {
+          status: 'signup_required',
+          user: userInfo,
+          message: '회원가입이 필요합니다'
+        }
+      }
+
       return {
         status: 'login',
-        user: {
-          userId: parseInt(session?.user?.id || '0'),
-          kakaoId: '',
-          email: session?.user?.email || '',
-          nickname: session?.user?.name || '',
-          profileImageUrl: session?.user?.image,
-          role: session?.user?.role || 'USER',
-          status: 'ACTIVE',
-          serverAllianceId: session?.user?.serverAllianceId,
-          registrationComplete: session?.user?.registrationComplete || false
-        },
+        user: userInfo,
         message: '로그인 성공'
       }
     }
