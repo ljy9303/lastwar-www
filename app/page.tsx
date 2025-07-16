@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Users, CalendarDays, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { fetchFromAPI } from "@/lib/api-service"
+import { getDashboardStats } from "@/lib/api-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
@@ -97,19 +97,16 @@ export default function Home() {
       try {
         setLoading(true)
 
-        // 병렬로 API 호출
-        const [userStatsData, desertStatsData] = await Promise.all([
-          fetchFromAPI("/user/stats"),
-          fetchFromAPI("/desert/stats"),
-        ])
+        // 통합 대시보드 API 호출 - 한 번의 요청으로 모든 데이터 조회
+        const dashboardStatsData = await getDashboardStats()
 
-        setUserStats(userStatsData)
-        setDesertStats(desertStatsData)
+        setUserStats(dashboardStatsData.userStats)
+        setDesertStats(dashboardStatsData.desertStats)
         setError(null)
 
         console.log('데이터 로드 완료:', {
-          totalUsers: userStatsData?.totalUsers,
-          totalDesert: desertStatsData?.totalDesert 
+          totalUsers: dashboardStatsData.userStats?.totalUsers,
+          totalDesert: dashboardStatsData.desertStats?.totalDesert 
         })
       } catch (err) {
         console.error("데이터를 불러오는데 실패했습니다:", err)

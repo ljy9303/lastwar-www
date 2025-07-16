@@ -216,11 +216,21 @@ export async function refreshDashboardStats() {
   })
 }
 
-// 기존 개별 통계 API (하위 호환성 유지)
+// 기존 개별 통계 API (하위 호환성 유지) - DEPRECATED
+/**
+ * @deprecated 이 함수는 더 이상 사용되지 않습니다. getDashboardStats()를 사용하세요.
+ * @see getDashboardStats
+ */
 export async function getUserStats() {
+  console.warn('[DEPRECATED] getUserStats()는 deprecated되었습니다. getDashboardStats()를 사용하세요.')
   return fetchFromAPI('/user/stats')
 }
 
+/**
+ * @deprecated 이 함수는 더 이상 사용되지 않습니다. getDashboardStats()를 사용하세요.
+ * @see getDashboardStats
+ */
 export async function getDesertStats() {
+  console.warn('[DEPRECATED] getDesertStats()는 deprecated되었습니다. getDashboardStats()를 사용하세요.')
   return fetchFromAPI('/desert/stats')
 }
