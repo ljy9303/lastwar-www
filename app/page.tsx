@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, CalendarDays, AlertCircle } from "lucide-react"
+import { Users, CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { getDashboardStats } from "@/lib/api-service"
+import { getDashboardStats, refreshDashboardStats } from "@/lib/api-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { EmptyState } from "@/components/ui/empty-state"
 
 // 전투력 포맷팅 함수 (1 = 1백만)
 const formatPower = (power: number): string => {
@@ -86,10 +87,19 @@ interface DesertStats {
   recentRosters: DesertRoster[]
 }
 
-export default function Home() {
-  const [userStats, setUserStats] = useState<UserStats | null>(null)
-  const [desertStats, setDesertStats] = useState<DesertStats | null>(null)
+// 대시보드 통합 응답 타입 정의
+interface DashboardStatsResponse {
+  userStats: UserStats
+  desertStats: DesertStats
+  timestamp: number
+  serverAllianceId: number
+  version: string
+}
+
+export default function HomePage() {
+  const [dashboardData, setDashboardData] = useState<DashboardStatsResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -100,17 +110,11 @@ export default function Home() {
         // 통합 대시보드 API 호출 - 한 번의 요청으로 모든 데이터 조회
         const dashboardStatsData = await getDashboardStats()
 
-        setUserStats(dashboardStatsData.userStats)
-        setDesertStats(dashboardStatsData.desertStats)
+        setDashboardData(dashboardStatsData)
         setError(null)
-
-        console.log('데이터 로드 완료:', {
-          totalUsers: dashboardStatsData.userStats?.totalUsers,
-          totalDesert: dashboardStatsData.desertStats?.totalDesert 
-        })
       } catch (err) {
-        console.error("데이터를 불러오는데 실패했습니다:", err)
-        setError("데이터를 불러오는데 실패했습니다.")
+        console.error("대시보드 데이터를 불러오는데 실패했습니다:", err)
+        setError("대시보드 데이터를 불러오는데 실패했습니다.")
       } finally {
         setLoading(false)
       }
@@ -118,6 +122,25 @@ export default function Home() {
 
     fetchData()
   }, [])
+
+  // 대시보드 데이터 강제 새로고침 함수
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true)
+      const refreshedData = await refreshDashboardStats()
+      setDashboardData(refreshedData)
+      setError(null)
+    } catch (err) {
+      console.error("대시보드 데이터 새로고침에 실패했습니다:", err)
+      setError("대시보드 데이터 새로고침에 실패했습니다.")
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  // 통합 데이터에서 개별 통계 추출
+  const userStats = dashboardData?.userStats
+  const desertStats = dashboardData?.desertStats
 
   // 통계 계산
   const stats = {
@@ -128,7 +151,7 @@ export default function Home() {
     bTeamWinRate: desertStats?.desertRate?.bteamWinRate || 0,
     totalDesert: desertStats?.totalDesert || 0,
     newUsersToday: userStats?.recentJoinUserCount || 0,
-    withdrawalsToday: userStats?.recentLeftUserCount || 0
+    withdrawalsToday: userStats?.recentLeftUserCount || 0,
   }
 
   // 에러 표시
@@ -139,16 +162,25 @@ export default function Home() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button onClick={() => {
-          window.location.reload()
-        }}>새로고침</Button>
+        <Button onClick={() => window.location.reload()}>새로고침</Button>
       </div>
     )
   }
 
   return (
     <div className="container mx-auto">
-      <h1 className="text-3xl font-bold mb-6">대시보드</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">대시보드</h1>
+        <Button 
+          onClick={handleRefresh} 
+          disabled={refreshing || loading}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? '새로고침 중...' : '새로고침'}
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <Card>
@@ -245,6 +277,7 @@ export default function Home() {
             <div className="flex justify-between items-center">
               <CardTitle>최근 이벤트</CardTitle>
               <Button variant="ghost" size="sm" asChild>
+                <Link href="/events">모두 보기</Link>
               </Button>
             </div>
           </CardHeader>
@@ -284,7 +317,8 @@ export default function Home() {
                             </TableCell>
                           </TableRow>
                         ))
-                    : desertStats?.recentRosters.slice(0, 5).map((roster) => (
+                    : desertStats?.recentRosters && desertStats.recentRosters.length > 0
+                    ? desertStats.recentRosters.slice(0, 5).map((roster) => (
                         <TableRow key={`${roster.desertSeq}-${roster.desertType}`}>
                           <TableCell>
                             <div>
@@ -320,7 +354,17 @@ export default function Home() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ))
+                    : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8">
+                            <div className="flex flex-col items-center">
+                              <CalendarDays className="h-8 w-8 text-muted-foreground mb-2" />
+                              <p className="text-sm text-muted-foreground">아직 사막전 기록이 없습니다</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
                 </TableBody>
               </Table>
             </div>
@@ -348,9 +392,9 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : userStats?.levelDistribution && userStats.levelDistribution.length > 0 ? (
               <div className="space-y-3">
-                {userStats?.levelDistribution
+                {userStats.levelDistribution
                   .sort((a, b) => b.level - a.level)
                   .map((item) => {
                     const percentage = (item.count / (userStats?.totalUsers || 1)) * 100
@@ -370,6 +414,11 @@ export default function Home() {
                     )
                   })}
               </div>
+            ) : (
+              <div className="flex flex-col items-center py-8">
+                <Users className="h-8 w-8 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">레벨 분포 데이터가 없습니다</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -381,6 +430,7 @@ export default function Home() {
           <div className="flex justify-between items-center">
             <CardTitle>최근 가입 유저</CardTitle>
             <Button variant="ghost" size="sm" asChild>
+              <Link href="/users">모두 보기</Link>
             </Button>
           </div>
         </CardHeader>
@@ -413,7 +463,8 @@ export default function Home() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : userStats?.recentJoinUsers.map((user) => (
+                  : userStats?.recentJoinUsers && userStats.recentJoinUsers.length > 0
+                  ? userStats.recentJoinUsers.map((user) => (
                       <TableRow key={user.userSeq}>
                         <TableCell>
                           <div>
@@ -427,7 +478,17 @@ export default function Home() {
                         <TableCell className="hidden sm:table-cell">{formatPower(user.power)}</TableCell>
                         <TableCell>{formatDate(user.createdAt)}</TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                  : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8">
+                          <div className="flex flex-col items-center">
+                            <Users className="h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">최근 가입한 유저가 없습니다</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
               </TableBody>
             </Table>
           </div>
