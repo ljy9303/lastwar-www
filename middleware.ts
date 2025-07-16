@@ -6,17 +6,22 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request })
   const { pathname } = request.nextUrl
 
-  // 로그인 페이지 접근 시 이미 로그인되어 있으면 대시보드로 리다이렉트
+  // 로그인 페이지 접근 시 이미 로그인되어 있으면 홈으로 리다이렉트
   if (pathname.startsWith('/login') || pathname.startsWith('/test-login')) {
     if (token) {
-      // 이미 로그인되어 있으면 대시보드로 리다이렉트
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      // 이미 로그인되어 있으면 홈으로 리다이렉트
+      return NextResponse.redirect(new URL('/', request.url))
     }
     return NextResponse.next()
   }
 
+  // 기존 /dashboard 경로 접근 시 홈으로 리다이렉트 (하위 호환성)
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
   // 보호된 페이지 접근 시 로그인 확인
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/admin')) {
+  if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/users') || pathname.startsWith('/events')) {
     if (!token) {
       // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
       return NextResponse.redirect(new URL('/login', request.url))
@@ -28,9 +33,12 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/login',
     '/test-login',
     '/dashboard/:path*',
-    '/admin/:path*'
+    '/admin/:path*',
+    '/users/:path*',
+    '/events/:path*'
   ]
 }

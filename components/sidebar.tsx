@@ -14,7 +14,7 @@ import { signOut, useSession } from "next-auth/react"
 const navItems = [
   {
     title: "대시보드",
-    href: "/dashboard",
+    href: "/",
     icon: LayoutDashboard,
   },
   {
@@ -75,7 +75,7 @@ export default function Sidebar() {
       >
         <div className="p-4 border-b flex items-center justify-between">
           {!isSidebarCollapsed && (
-            <Link href="/dashboard">
+            <Link href="/">
               <h1 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors">
                 {user?.serverInfo && user?.allianceTag ? `${user.serverInfo} ${user.allianceTag}` : "1242 ROKK"}
               </h1>
