@@ -204,3 +204,23 @@ export async function autoUpsertUsers(users: any[]) {
     body: JSON.stringify(users)
   })
 }
+
+// Dashboard API functions - 통합 통계 API
+export async function getDashboardStats() {
+  return fetchFromAPI('/dashboard/stats')
+}
+
+export async function refreshDashboardStats() {
+  return fetchFromAPI('/dashboard/stats/refresh', {
+    method: 'POST'
+  })
+}
+
+// 기존 개별 통계 API (하위 호환성 유지)
+export async function getUserStats() {
+  return fetchFromAPI('/user/stats')
+}
+
+export async function getDesertStats() {
+  return fetchFromAPI('/desert/stats')
+}
