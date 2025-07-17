@@ -90,14 +90,7 @@ export default function SignupPage() {
       newErrors.allianceTag = '연맹 태그는 영문자와 숫자만 사용할 수 있습니다'
     }
 
-    // 닉네임 검증
-    if (!formData.nickname) {
-      newErrors.nickname = '닉네임은 필수입니다'
-    } else if (formData.nickname.length < 2 || formData.nickname.length > 20) {
-      newErrors.nickname = '닉네임은 2-20자 사이여야 합니다'
-    } else if (!/^[a-zA-Z0-9가-힣]+$/.test(formData.nickname)) {
-      newErrors.nickname = '닉네임은 영문자, 숫자, 한글만 사용할 수 있습니다 (띄어쓰기, 특수문자 불가)'
-    }
+    // 닉네임은 OAuth에서 가져오므로 검증하지 않음
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -124,7 +117,16 @@ export default function SignupPage() {
 
     try {
       // 새로운 OAuth 플로우: 프로필 완성 API 사용
-      const profileResponse = await authAPI.completeProfile(formData)
+      // 닉네임은 이미 백엔드에 있으므로 서버 정보와 연맹 태그만 전송
+      const profileData = {
+        serverInfo: formData.serverInfo,
+        allianceTag: formData.allianceTag,
+        nickname: currentUser?.nickname || formData.nickname || '' // 기존 닉네임 사용
+      }
+      
+      console.log('프로필 완성 요청:', profileData)
+      const profileResponse = await authAPI.completeProfile(profileData)
+      console.log('프로필 완성 응답:', profileResponse)
 
       if (profileResponse.success) {
         toast({
@@ -132,15 +134,17 @@ export default function SignupPage() {
           description: "환영합니다! 메인 페이지로 이동합니다."
         })
 
-        // 페이지 새로고침으로 세션 갱신
+        // NextAuth 세션 업데이트를 위해 잠시 대기 후 리다이렉트
         setTimeout(() => {
-          window.location.href = '/'
+          console.log('메인 페이지로 리다이렉트')
+          // Middleware가 처리하도록 하드 리로드
+          window.location.replace('/')
         }, 1500)
 
       } else {
         toast({
           title: "프로필 완성 실패",
-          description: profileResponse.message,
+          description: profileResponse.message || "프로필 완성에 실패했습니다.",
           variant: "destructive"
         })
       }
@@ -275,30 +279,21 @@ export default function SignupPage() {
                 </p>
               </div>
 
-              {/* 닉네임 */}
+              {/* 닉네임 (읽기 전용 - OAuth에서 가져옴) */}
               <div className="space-y-2">
                 <Label htmlFor="nickname" className="flex items-center gap-2 text-gray-700">
                   <User className="h-4 w-4 text-purple-600" />
-                  닉네임 *
+                  닉네임
                 </Label>
                 <Input
                   id="nickname"
                   type="text"
-                  maxLength={20}
-                  placeholder="시스템에서 사용할 닉네임 (예: 플레이어123, 김철수)"
-                  value={formData.nickname}
-                  onChange={(e) => handleInputChange('nickname', e.target.value)}
-                  className={errors.nickname ? "border-red-500" : ""}
+                  value={formData.nickname || currentUser?.nickname || ''}
+                  disabled
+                  className="bg-gray-50 text-gray-600 cursor-not-allowed"
                 />
-                {errors.nickname && (
-                  <p className="text-sm text-red-500">{errors.nickname}</p>
-                )}
                 <p className="text-xs text-gray-500">
-                  • 2~20자 길이, 영문자, 숫자, 한글만 사용 가능
-                  <br />
-                  • 띄어쓰기, 특수문자(!@#$ 등) 사용 불가
-                  <br />
-                  • 다른 사용자들에게 표시되는 이름입니다
+                  카카오 계정에서 가져온 닉네임입니다
                 </p>
               </div>
 

@@ -32,6 +32,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // 회원가입 페이지 접근 시
+  if (pathname === '/signup') {
+    if (!token) {
+      console.log('[Middleware] 회원가입 페이지에서 토큰 없음 - 로그인으로 리다이렉트')
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    
+    // 이미 프로필 완성된 경우 메인으로
+    if (token && token.serverAllianceId) {
+      console.log('[Middleware] 이미 프로필 완성됨 - 메인으로 리다이렉트')
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+    
+    return NextResponse.next()
+  }
+
   // 기존 /dashboard 경로 접근 시 홈으로 리다이렉트 (하위 호환성)
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
     return NextResponse.redirect(new URL('/', request.url))
@@ -60,6 +76,7 @@ export const config = {
     '/',
     '/login',
     '/test-login',
+    '/signup',
     '/dashboard/:path*',
     '/admin/:path*',
     '/users/:path*',
