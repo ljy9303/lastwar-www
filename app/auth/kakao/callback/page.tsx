@@ -13,16 +13,19 @@ export default function KakaoCallbackPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'signup_required'>('loading')
   const [message, setMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [processedCode, setProcessedCode] = useState<string | null>(null)
 
   useEffect(() => {
     const handleCallback = async () => {
       // 이미 처리 중이면 중복 실행 방지
       if (isProcessing) {
+        console.log('이미 처리 중입니다. 중복 실행 방지.')
         return
       }
       
       const code = searchParams.get('code')
       const error = searchParams.get('error')
+      const processedCodeKey = code ? `kakao_processed_${code}` : null
       
       // 에러가 있는 경우
       if (error) {
@@ -44,7 +47,29 @@ export default function KakaoCallbackPage() {
         return
       }
 
+      // 이미 처리된 코드인 경우 중복 처리 방지
+      if (processedCode === code) {
+        console.log('이미 처리된 Authorization Code입니다:', code)
+        return
+      }
+
+      // 로컬스토리지로 이미 처리된 코드인지 확인
+      if (processedCodeKey && localStorage.getItem(processedCodeKey)) {
+        console.log('로컬스토리지에서 이미 처리된 코드를 발견했습니다:', code)
+        setStatus('success')
+        setMessage('이미 처리된 요청입니다. 메인 페이지로 이동합니다.')
+        setTimeout(() => {
+          router.push('/')
+        }, 1000)
+        return
+      }
+
+      // 처리 시작 - 로컬스토리지에 마킹
+      if (processedCodeKey) {
+        localStorage.setItem(processedCodeKey, 'true')
+      }
       setIsProcessing(true)
+      setProcessedCode(code)
       
       try {
         // NextAuth.js를 사용한 카카오 로그인 처리
@@ -65,6 +90,13 @@ export default function KakaoCallbackPage() {
           })
           
           setTimeout(() => {
+            // 성공 후 처리된 코드 정리 (5분 후에 자동 정리되도록)
+            setTimeout(() => {
+              if (processedCodeKey) {
+                localStorage.removeItem(processedCodeKey)
+              }
+            }, 5 * 60 * 1000)
+            
             router.push('/')
           }, 1500)
         } else {
@@ -81,6 +113,11 @@ export default function KakaoCallbackPage() {
           description: "로그인 처리 중 오류가 발생했습니다.",
           variant: "destructive"
         })
+        
+        // 실패 시 처리된 코드 정리
+        if (processedCodeKey) {
+          localStorage.removeItem(processedCodeKey)
+        }
         
         setTimeout(() => {
           router.push('/login')
