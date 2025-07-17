@@ -160,9 +160,6 @@ export function UserGradeStatistics({ onGradeClick }: UserGradeStatisticsProps) 
                     <span className="text-sm text-gray-600">명</span>
                   </div>
                   
-                  <div className="text-xs text-gray-500">
-                    {(gradeStats.percentage * 100).toFixed(1)}%
-                  </div>
                   
                   {gradeStats.hasLimit && (
                     <div className="text-xs text-gray-500">
