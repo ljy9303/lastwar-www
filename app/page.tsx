@@ -119,7 +119,7 @@ export default function HomePage() {
     if (status === 'unauthenticated' || !session?.user) {
       console.log('세션이 없음 - 로그인 페이지로 리다이렉트')
       // 로그인되지 않은 경우
-      router.replace('/login')
+      window.location.href = '/login'
       return
     }
     
@@ -128,14 +128,14 @@ export default function HomePage() {
     // 프로필 완성 필요한 경우 (serverAllianceId가 없으면)
     if (!session.user.serverAllianceId) {
       console.log('프로필 미완성 - 회원가입 페이지로 리다이렉트')
-      router.replace('/signup')
+      window.location.href = '/signup'
       return
     }
     
     console.log('정상 사용자 - 대시보드 데이터 로딩')
     // 정상 사용자는 대시보드 데이터 로딩
     fetchDashboardData()
-  }, [session, status, router])
+  }, [session, status])
 
   const fetchDashboardData = async () => {
     try {

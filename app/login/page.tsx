@@ -28,9 +28,10 @@ export default function LoginPage() {
     
     if (status === 'authenticated' && session?.user) {
       console.log('이미 로그인됨 - 메인 페이지로 리다이렉트')
-      router.replace('/')
+      // router.replace가 작동하지 않으므로 window.location 사용
+      window.location.href = '/'
     }
-  }, [status, session, router])
+  }, [status, session])
 
   const handleKakaoLogin = async () => {
     if (isLoading) return
