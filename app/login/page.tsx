@@ -24,6 +24,18 @@ export default function LoginPage() {
     }
   }, [status, session, router])
 
+  // 닉네임 업데이트 메시지 표시
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('message') === 'nickname-updated') {
+      toast({
+        title: "닉네임 변경 완료",
+        description: "닉네임이 성공적으로 변경되었습니다. 다시 로그인해주세요.",
+        variant: "default"
+      })
+    }
+  }, [])
+
   const handleKakaoLogin = async () => {
     if (isLoading) return
 

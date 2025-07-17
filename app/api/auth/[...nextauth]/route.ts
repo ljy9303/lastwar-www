@@ -111,7 +111,7 @@ const authOptions: AuthOptions = {
     error: '/login'
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.accessToken = user.accessToken
         token.serverAllianceId = user.serverAllianceId
@@ -122,6 +122,24 @@ const authOptions: AuthOptions = {
         token.userId = user.id
         token.kakaoId = user.kakaoId
       }
+      
+      // 세션 업데이트 시 토큰 갱신
+      if (trigger === "update" && session) {
+        if (session.user?.nickname) {
+          token.name = session.user.nickname
+        }
+        if (session.user?.name) {
+          token.name = session.user.name
+        }
+        // 다른 사용자 정보 필드들도 업데이트 가능
+        if (session.user?.serverAllianceId) {
+          token.serverAllianceId = session.user.serverAllianceId
+        }
+        if (session.user?.role) {
+          token.role = session.user.role
+        }
+      }
+      
       return token
     },
     async session({ session, token }) {

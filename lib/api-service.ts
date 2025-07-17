@@ -243,3 +243,14 @@ export async function getDesertStats() {
   console.warn('[DEPRECATED] getDesertStats()는 deprecated되었습니다. getDashboardStats()를 사용하세요.')
   return fetchFromAPI('/desert/stats')
 }
+
+// 닉네임 수정 API
+export async function updateNickname(nickname: string) {
+  return fetchFromAPI('/user/profile/nickname', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ nickname })
+  })
+}

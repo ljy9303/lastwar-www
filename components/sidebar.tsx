@@ -3,13 +3,15 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User } from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User, Edit2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { signOut, useSession } from "next-auth/react"
+import { NicknameEditModal } from "@/components/user/nickname-edit-modal"
+import { update } from "next-auth/react"
 
 const navItems = [
   {
@@ -45,6 +47,25 @@ export default function Sidebar() {
   
   // 세션 정보 로깅 제거 (불필요한 리렌더링 방지)
   const [windowWidth, setWindowWidth] = useState(0)
+  const [isNicknameEditModalOpen, setIsNicknameEditModalOpen] = useState(false)
+
+  // 닉네임 수정 성공 처리
+  const handleNicknameEditSuccess = async (newNickname: string) => {
+    try {
+      console.log('닉네임 변경 완료:', newNickname)
+      console.log('새로운 토큰으로 다시 로그인이 필요합니다.')
+      
+      // 닉네임 변경 완료 후 자동 로그아웃 (토큰 재발급으로 인한 세션 동기화)
+      await signOut({ 
+        callbackUrl: '/login?message=nickname-updated',
+        redirect: true 
+      })
+    } catch (error) {
+      console.error('로그아웃 처리 중 오류:', error)
+      // 오류 발생 시에도 강제 로그아웃
+      window.location.href = '/login?message=nickname-updated'
+    }
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -110,7 +131,11 @@ export default function Sidebar() {
         <div className="p-4 border-t mt-auto">
           {!isSidebarCollapsed ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-3 p-2 rounded-lg bg-accent/50">
+              <div 
+                className="flex items-center gap-3 p-2 rounded-lg bg-accent/50 hover:bg-accent cursor-pointer transition-colors group"
+                onClick={() => setIsNicknameEditModalOpen(true)}
+                title="닉네임 수정"
+              >
                 <User className="h-8 w-8 p-1.5 rounded-full bg-primary text-primary-foreground flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">
@@ -118,6 +143,7 @@ export default function Sidebar() {
                   </p>
                   <p className="text-sm font-medium truncate">{user?.nickname || user?.name}</p>
                 </div>
+                <Edit2 className="h-4 w-4 text-muted-foreground group-hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <Button 
                 variant="outline" 
@@ -193,7 +219,14 @@ export default function Sidebar() {
             {/* 모바일 사용자 정보 및 로그아웃 */}
             <div className="p-4 border-t mt-auto">
               <div className="space-y-3">
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-accent/50">
+                <div 
+                  className="flex items-center gap-3 p-2 rounded-lg bg-accent/50 hover:bg-accent cursor-pointer transition-colors group"
+                  onClick={() => {
+                    setIsNicknameEditModalOpen(true)
+                    setOpen(false) // 모바일 사이드바 닫기
+                  }}
+                  title="닉네임 수정"
+                >
                   <User className="h-8 w-8 p-1.5 rounded-full bg-primary text-primary-foreground flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-muted-foreground">
@@ -201,6 +234,7 @@ export default function Sidebar() {
                     </p>
                     <p className="text-sm font-medium truncate">{user?.nickname || user?.name}</p>
                   </div>
+                  <Edit2 className="h-4 w-4 text-muted-foreground group-hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <Button 
                   variant="outline" 
@@ -228,6 +262,14 @@ export default function Sidebar() {
             )}
         </h1>
       </div>
+
+      {/* 닉네임 수정 모달 */}
+      <NicknameEditModal
+        isOpen={isNicknameEditModalOpen}
+        onClose={() => setIsNicknameEditModalOpen(false)}
+        currentNickname={user?.nickname || user?.name || ""}
+        onSuccess={handleNicknameEditSuccess}
+      />
     </>
   )
 }
