@@ -572,8 +572,9 @@ export default function UsersPage() {
               <div className="mb-6">
                 <UserGradeStatistics 
                   onGradeClick={(grade) => {
-                    setSearchParams(prev => ({ ...prev, userGrade: grade }))
-                    loadUsers({ ...searchParams, userGrade: grade })
+                    const newParams = { ...searchParams, userGrade: grade, leave: false }
+                    setSearchParams(newParams)
+                    loadUsers(newParams)
                   }}
                 />
               </div>
