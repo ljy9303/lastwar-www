@@ -216,6 +216,15 @@ export async function refreshDashboardStats() {
   })
 }
 
+// User Grade Statistics API functions
+export async function getUserGradeStatistics() {
+  return fetchFromAPI('/users/grades/statistics')
+}
+
+export async function getUsersByGrade(grade: string) {
+  return fetchFromAPI(`/users/grades/${grade}`)
+}
+
 // 기존 개별 통계 API (하위 호환성 유지) - DEPRECATED
 /**
  * @deprecated 이 함수는 더 이상 사용되지 않습니다. getDashboardStats()를 사용하세요.

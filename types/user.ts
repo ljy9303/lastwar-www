@@ -72,3 +72,22 @@ export interface UserDetailResponse {
   powerHistory: UserPowerHistory[]
   desertStats: UserDesertStats
 }
+
+export interface GradeStatistics {
+  count: number
+  maxUsers: number
+  hasLimit: boolean
+  available: number
+  percentage: number
+}
+
+export interface GradeStatisticsResponse {
+  totalUsers: number
+  gradeDistribution: {
+    R5: GradeStatistics
+    R4: GradeStatistics
+    R3: GradeStatistics
+    R2: GradeStatistics
+    R1: GradeStatistics
+  }
+}

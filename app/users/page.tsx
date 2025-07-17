@@ -18,6 +18,7 @@ import { UserHistoryList } from "@/components/user/user-history-list"
 import { NicknameSearch } from "@/components/user/nickname-search"
 import { CsvImportExplanationDialog } from "@/components/user/csv-import-explanation-dialog"
 import { UserMergeDialog } from "@/components/user/user-merge-dialog"
+import { UserGradeStatistics } from "@/components/user/user-grade-statistics"
 import { useToast } from "@/hooks/use-toast"
 
 export default function UsersPage() {
@@ -566,6 +567,15 @@ export default function UsersPage() {
             <CardContent>
               <div className="mb-6">
                 <UserFilter onFilter={handleFilter} initialFilters={searchParams} />
+              </div>
+
+              <div className="mb-6">
+                <UserGradeStatistics 
+                  onGradeClick={(grade) => {
+                    setSearchParams(prev => ({ ...prev, userGrade: grade }))
+                    loadUsers({ ...searchParams, userGrade: grade })
+                  }}
+                />
               </div>
 
               <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
