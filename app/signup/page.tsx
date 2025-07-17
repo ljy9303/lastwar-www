@@ -134,12 +134,17 @@ export default function SignupPage() {
           description: "환영합니다! 메인 페이지로 이동합니다."
         })
 
-        // NextAuth 세션 업데이트를 위해 잠시 대기 후 리다이렉트
+        // 백엔드가 새로운 JWT를 반환했다면 세션을 완전히 재로그인
+        console.log('프로필 완성 성공 - 세션 재구성 필요')
+        
+        // 간단한 방법: 페이지를 완전히 새로고침하여 NextAuth가 새로운 세션을 가져오도록 함
         setTimeout(() => {
-          console.log('메인 페이지로 리다이렉트')
-          // Middleware가 처리하도록 하드 리로드
-          window.location.replace('/')
-        }, 1500)
+          console.log('전체 페이지 새로고침으로 세션 재구성')
+          // 캐시를 무시하고 완전히 새로고침
+          window.location.href = '/'
+          // 또는 강제 새로고침
+          // window.location.reload()
+        }, 1000)
 
       } else {
         toast({
@@ -149,11 +154,15 @@ export default function SignupPage() {
         })
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('프로필 완성 실패:', error)
+      console.error('에러 상세:', error.message, error.response)
+      
+      const errorMessage = error.response?.data?.message || error.message || "프로필 완성 처리 중 오류가 발생했습니다."
+      
       toast({
         title: "프로필 완성 오류",
-        description: "프로필 완성 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {
