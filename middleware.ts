@@ -3,20 +3,29 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request })
+  const token = await getToken({ 
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET 
+  })
   const { pathname } = request.nextUrl
 
   console.log(`[Middleware] pathname: ${pathname}, token exists: ${!!token}`)
+  if (token) {
+    console.log(`[Middleware] token details:`, JSON.stringify(token, null, 2))
+  }
 
   // 로그인 페이지 접근 시 이미 로그인되어 있으면 홈으로 리다이렉트
   if (pathname.startsWith('/login') || pathname.startsWith('/test-login')) {
     if (token) {
       console.log('[Middleware] 로그인 페이지에서 토큰 발견 - 홈으로 리다이렉트')
+      console.log('[Middleware] serverAllianceId:', token.serverAllianceId)
       // serverAllianceId 체크
       if (token.serverAllianceId) {
+        console.log('[Middleware] Redirecting to /')
         return NextResponse.redirect(new URL('/', request.url))
       } else {
         // serverAllianceId가 없으면 signup으로
+        console.log('[Middleware] Redirecting to /signup')
         return NextResponse.redirect(new URL('/signup', request.url))
       }
     }
