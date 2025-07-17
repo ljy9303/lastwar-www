@@ -111,6 +111,8 @@ export default function HomePage() {
   useEffect(() => {
     console.log('메인 페이지 - 세션 상태:', status)
     console.log('메인 페이지 - 세션 데이터:', JSON.stringify(session, null, 2))
+    console.log('대시보드 데이터 존재:', !!dashboardData)
+    console.log('로딩 상태:', loading)
     
     if (status === 'loading') {
       console.log('세션 로딩 중...')
@@ -118,24 +120,32 @@ export default function HomePage() {
     }
     
     // Middleware를 통과했다면 세션이 있고 serverAllianceId도 있음
-    if (status === 'authenticated' && session?.user && !dashboardData && !loading) {
-      console.log('정상 사용자 - 대시보드 데이터 로딩')
-      fetchDashboardData()
+    if (status === 'authenticated' && session?.user) {
+      console.log('정상 사용자 - 대시보드 데이터 확인')
+      if (!dashboardData && !loading) {
+        console.log('대시보드 데이터 없음 - 로딩 시작')
+        fetchDashboardData()
+      }
     }
-  }, [session, status, loading, dashboardData])
+  }, [session, status]) // dashboardData와 loading은 의존성에서 제거
 
   const fetchDashboardData = async () => {
     try {
+      console.log('fetchDashboardData 시작')
       setLoading(true)
+      setError(null)
 
       // 통합 대시보드 API 호출 - 한 번의 요청으로 모든 데이터 조회
+      console.log('getDashboardStats 호출 전')
       const dashboardStatsData = await getDashboardStats()
+      console.log('getDashboardStats 응답:', dashboardStatsData)
 
       setDashboardData(dashboardStatsData)
       setError(null)
-    } catch (err) {
+    } catch (err: any) {
       console.error("대시보드 데이터를 불러오는데 실패했습니다:", err)
-      setError("대시보드 데이터를 불러오는데 실패했습니다.")
+      console.error("에러 상세:", err.message, err.stack)
+      setError(err.message || "대시보드 데이터를 불러오는데 실패했습니다.")
     } finally {
       setLoading(false)
     }
