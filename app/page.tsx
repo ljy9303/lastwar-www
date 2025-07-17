@@ -121,7 +121,11 @@ export default function HomePage() {
     if ((status === 'unauthenticated' || !session?.user) && !isRedirecting) {
       console.log('세션이 없음 - 로그인 페이지로 리다이렉트')
       setIsRedirecting(true)
-      router.push('/login')
+      
+      setTimeout(() => {
+        console.log('리다이렉트 실행: router.replace("/login")')
+        router.replace('/login')
+      }, 100)
       return
     }
     
@@ -132,7 +136,11 @@ export default function HomePage() {
       if (!session.user.serverAllianceId && !isRedirecting) {
         console.log('프로필 미완성 - 회원가입 페이지로 리다이렉트')
         setIsRedirecting(true)
-        router.push('/signup')
+        
+        setTimeout(() => {
+          console.log('리다이렉트 실행: router.replace("/signup")')
+          router.replace('/signup')
+        }, 100)
         return
       }
       

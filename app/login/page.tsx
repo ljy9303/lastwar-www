@@ -31,7 +31,20 @@ export default function LoginPage() {
     if (status === 'authenticated' && session?.user && !isRedirecting) {
       console.log('이미 로그인됨 - 메인 페이지로 리다이렉트')
       setIsRedirecting(true)
-      router.push('/')
+      
+      // router.push가 작동하지 않으면 setTimeout으로 감싸서 실행
+      setTimeout(() => {
+        console.log('리다이렉트 실행: router.replace("/")')
+        router.replace('/')
+        
+        // 추가 폴백: router.replace도 실패하면 window.location 사용
+        setTimeout(() => {
+          if (window.location.pathname === '/login') {
+            console.log('router.replace 실패 - window.location 사용')
+            window.location.href = '/'
+          }
+        }, 500)
+      }, 100)
     }
   }, [status, session, isRedirecting, router])
 
