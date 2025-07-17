@@ -33,9 +33,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
     if (!isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {
       redirectedRef.current = true
-      router.push('/login')
+      window.location.href = '/login'
     }
-  }, [isLoading, isAuthenticated, pathname, router])
+  }, [isLoading, isAuthenticated, pathname])
 
   // 인증이 실패한 경우 로그인 페이지로 리다이렉트 중 표시
   if (!isLoading && !isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {

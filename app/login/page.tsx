@@ -28,8 +28,10 @@ export default function LoginPage() {
     
     if (status === 'authenticated' && session?.user) {
       console.log('이미 로그인됨 - 메인 페이지로 리다이렉트')
-      // router.replace가 작동하지 않으므로 window.location 사용
-      window.location.href = '/'
+      // 현재 경로가 이미 메인 페이지가 아닌 경우에만 리다이렉트
+      if (window.location.pathname !== '/') {
+        window.location.href = '/'
+      }
     }
   }, [status, session])
 
