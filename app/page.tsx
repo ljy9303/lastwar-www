@@ -107,52 +107,22 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null)
   const [isRedirecting, setIsRedirecting] = useState(false)
 
-  // 새로운 OAuth 플로우: 인증 상태 및 프로필 완성 여부 체크
+  // Middleware가 인증 체크를 하므로 여기서는 데이터 로딩만 처리
   useEffect(() => {
     console.log('메인 페이지 - 세션 상태:', status)
     console.log('메인 페이지 - 세션 데이터:', JSON.stringify(session, null, 2))
-    console.log('리다이렉트 중:', isRedirecting)
     
     if (status === 'loading') {
       console.log('세션 로딩 중...')
       return // 세션 로딩 중이면 대기
     }
     
-    if ((status === 'unauthenticated' || !session?.user) && !isRedirecting) {
-      console.log('세션이 없음 - 로그인 페이지로 리다이렉트')
-      setIsRedirecting(true)
-      
-      setTimeout(() => {
-        console.log('리다이렉트 실행: router.replace("/login")')
-        router.replace('/login')
-      }, 100)
-      return
+    // Middleware를 통과했다면 세션이 있고 serverAllianceId도 있음
+    if (status === 'authenticated' && session?.user && !dashboardData && !loading) {
+      console.log('정상 사용자 - 대시보드 데이터 로딩')
+      fetchDashboardData()
     }
-    
-    if (session?.user) {
-      console.log('세션 존재 - serverAllianceId:', session.user.serverAllianceId)
-      
-      // 프로필 완성 필요한 경우 (serverAllianceId가 없으면)
-      if (!session.user.serverAllianceId && !isRedirecting) {
-        console.log('프로필 미완성 - 회원가입 페이지로 리다이렉트')
-        setIsRedirecting(true)
-        
-        setTimeout(() => {
-          console.log('리다이렉트 실행: router.replace("/signup")')
-          router.replace('/signup')
-        }, 100)
-        return
-      }
-      
-      if (session.user.serverAllianceId) {
-        console.log('정상 사용자 - 대시보드 데이터 로딩')
-        // 정상 사용자는 대시보드 데이터 로딩
-        if (!dashboardData && !loading) {
-          fetchDashboardData()
-        }
-      }
-    }
-  }, [session, status, isRedirecting, router, loading, dashboardData])
+  }, [session, status, loading, dashboardData])
 
   const fetchDashboardData = async () => {
     try {

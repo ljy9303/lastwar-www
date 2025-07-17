@@ -18,35 +18,11 @@ export default function LoginPage() {
   // 페이지 방문 로그 제거
   // useEffect(() => {
 
-  // 이미 로그인되어 있으면 메인 페이지로 리다이렉트
+  // Middleware가 리다이렉트를 처리하므로 여기서는 제거
   useEffect(() => {
     console.log('로그인 페이지 - 세션 상태:', status)
     console.log('로그인 페이지 - 세션 데이터:', JSON.stringify(session, null, 2))
-    console.log('리다이렉트 중:', isRedirecting)
-    
-    if (status === 'loading') {
-      return // 세션 로딩 중이면 대기
-    }
-    
-    if (status === 'authenticated' && session?.user && !isRedirecting) {
-      console.log('이미 로그인됨 - 메인 페이지로 리다이렉트')
-      setIsRedirecting(true)
-      
-      // router.push가 작동하지 않으면 setTimeout으로 감싸서 실행
-      setTimeout(() => {
-        console.log('리다이렉트 실행: router.replace("/")')
-        router.replace('/')
-        
-        // 추가 폴백: router.replace도 실패하면 window.location 사용
-        setTimeout(() => {
-          if (window.location.pathname === '/login') {
-            console.log('router.replace 실패 - window.location 사용')
-            window.location.href = '/'
-          }
-        }, 500)
-      }, 100)
-    }
-  }, [status, session, isRedirecting, router])
+  }, [status, session])
 
   const handleKakaoLogin = async () => {
     if (isLoading) return
@@ -100,17 +76,7 @@ export default function LoginPage() {
     )
   }
 
-  // 이미 로그인되어 있으면 빈 화면 (리다이렉트 중)
-  if (status === 'authenticated' || isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">메인 페이지로 이동 중...</p>
-        </div>
-      </div>
-    )
-  }
+  // Middleware가 처리하므로 이 부분은 필요 없음
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">

@@ -6,11 +6,19 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request })
   const { pathname } = request.nextUrl
 
+  console.log(`[Middleware] pathname: ${pathname}, token exists: ${!!token}`)
+
   // 로그인 페이지 접근 시 이미 로그인되어 있으면 홈으로 리다이렉트
   if (pathname.startsWith('/login') || pathname.startsWith('/test-login')) {
     if (token) {
-      // 이미 로그인되어 있으면 홈으로 리다이렉트
-      return NextResponse.redirect(new URL('/', request.url))
+      console.log('[Middleware] 로그인 페이지에서 토큰 발견 - 홈으로 리다이렉트')
+      // serverAllianceId 체크
+      if (token.serverAllianceId) {
+        return NextResponse.redirect(new URL('/', request.url))
+      } else {
+        // serverAllianceId가 없으면 signup으로
+        return NextResponse.redirect(new URL('/signup', request.url))
+      }
     }
     return NextResponse.next()
   }
@@ -23,8 +31,15 @@ export async function middleware(request: NextRequest) {
   // 보호된 페이지 접근 시 로그인 확인
   if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/users') || pathname.startsWith('/events')) {
     if (!token) {
+      console.log('[Middleware] 보호된 페이지에서 토큰 없음 - 로그인으로 리다이렉트')
       // 로그인되지 않은 경우 로그인 페이지로 리다이렉트
       return NextResponse.redirect(new URL('/login', request.url))
+    }
+    
+    // 토큰은 있지만 serverAllianceId가 없는 경우
+    if (token && !token.serverAllianceId && pathname !== '/signup') {
+      console.log('[Middleware] serverAllianceId 없음 - signup으로 리다이렉트')
+      return NextResponse.redirect(new URL('/signup', request.url))
     }
   }
 

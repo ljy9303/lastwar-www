@@ -27,34 +27,12 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const isAuthenticated = status === 'authenticated' && !!session?.user
   const shouldShowSidebar = isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)
 
-  // 안전한 리다이렉트 처리
+  // Middleware가 처리하므로 AuthLayout에서는 리다이렉트 로직 제거
   useEffect(() => {
     console.log('AuthLayout - status:', status, 'pathname:', pathname, 'isAuthenticated:', isAuthenticated)
-    
-    if (isLoading || redirectedRef.current) return
+  }, [status, pathname, isAuthenticated])
 
-    if (!isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {
-      console.log('AuthLayout - 인증되지 않음, 로그인으로 리다이렉트')
-      redirectedRef.current = true
-      
-      setTimeout(() => {
-        console.log('AuthLayout - 리다이렉트 실행: router.replace("/login")')
-        router.replace('/login')
-      }, 100)
-    }
-  }, [isLoading, isAuthenticated, pathname, status, router])
-
-  // 인증이 실패한 경우 로그인 페이지로 리다이렉트 중 표시
-  if (!isLoading && !isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-600">로그인 페이지로 이동 중...</p>
-        </div>
-      </div>
-    )
-  }
+  // Middleware가 처리하므로 이 부분 제거
 
   // 로딩 중일 때 (단, 로그인 페이지는 로딩 상태를 보여주지 않음)
   if (isLoading && !NO_SIDEBAR_ROUTES.includes(pathname)) {
