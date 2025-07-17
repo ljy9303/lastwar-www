@@ -13,6 +13,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
   const [isLoading, setIsLoading] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   // 페이지 방문 로그 제거
   // useEffect(() => {
@@ -21,23 +22,18 @@ export default function LoginPage() {
   useEffect(() => {
     console.log('로그인 페이지 - 세션 상태:', status)
     console.log('로그인 페이지 - 세션 데이터:', JSON.stringify(session, null, 2))
+    console.log('리다이렉트 중:', isRedirecting)
     
     if (status === 'loading') {
       return // 세션 로딩 중이면 대기
     }
     
-    if (status === 'authenticated' && session?.user) {
+    if (status === 'authenticated' && session?.user && !isRedirecting) {
       console.log('이미 로그인됨 - 메인 페이지로 리다이렉트')
-      console.log('현재 pathname:', window.location.pathname)
-      console.log('리다이렉트 시도 중...')
-      // 현재 경로가 이미 메인 페이지가 아닌 경우에만 리다이렉트
-      if (window.location.pathname === '/login') {
-        console.log('로그인 페이지에서 메인으로 리다이렉트 실행')
-        window.location.replace('/')
-        return
-      }
+      setIsRedirecting(true)
+      router.push('/')
     }
-  }, [status, session])
+  }, [status, session, isRedirecting, router])
 
   const handleKakaoLogin = async () => {
     if (isLoading) return
@@ -92,7 +88,7 @@ export default function LoginPage() {
   }
 
   // 이미 로그인되어 있으면 빈 화면 (리다이렉트 중)
-  if (status === 'authenticated') {
+  if (status === 'authenticated' || isRedirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">

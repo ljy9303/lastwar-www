@@ -36,9 +36,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     if (!isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {
       console.log('AuthLayout - 인증되지 않음, 로그인으로 리다이렉트')
       redirectedRef.current = true
-      window.location.replace('/login')
+      router.push('/login')
     }
-  }, [isLoading, isAuthenticated, pathname, status])
+  }, [isLoading, isAuthenticated, pathname, status, router])
 
   // 인증이 실패한 경우 로그인 페이지로 리다이렉트 중 표시
   if (!isLoading && !isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {

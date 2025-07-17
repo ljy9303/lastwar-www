@@ -105,41 +105,46 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   // 새로운 OAuth 플로우: 인증 상태 및 프로필 완성 여부 체크
   useEffect(() => {
     console.log('메인 페이지 - 세션 상태:', status)
     console.log('메인 페이지 - 세션 데이터:', JSON.stringify(session, null, 2))
+    console.log('리다이렉트 중:', isRedirecting)
     
     if (status === 'loading') {
       console.log('세션 로딩 중...')
       return // 세션 로딩 중이면 대기
     }
     
-    if (status === 'unauthenticated' || !session?.user) {
+    if ((status === 'unauthenticated' || !session?.user) && !isRedirecting) {
       console.log('세션이 없음 - 로그인 페이지로 리다이렉트')
-      console.log('현재 pathname:', window.location.pathname)
-      // 로그인되지 않은 경우
-      if (window.location.pathname === '/') {
-        console.log('메인 페이지에서 로그인으로 리다이렉트 실행')
-        window.location.replace('/login')
-        return
-      }
-    }
-    
-    console.log('세션 존재 - serverAllianceId:', session.user.serverAllianceId)
-    
-    // 프로필 완성 필요한 경우 (serverAllianceId가 없으면)
-    if (!session.user.serverAllianceId) {
-      console.log('프로필 미완성 - 회원가입 페이지로 리다이렉트')
-      window.location.href = '/signup'
+      setIsRedirecting(true)
+      router.push('/login')
       return
     }
     
-    console.log('정상 사용자 - 대시보드 데이터 로딩')
-    // 정상 사용자는 대시보드 데이터 로딩
-    fetchDashboardData()
-  }, [session, status])
+    if (session?.user) {
+      console.log('세션 존재 - serverAllianceId:', session.user.serverAllianceId)
+      
+      // 프로필 완성 필요한 경우 (serverAllianceId가 없으면)
+      if (!session.user.serverAllianceId && !isRedirecting) {
+        console.log('프로필 미완성 - 회원가입 페이지로 리다이렉트')
+        setIsRedirecting(true)
+        router.push('/signup')
+        return
+      }
+      
+      if (session.user.serverAllianceId) {
+        console.log('정상 사용자 - 대시보드 데이터 로딩')
+        // 정상 사용자는 대시보드 데이터 로딩
+        if (!dashboardData && !loading) {
+          fetchDashboardData()
+        }
+      }
+    }
+  }, [session, status, isRedirecting, router, loading, dashboardData])
 
   const fetchDashboardData = async () => {
     try {
