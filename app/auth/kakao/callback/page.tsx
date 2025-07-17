@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
-import { authAPI, authStorage, authUtils } from "@/lib/auth-api"
+import { authUtils } from "@/lib/auth-api"
 import { toast } from "@/hooks/use-toast"
 
 export default function KakaoCallbackPage() {
@@ -72,14 +72,22 @@ export default function KakaoCallbackPage() {
       setProcessedCode(code)
       
       try {
-        // NextAuth.js를 사용한 카카오 로그인 처리
+        // NextAuth.js를 사용하여 카카오 로그인 처리
         const redirectUri = authUtils.generateRedirectUri()
-        const loginResponse = await authAPI.kakaoLogin({
+        
+        console.log('NextAuth.js signIn 호출 - code:', code)
+        
+        // NextAuth.js signIn을 사용하여 세션 생성
+        const { signIn } = await import('next-auth/react')
+        const result = await signIn('kakao', {
           code,
-          redirectUri
+          redirectUri,
+          redirect: false // 자동 리다이렉트 방지
         })
         
-        if (loginResponse.status === 'login') {
+        console.log('NextAuth.js signIn 결과:', result)
+        
+        if (result?.ok) {
           setStatus('success')
           setMessage('로그인 성공!')
           
@@ -89,24 +97,21 @@ export default function KakaoCallbackPage() {
             description: "환영합니다! 메인 페이지로 이동합니다."
           })
           
-          // NextAuth.js 세션 업데이트를 기다린 후 리다이렉트
-          console.log('로그인 성공 - 세션 업데이트 대기 중')
-          
-          // 세션 업데이트를 확실히 하기 위해 약간의 지연
+          // 성공 후 처리된 코드 정리 (5분 후에 자동 정리되도록)
           setTimeout(() => {
-            // 성공 후 처리된 코드 정리 (5분 후에 자동 정리되도록)
-            setTimeout(() => {
-              if (processedCodeKey) {
-                localStorage.removeItem(processedCodeKey)
-              }
-            }, 5 * 60 * 1000)
-            
-            console.log('로그인 성공 - 메인 페이지로 이동')
-            // router.push 대신 window.location을 사용하여 확실한 리다이렉트
+            if (processedCodeKey) {
+              localStorage.removeItem(processedCodeKey)
+            }
+          }, 5 * 60 * 1000)
+          
+          console.log('로그인 성공 - 메인 페이지로 이동')
+          
+          // 약간의 지연 후 리다이렉트
+          setTimeout(() => {
             window.location.replace('/')
-          }, 2000)
+          }, 1000)
         } else {
-          throw new Error('로그인 실패')
+          throw new Error(result?.error || '로그인 실패')
         }
         
       } catch (error) {
