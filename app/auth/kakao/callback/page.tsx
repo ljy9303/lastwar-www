@@ -6,17 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
 import { authAPI, authStorage, authUtils } from "@/lib/auth-api"
 import { toast } from "@/hooks/use-toast"
-import { useSession } from "next-auth/react"
 
 export default function KakaoCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { data: session, status: sessionStatus, update } = useSession()
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'signup_required'>('loading')
   const [message, setMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [processedCode, setProcessedCode] = useState<string | null>(null)
-  const [waitingForSession, setWaitingForSession] = useState(false)
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -92,19 +89,18 @@ export default function KakaoCallbackPage() {
             description: "환영합니다! 메인 페이지로 이동합니다."
           })
           
-          // NextAuth.js 세션 업데이트 요청
-          setWaitingForSession(true)
-          setMessage('세션을 업데이트하는 중...')
-          await update() // NextAuth.js 세션 강제 업데이트
-          
-          // 세션 업데이트가 바로 반영되지 않을 경우를 대비한 fallback
+          // 간단하게 바로 리다이렉트 (NextAuth.js가 자동으로 세션 관리)
           setTimeout(() => {
-            if (waitingForSession) {
-              console.log('세션 업데이트 대기 시간 초과, 강제 리다이렉트')
-              setWaitingForSession(false)
-              window.location.href = '/'
-            }
-          }, 3000)
+            // 성공 후 처리된 코드 정리 (5분 후에 자동 정리되도록)
+            setTimeout(() => {
+              if (processedCodeKey) {
+                localStorage.removeItem(processedCodeKey)
+              }
+            }, 5 * 60 * 1000)
+            
+            console.log('로그인 성공 - 메인 페이지로 이동')
+            window.location.href = '/'
+          }, 1500)
         } else {
           throw new Error('로그인 실패')
         }
@@ -135,25 +131,6 @@ export default function KakaoCallbackPage() {
 
     handleCallback()
   }, [searchParams, router, isProcessing])
-
-  // 세션 업데이트 완료 시 자동 리다이렉트
-  useEffect(() => {
-    if (waitingForSession && sessionStatus === 'authenticated' && session?.user) {
-      console.log('세션 업데이트 완료, 메인 페이지로 이동')
-      setWaitingForSession(false)
-      
-      // 성공 후 처리된 코드 정리
-      const code = searchParams.get('code')
-      const processedCodeKey = code ? `kakao_processed_${code}` : null
-      setTimeout(() => {
-        if (processedCodeKey) {
-          localStorage.removeItem(processedCodeKey)
-        }
-      }, 5 * 60 * 1000)
-      
-      router.push('/')
-    }
-  }, [waitingForSession, sessionStatus, session, router, searchParams])
 
   const renderContent = () => {
     switch (status) {
