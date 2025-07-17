@@ -21,6 +21,7 @@ export default function KakaoCallbackPage() {
         return
       }
       
+      const code = searchParams.get('code')
       const error = searchParams.get('error')
       
       // 에러가 있는 경우
@@ -33,22 +34,53 @@ export default function KakaoCallbackPage() {
         return
       }
 
+      // Authorization Code가 없는 경우
+      if (!code) {
+        setStatus('error')
+        setMessage('인증 코드가 없습니다.')
+        setTimeout(() => {
+          router.push('/login')
+        }, 3000)
+        return
+      }
+
       setIsProcessing(true)
       
       try {
-        // 새로운 OAuth 플로우: NextAuth.js가 자동으로 세션 처리
-        // 메인 페이지로 이동하면 자동으로 적절한 페이지로 리다이렉트
-        setStatus('success')
-        setMessage('로그인 처리 중입니다...')
+        // NextAuth.js를 사용한 카카오 로그인 처리
+        const redirectUri = authUtils.generateRedirectUri()
+        const loginResponse = await authAPI.kakaoLogin({
+          code,
+          redirectUri
+        })
         
-        setTimeout(() => {
-          router.push('/')
-        }, 1000)
+        if (loginResponse.status === 'login') {
+          setStatus('success')
+          setMessage('로그인 성공!')
+          
+          // 성공 토스트 메시지
+          toast({
+            title: "로그인 성공",
+            description: "환영합니다! 메인 페이지로 이동합니다."
+          })
+          
+          setTimeout(() => {
+            router.push('/')
+          }, 1500)
+        } else {
+          throw new Error('로그인 실패')
+        }
         
       } catch (error) {
         console.error('카카오 로그인 콜백 처리 실패:', error)
         setStatus('error')
         setMessage('로그인 처리 중 오류가 발생했습니다.')
+        
+        toast({
+          title: "로그인 실패",
+          description: "로그인 처리 중 오류가 발생했습니다.",
+          variant: "destructive"
+        })
         
         setTimeout(() => {
           router.push('/login')
