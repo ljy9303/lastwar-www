@@ -89,7 +89,10 @@ export default function KakaoCallbackPage() {
             description: "환영합니다! 메인 페이지로 이동합니다."
           })
           
-          // 간단하게 바로 리다이렉트 (NextAuth.js가 자동으로 세션 관리)
+          // NextAuth.js 세션 업데이트를 기다린 후 리다이렉트
+          console.log('로그인 성공 - 세션 업데이트 대기 중')
+          
+          // 세션 업데이트를 확실히 하기 위해 약간의 지연
           setTimeout(() => {
             // 성공 후 처리된 코드 정리 (5분 후에 자동 정리되도록)
             setTimeout(() => {
@@ -99,8 +102,9 @@ export default function KakaoCallbackPage() {
             }, 5 * 60 * 1000)
             
             console.log('로그인 성공 - 메인 페이지로 이동')
-            window.location.href = '/'
-          }, 1500)
+            // router.push 대신 window.location을 사용하여 확실한 리다이렉트
+            window.location.replace('/')
+          }, 2000)
         } else {
           throw new Error('로그인 실패')
         }

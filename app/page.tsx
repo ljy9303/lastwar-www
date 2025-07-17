@@ -116,10 +116,10 @@ export default function HomePage() {
       return // 세션 로딩 중이면 대기
     }
     
-    if (!session?.user) {
+    if (status === 'unauthenticated' || !session?.user) {
       console.log('세션이 없음 - 로그인 페이지로 리다이렉트')
       // 로그인되지 않은 경우
-      router.push('/login')
+      router.replace('/login')
       return
     }
     
@@ -128,7 +128,7 @@ export default function HomePage() {
     // 프로필 완성 필요한 경우 (serverAllianceId가 없으면)
     if (!session.user.serverAllianceId) {
       console.log('프로필 미완성 - 회원가입 페이지로 리다이렉트')
-      router.push('/signup')
+      router.replace('/signup')
       return
     }
     

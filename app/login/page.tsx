@@ -22,9 +22,13 @@ export default function LoginPage() {
     console.log('로그인 페이지 - 세션 상태:', status)
     console.log('로그인 페이지 - 세션 데이터:', JSON.stringify(session, null, 2))
     
+    if (status === 'loading') {
+      return // 세션 로딩 중이면 대기
+    }
+    
     if (status === 'authenticated' && session?.user) {
       console.log('이미 로그인됨 - 메인 페이지로 리다이렉트')
-      router.push('/')
+      router.replace('/')
     }
   }, [status, session, router])
 
