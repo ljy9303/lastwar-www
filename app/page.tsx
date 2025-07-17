@@ -108,20 +108,31 @@ export default function HomePage() {
 
   // 새로운 OAuth 플로우: 인증 상태 및 프로필 완성 여부 체크
   useEffect(() => {
-    if (status === 'loading') return // 세션 로딩 중이면 대기
+    console.log('메인 페이지 - 세션 상태:', status)
+    console.log('메인 페이지 - 세션 데이터:', JSON.stringify(session, null, 2))
+    
+    if (status === 'loading') {
+      console.log('세션 로딩 중...')
+      return // 세션 로딩 중이면 대기
+    }
     
     if (!session?.user) {
+      console.log('세션이 없음 - 로그인 페이지로 리다이렉트')
       // 로그인되지 않은 경우
       router.push('/login')
       return
     }
     
+    console.log('세션 존재 - serverAllianceId:', session.user.serverAllianceId)
+    
     // 프로필 완성 필요한 경우 (serverAllianceId가 없으면)
     if (!session.user.serverAllianceId) {
+      console.log('프로필 미완성 - 회원가입 페이지로 리다이렉트')
       router.push('/signup')
       return
     }
     
+    console.log('정상 사용자 - 대시보드 데이터 로딩')
     // 정상 사용자는 대시보드 데이터 로딩
     fetchDashboardData()
   }, [session, status, router])

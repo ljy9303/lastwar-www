@@ -19,7 +19,11 @@ export default function LoginPage() {
 
   // 이미 로그인되어 있으면 메인 페이지로 리다이렉트
   useEffect(() => {
+    console.log('로그인 페이지 - 세션 상태:', status)
+    console.log('로그인 페이지 - 세션 데이터:', JSON.stringify(session, null, 2))
+    
     if (status === 'authenticated' && session?.user) {
+      console.log('이미 로그인됨 - 메인 페이지로 리다이렉트')
       router.push('/')
     }
   }, [status, session, router])
