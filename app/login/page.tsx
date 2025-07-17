@@ -28,9 +28,13 @@ export default function LoginPage() {
     
     if (status === 'authenticated' && session?.user) {
       console.log('이미 로그인됨 - 메인 페이지로 리다이렉트')
+      console.log('현재 pathname:', window.location.pathname)
+      console.log('리다이렉트 시도 중...')
       // 현재 경로가 이미 메인 페이지가 아닌 경우에만 리다이렉트
-      if (window.location.pathname !== '/') {
-        window.location.href = '/'
+      if (window.location.pathname === '/login') {
+        console.log('로그인 페이지에서 메인으로 리다이렉트 실행')
+        window.location.replace('/')
+        return
       }
     }
   }, [status, session])

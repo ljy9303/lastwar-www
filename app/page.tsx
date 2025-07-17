@@ -118,9 +118,13 @@ export default function HomePage() {
     
     if (status === 'unauthenticated' || !session?.user) {
       console.log('세션이 없음 - 로그인 페이지로 리다이렉트')
+      console.log('현재 pathname:', window.location.pathname)
       // 로그인되지 않은 경우
-      window.location.href = '/login'
-      return
+      if (window.location.pathname === '/') {
+        console.log('메인 페이지에서 로그인으로 리다이렉트 실행')
+        window.location.replace('/login')
+        return
+      }
     }
     
     console.log('세션 존재 - serverAllianceId:', session.user.serverAllianceId)
