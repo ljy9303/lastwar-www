@@ -218,11 +218,11 @@ export async function refreshDashboardStats() {
 
 // User Grade Statistics API functions
 export async function getUserGradeStatistics() {
-  return fetchFromAPI('/users/grades/statistics')
+  return fetchFromAPI('/user/grades/statistics')
 }
 
 export async function getUsersByGrade(grade: string) {
-  return fetchFromAPI(`/users/grades/${grade}`)
+  return fetchFromAPI(`/user/grades/${grade}`)
 }
 
 // 기존 개별 통계 API (하위 호환성 유지) - DEPRECATED
