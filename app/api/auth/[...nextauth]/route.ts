@@ -30,7 +30,8 @@ const authOptions: AuthOptions = {
 
           const data = await response.json()
 
-          if (response.ok && (data.status === 'login' || data.status === 'signup_required')) {
+          // 새로운 OAuth 플로우: 백엔드에서 항상 'login' 상태만 반환
+          if (response.ok && data.status === 'login') {
             return {
               id: data.user.userId.toString(),
               email: data.user.email,

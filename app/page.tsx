@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Users, CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
@@ -97,31 +99,49 @@ interface DashboardStatsResponse {
 }
 
 export default function HomePage() {
+  const router = useRouter()
+  const { data: session, status } = useSession()
   const [dashboardData, setDashboardData] = useState<DashboardStatsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 새로운 OAuth 플로우: 인증 상태 및 프로필 완성 여부 체크
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-
-        // 통합 대시보드 API 호출 - 한 번의 요청으로 모든 데이터 조회
-        const dashboardStatsData = await getDashboardStats()
-
-        setDashboardData(dashboardStatsData)
-        setError(null)
-      } catch (err) {
-        console.error("대시보드 데이터를 불러오는데 실패했습니다:", err)
-        setError("대시보드 데이터를 불러오는데 실패했습니다.")
-      } finally {
-        setLoading(false)
-      }
+    if (status === 'loading') return // 세션 로딩 중이면 대기
+    
+    if (!session?.user) {
+      // 로그인되지 않은 경우
+      router.push('/login')
+      return
     }
+    
+    // 프로필 완성 필요한 경우 (serverAllianceId가 없으면)
+    if (!session.user.serverAllianceId) {
+      router.push('/signup')
+      return
+    }
+    
+    // 정상 사용자는 대시보드 데이터 로딩
+    fetchDashboardData()
+  }, [session, status, router])
 
-    fetchData()
-  }, [])
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+
+      // 통합 대시보드 API 호출 - 한 번의 요청으로 모든 데이터 조회
+      const dashboardStatsData = await getDashboardStats()
+
+      setDashboardData(dashboardStatsData)
+      setError(null)
+    } catch (err) {
+      console.error("대시보드 데이터를 불러오는데 실패했습니다:", err)
+      setError("대시보드 데이터를 불러오는데 실패했습니다.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // 대시보드 데이터 강제 새로고침 함수
   const handleRefresh = async () => {
@@ -152,6 +172,20 @@ export default function HomePage() {
     totalDesert: desertStats?.totalDesert || 0,
     newUsersToday: userStats?.recentJoinUserCount || 0,
     withdrawalsToday: userStats?.recentLeftUserCount || 0,
+  }
+
+  // 세션 로딩 중일 때
+  if (status === 'loading') {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">인증 상태를 확인하는 중...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // 에러 표시

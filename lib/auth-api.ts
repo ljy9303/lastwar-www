@@ -108,11 +108,21 @@ export const authAPI = {
   },
 
   /**
-   * 회원가입
+   * 회원가입 (기존 API - 호환성 유지)
    */
   async signup(request: SignupRequest): Promise<SignupResponse> {
     return fetchFromAPI<SignupResponse>('/auth/signup', {
       method: 'POST',
+      body: JSON.stringify(request)
+    })
+  },
+
+  /**
+   * 프로필 완성 (새로운 OAuth 플로우)
+   */
+  async completeProfile(request: SignupRequest): Promise<SignupResponse> {
+    return fetchFromAPI<SignupResponse>('/auth/profile/complete', {
+      method: 'PUT',
       body: JSON.stringify(request)
     })
   },

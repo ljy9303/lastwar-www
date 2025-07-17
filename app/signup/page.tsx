@@ -29,7 +29,7 @@ export default function SignupPage() {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        if (!authUtils.isLoggedIn()) {
+        if (!(await authUtils.isLoggedIn())) {
           router.push('/login')
           return
         }
@@ -123,36 +123,33 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      const signupResponse = await authAPI.signup(formData)
+      // 새로운 OAuth 플로우: 프로필 완성 API 사용
+      const profileResponse = await authAPI.completeProfile(formData)
 
-      if (signupResponse.success) {
-        // 업데이트된 사용자 정보만 저장 (세션은 서버에서 자동 관리)
-        if (signupResponse.user) {
-          authStorage.setUserInfo(signupResponse.user)
-        }
-
+      if (profileResponse.success) {
         toast({
-          title: "회원가입 완료",
+          title: "프로필 완성",
           description: "환영합니다! 메인 페이지로 이동합니다."
         })
 
+        // 페이지 새로고침으로 세션 갱신
         setTimeout(() => {
-          router.push('/')
+          window.location.href = '/'
         }, 1500)
 
       } else {
         toast({
-          title: "회원가입 실패",
-          description: signupResponse.message,
+          title: "프로필 완성 실패",
+          description: profileResponse.message,
           variant: "destructive"
         })
       }
 
     } catch (error) {
-      console.error('회원가입 실패:', error)
+      console.error('프로필 완성 실패:', error)
       toast({
-        title: "회원가입 오류",
-        description: "회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        title: "프로필 완성 오류",
+        description: "프로필 완성 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
         variant: "destructive"
       })
     } finally {
