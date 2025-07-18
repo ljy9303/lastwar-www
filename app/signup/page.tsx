@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,15 +9,18 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { UserPlus, Server, Shield, User, ArrowLeft, Loader2 } from "lucide-react"
 import { authAPI, authStorage, authUtils, type SignupRequest } from "@/lib/auth-api"
+import { signIn } from "next-auth/react"
 import { toast } from "@/hooks/use-toast"
 
 export default function SignupPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
   
   const [formData, setFormData] = useState<SignupRequest>({
+    userId: 0,
     serverInfo: 0,
     allianceTag: '',
     nickname: ''
@@ -25,44 +28,116 @@ export default function SignupPage() {
   
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // 페이지 로드 시 인증 상태 확인
+  // 페이지 로드 시 URL 파라미터 또는 세션 확인
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        if (!authUtils.isLoggedIn()) {
-          router.push('/login')
-          return
-        }
-
-        const sessionCheck = await authAPI.checkSession()
-        if (!sessionCheck.valid || !sessionCheck.user) {
-          authStorage.clearAll()
-          router.push('/login')
-          return
-        }
-
-        // 이미 회원가입이 완료된 경우
-        if (sessionCheck.user.registrationComplete) {
-          router.push('/')
-          return
-        }
-
-        setCurrentUser(sessionCheck.user)
+        console.log('[Signup] checkAuthStatus 시작')
         
-        // 기존 정보가 있으면 폼에 설정
-        if (sessionCheck.user.serverInfo) {
-          setFormData(prev => ({ ...prev, serverInfo: sessionCheck.user.serverInfo! }))
+        // 1. sessionStorage에서 임시 사용자 정보 확인 (카카오 콜백에서 온 경우)
+        const signupUserData = sessionStorage.getItem('signup_user_data')
+        if (signupUserData) {
+          try {
+            const userData = JSON.parse(signupUserData)
+            const timeDiff = Date.now() - userData.timestamp
+            
+            // 10분 이내의 데이터만 유효하게 처리
+            if (timeDiff < 10 * 60 * 1000) {
+              console.log('[Signup] sessionStorage에서 사용자 정보 로드 - userId:', userData.userId)
+              
+              const user = {
+                userId: userData.userId,
+                email: userData.email,
+                nickname: userData.nickname,
+                profileImageUrl: userData.profileImageUrl,
+                registrationComplete: false
+              }
+              
+              setCurrentUser(user)
+              setFormData(prev => ({ 
+                ...prev, 
+                userId: userData.userId,
+                nickname: userData.nickname
+              }))
+              setCheckingAuth(false)
+              console.log('[Signup] sessionStorage로 사용자 설정 완료')
+              return // sessionStorage 데이터가 있으면 여기서 완전히 종료
+            } else {
+              console.log('[Signup] sessionStorage 데이터가 만료됨 (10분 초과)')
+              sessionStorage.removeItem('signup_user_data')
+            }
+          } catch (error) {
+            console.error('[Signup] sessionStorage 데이터 파싱 실패:', error)
+            sessionStorage.removeItem('signup_user_data')
+          }
         }
-        if (sessionCheck.user.allianceTag) {
-          setFormData(prev => ({ ...prev, allianceTag: sessionCheck.user.allianceTag! }))
+
+        // 2. URL 파라미터에서 사용자 정보 확인 (백업 방법)
+        const urlParams = new URLSearchParams(window.location.search)
+        const userId = searchParams.get('userId') || urlParams.get('userId')
+        const email = searchParams.get('email') || urlParams.get('email')
+        const nickname = searchParams.get('nickname') || urlParams.get('nickname')
+        
+        if (userId && email && nickname) {
+          console.log('[Signup] URL 파라미터에서 사용자 정보 로드 (백업) - userId:', userId)
+          
+          const decodedEmail = decodeURIComponent(email)
+          const decodedNickname = decodeURIComponent(nickname)
+          const userIdNum = parseInt(userId)
+          
+          if (userIdNum > 0 && decodedEmail.includes('@') && decodedNickname.length > 0) {
+            const user = {
+              userId: userIdNum,
+              email: decodedEmail,
+              nickname: decodedNickname,
+              registrationComplete: false
+            }
+            
+            setCurrentUser(user)
+            setFormData(prev => ({ 
+              ...prev, 
+              userId: userIdNum,
+              nickname: decodedNickname
+            }))
+            setCheckingAuth(false)
+            return
+          }
         }
-        if (sessionCheck.user.nickname) {
-          setFormData(prev => ({ ...prev, nickname: sessionCheck.user.nickname }))
+
+        // 2. NextAuth 세션 기반 확인 (URL 파라미터가 없는 경우에만)
+        console.log('[Signup] URL 파라미터 없음 - NextAuth 세션 확인')
+        try {
+          const sessionCheck = await authAPI.checkSession()
+          if (sessionCheck.valid && sessionCheck.user) {
+            // 이미 회원가입이 완료된 경우
+            if (sessionCheck.user.registrationComplete) {
+              console.log('[Signup] 이미 회원가입 완료 - 홈으로 이동')
+              router.push('/')
+              return
+            }
+
+            console.log('[Signup] NextAuth 세션으로 사용자 정보 설정')
+            setCurrentUser(sessionCheck.user)
+            setFormData(prev => ({ 
+              ...prev, 
+              userId: sessionCheck.user.userId,
+              serverInfo: sessionCheck.user.serverInfo || 0,
+              allianceTag: sessionCheck.user.allianceTag || '',
+              nickname: sessionCheck.user.nickname || ''
+            }))
+            setCheckingAuth(false)
+            return
+          }
+        } catch (sessionError) {
+          console.log('[Signup] 세션 확인 중 오류 (무시):', sessionError)
         }
+
+        // 3. 둘 다 없으면 로그인 페이지로
+        console.log('[Signup] 인증 정보 없음 - 로그인 페이지로 이동')
+        router.push('/login')
         
       } catch (error) {
-        console.error('인증 상태 확인 실패:', error)
-        authStorage.clearAll()
+        console.error('[Signup] 인증 상태 확인 실패:', error)
         router.push('/login')
       } finally {
         setCheckingAuth(false)
@@ -70,7 +145,7 @@ export default function SignupPage() {
     }
 
     checkAuthStatus()
-  }, [router])
+  }, [router, searchParams])
 
 
   const validateForm = (): boolean => {
@@ -126,19 +201,43 @@ export default function SignupPage() {
       const signupResponse = await authAPI.signup(formData)
 
       if (signupResponse.success) {
-        // 업데이트된 사용자 정보만 저장 (세션은 서버에서 자동 관리)
+        // sessionStorage 임시 데이터 정리
+        sessionStorage.removeItem('signup_user_data')
+        
+        // 토큰과 사용자 정보 저장
+        if (signupResponse.accessToken && signupResponse.refreshToken) {
+          console.log('[Signup] 토큰 저장 중...')
+          authStorage.setTokens(signupResponse.accessToken, signupResponse.refreshToken)
+        }
+        
         if (signupResponse.user) {
+          console.log('[Signup] 사용자 정보 저장 중...')
           authStorage.setUserInfo(signupResponse.user)
         }
-
+        
         toast({
           title: "회원가입 완료",
           description: "환영합니다! 메인 페이지로 이동합니다."
         })
 
-        setTimeout(() => {
-          router.push('/')
-        }, 1500)
+        // 회원가입 완료 후 NextAuth 세션 업데이트
+        console.log('[Signup] 회원가입 완료 - NextAuth 세션 업데이트')
+        try {
+          // Test provider로 NextAuth 세션 생성 (회원가입 완료된 사용자 정보로)
+          await signIn('test', {
+            email: signupResponse.user.email,
+            nickname: signupResponse.user.nickname,
+            redirect: false
+          })
+          
+          // NextAuth 세션 생성 후 홈페이지로 이동
+          console.log('[Signup] NextAuth 세션 생성 완료 - 대시보드로 이동')
+          router.push('/dashboard')
+        } catch (sessionError) {
+          console.error('[Signup] NextAuth 세션 생성 실패:', sessionError)
+          // 세션 생성 실패해도 홈페이지로 이동 (백엔드 JWT는 있음)
+          window.location.href = '/'
+        }
 
       } else {
         toast({
@@ -161,6 +260,8 @@ export default function SignupPage() {
   }
 
   const handleBackToLogin = () => {
+    // sessionStorage 임시 데이터 정리
+    sessionStorage.removeItem('signup_user_data')
     authStorage.clearAll()
     router.push('/login')
   }

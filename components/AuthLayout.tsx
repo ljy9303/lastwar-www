@@ -22,10 +22,20 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const redirectedRef = useRef(false) // 리다이렉트 중복 방지
-
+  // NextAuth 세션 기반 인증만 사용 (JWT 토큰 체크 제거)
   const isLoading = status === 'loading'
   const isAuthenticated = status === 'authenticated' && !!session?.user
   const shouldShowSidebar = isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)
+
+  // 개발 환경에서만 로그 출력
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[AuthLayout] 인증 상태:', {
+      pathname,
+      nextAuthSession: !!session?.user,
+      isAuthenticated,
+      isLoading
+    })
+  }
 
   // 안전한 리다이렉트 처리
   useEffect(() => {

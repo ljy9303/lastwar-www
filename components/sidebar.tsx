@@ -10,6 +10,7 @@ import { useState, useEffect } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { signOut, useSession } from "next-auth/react"
+import { authAPI, authUtils } from "@/lib/auth-api"
 
 const navItems = [
   {
@@ -41,10 +42,39 @@ export default function Sidebar() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [pendingCount, setPendingCount] = useState(3)
   const { data: session } = useSession()
+  
+  // NextAuth 세션 정보만 사용 (serverInfo, allianceTag 포함)
   const user = session?.user
   
-  // 세션 정보 로깅 제거 (불필요한 리렌더링 방지)
   const [windowWidth, setWindowWidth] = useState(0)
+
+  // NextAuth 세션 정보 확인용 로깅
+  useEffect(() => {
+    if (session?.user) {
+      console.log('[Sidebar] NextAuth 세션 사용자 정보:', {
+        nickname: session.user.name,
+        serverInfo: session.user.serverInfo,
+        allianceTag: session.user.allianceTag,
+        serverAllianceId: session.user.serverAllianceId
+      })
+    }
+  }, [session])
+
+  // 로그아웃 함수 (NextAuth + 백엔드 쿠키 정리)
+  const handleLogout = async () => {
+    try {
+      console.log('[Sidebar] 로그아웃 시작 - 백엔드 및 NextAuth')
+      // 1. 백엔드 로그아웃 API 호출 (JWT 쿠키 정리)
+      await authAPI.logout()
+      
+      // 2. NextAuth 로그아웃
+      await signOut({ callbackUrl: '/login' })
+    } catch (error) {
+      console.error('[Sidebar] 로그아웃 중 오류:', error)
+      // 오류가 발생해도 NextAuth 로그아웃은 진행
+      await signOut({ callbackUrl: '/login' })
+    }
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -122,7 +152,7 @@ export default function Sidebar() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => signOut({ callbackUrl: '/login' })}
+                onClick={handleLogout}
                 className="w-full justify-start gap-2"
               >
                 <LogOut className="h-4 w-4" />
@@ -137,7 +167,7 @@ export default function Sidebar() {
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={() => signOut({ callbackUrl: '/login' })}
+                onClick={handleLogout}
                 className="w-full"
                 title="로그아웃"
               >
@@ -207,7 +237,7 @@ export default function Sidebar() {
                   size="sm" 
                   onClick={() => {
                     setOpen(false)
-                    signOut({ callbackUrl: '/login' })
+                    handleLogout()
                   }}
                   className="w-full justify-start gap-2"
                 >

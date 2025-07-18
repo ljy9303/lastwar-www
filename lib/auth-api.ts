@@ -32,9 +32,12 @@ export interface LoginResponse {
   sessionId?: string
   user?: AccountInfo
   message: string
+  accessToken?: string
+  refreshToken?: string
 }
 
 export interface SignupRequest {
+  userId: number
   serverInfo: number
   allianceTag: string
   nickname: string
@@ -52,6 +55,8 @@ export interface SignupResponse {
   message: string
   sessionId?: string
   user?: AccountInfo
+  accessToken?: string
+  refreshToken?: string
 }
 
 export interface SessionCheckResponse {
@@ -76,35 +81,77 @@ export const authAPI = {
   },
 
   /**
-   * 카카오 OAuth 로그인
+   * 카카오 OAuth 로그인 (NextAuth를 통해 백엔드 호출)
    */
   async kakaoLogin(request: LoginRequest): Promise<LoginResponse> {
-    const result = await signIn('kakao', {
-      code: request.code,
-      redirectUri: request.redirectUri,
-      redirect: false
-    })
+    console.log('[authAPI] kakaoLogin 시작 - NextAuth를 통한 인증:', request)
     
-    if (result?.ok) {
-      const session = await getSession()
-      return {
-        status: 'login',
-        user: {
-          userId: parseInt(session?.user?.id || '0'),
-          kakaoId: '',
-          email: session?.user?.email || '',
-          nickname: session?.user?.name || '',
-          profileImageUrl: session?.user?.image,
-          role: session?.user?.role || 'USER',
-          status: 'ACTIVE',
-          serverAllianceId: session?.user?.serverAllianceId,
-          registrationComplete: session?.user?.registrationComplete || false
-        },
-        message: '로그인 성공'
+    try {
+      // NextAuth signIn을 통해 백엔드 호출 (중복 호출 방지)
+      const signInResult = await signIn('kakao', {
+        code: request.code,
+        redirectUri: request.redirectUri,
+        redirect: false
+      })
+      
+      console.log('[authAPI] NextAuth signIn 결과:', signInResult)
+      
+      if (signInResult?.ok) {
+        // NextAuth 세션에서 사용자 정보 조회
+        const session = await getSession()
+        console.log('[authAPI] NextAuth 세션:', session)
+        
+        if (session?.user) {
+          // 회원가입이 필요한 사용자인지 확인
+          if (session.user.requiresSignup || !session.user.registrationComplete) {
+            return {
+              status: 'signup_required',
+              user: {
+                userId: parseInt(session.user.id),
+                kakaoId: session.user.kakaoId || '',
+                email: session.user.email || '',
+                nickname: session.user.name || '',
+                profileImageUrl: session.user.image,
+                role: session.user.role || 'USER',
+                status: 'ACTIVE',
+                serverInfo: session.user.serverInfo,
+                allianceTag: session.user.allianceTag,
+                serverAllianceId: session.user.serverAllianceId,
+                registrationComplete: false
+              },
+              message: '회원가입이 필요합니다'
+            }
+          } else {
+            // 정상 로그인 사용자
+            return {
+              status: 'login',
+              user: {
+                userId: parseInt(session.user.id),
+                kakaoId: session.user.kakaoId || '',
+                email: session.user.email || '',
+                nickname: session.user.name || '',
+                profileImageUrl: session.user.image,
+                role: session.user.role || 'USER',
+                status: 'ACTIVE',
+                serverInfo: session.user.serverInfo,
+                allianceTag: session.user.allianceTag,
+                serverAllianceId: session.user.serverAllianceId,
+                registrationComplete: session.user.registrationComplete || false
+              },
+              message: '로그인 성공'
+            }
+          }
+        } else {
+          throw new Error('NextAuth 세션 생성되었지만 사용자 정보 없음')
+        }
+      } else {
+        throw new Error('NextAuth 세션 생성 실패: ' + (signInResult?.error || '알 수 없는 오류'))
       }
+      
+    } catch (error) {
+      console.error('[authAPI] 로그인 실패:', error)
+      throw error
     }
-    
-    throw new Error('로그인 실패')
   },
 
   /**
@@ -118,35 +165,68 @@ export const authAPI = {
   },
 
   /**
-   * 테스트용 이메일 로그인
+   * 테스트용 이메일 로그인 - NextAuth 플로우 사용 (OAuth 로그인과 동일)
    */
   async testLogin(request: TestLoginRequest): Promise<LoginResponse> {
-    const result = await signIn('test', {
-      email: request.email,
-      nickname: request.nickname,
-      redirect: false
-    })
+    console.log('[authAPI] testLogin 시작:', request)
     
-    if (result?.ok) {
-      const session = await getSession()
-      return {
-        status: 'login',
-        user: {
-          userId: parseInt(session?.user?.id || '0'),
-          kakaoId: '',
-          email: session?.user?.email || '',
-          nickname: session?.user?.name || '',
-          profileImageUrl: session?.user?.image,
-          role: session?.user?.role || 'USER',
-          status: 'ACTIVE',
-          serverAllianceId: session?.user?.serverAllianceId,
-          registrationComplete: session?.user?.registrationComplete || false
+    try {
+      // 1. 백엔드 API 호출로 로그인 처리
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/test/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        message: '로그인 성공'
+        body: JSON.stringify({
+          email: request.email,
+          nickname: request.nickname
+        })
+      })
+      
+      const data = await response.json()
+      console.log('[authAPI] 백엔드 테스트 로그인 응답:', data)
+      
+      if (!response.ok) {
+        throw new Error(data.message || '테스트 로그인 요청 실패')
       }
+      
+      if (data.status === 'login') {
+        // 2. NextAuth 세션 생성 (test provider 사용)
+        const signInResult = await signIn('test', {
+          email: data.user.email,
+          nickname: data.user.nickname,
+          redirect: false
+        })
+        
+        console.log('[authAPI] NextAuth signIn 결과:', signInResult)
+        
+        if (signInResult?.ok) {
+          return {
+            status: 'login',
+            user: {
+              userId: data.user.userId,
+              kakaoId: data.user.kakaoId || '',
+              email: data.user.email,
+              nickname: data.user.nickname,
+              profileImageUrl: data.user.profileImageUrl,
+              role: data.user.role || 'USER',
+              status: 'ACTIVE',
+              serverAllianceId: data.user.serverAllianceId,
+              registrationComplete: data.user.registrationComplete
+            },
+            message: '로그인 성공'
+          }
+        } else {
+          throw new Error('NextAuth 세션 생성 실패: ' + signInResult?.error)
+        }
+      }
+      
+      throw new Error('알 수 없는 응답 상태: ' + data.status)
+      
+    } catch (error) {
+      console.error('[authAPI] 테스트 로그인 실패:', error)
+      throw error
     }
-    
-    throw new Error('로그인 실패')
   },
 
   /**
@@ -183,25 +263,41 @@ export const authAPI = {
    * 로그아웃
    */
   async logout(): Promise<{ success: boolean; message: string }> {
+    try {
+      // 1. 백엔드 로그아웃 API 호출 (JWT 쿠키 및 세션 정리)
+      await fetchFromAPI('/auth/logout', { method: 'POST' })
+    } catch (error) {
+      console.warn('[authAPI] 백엔드 로그아웃 API 호출 실패:', error)
+    }
+    
+    // 2. NextAuth 로그아웃
     await signOut({ redirect: false })
+    
+    // 3. 로컬 저장소 정리
+    authStorage.clearAll()
+    
     return { success: true, message: '로그아웃 되었습니다' }
   },
 
   /**
-   * 현재 사용자 정보 조회
+   * 현재 사용자 정보 조회 (NextAuth 세션 기반)
    */
   async getCurrentUser(): Promise<AccountInfo> {
+    // NextAuth 세션에서 사용자 정보 조회 (serverInfo, allianceTag 포함)
     const session = await getSession()
     
     if (session?.user) {
+      console.log('[authAPI] NextAuth 세션에서 사용자 정보 조회:', session.user)
       return {
         userId: parseInt(session.user.id),
-        kakaoId: '',
+        kakaoId: session.user.kakaoId || '',
         email: session.user.email || '',
         nickname: session.user.name || '',
         profileImageUrl: session.user.image,
         role: session.user.role || 'USER',
         status: 'ACTIVE',
+        serverInfo: session.user.serverInfo,
+        allianceTag: session.user.allianceTag,
         serverAllianceId: session.user.serverAllianceId,
         registrationComplete: session.user.registrationComplete || false
       }
@@ -219,36 +315,73 @@ export const authAPI = {
 
 }
 
-// NextAuth 기반 스토리지 관리 (NextAuth가 자동으로 관리)
+// 토큰 및 사용자 정보 관리
 export const authStorage = {
 
   /**
-   * 사용자 정보 저장 (NextAuth가 자동 관리)
+   * JWT 토큰 저장 (HttpOnly 쿠키로)
    */
-  setUserInfo(user: AccountInfo): void {
-    // NextAuth가 자동으로 관리하므로 별도 저장 불필요
+  setTokens(accessToken: string, refreshToken: string): void {
+    // HttpOnly 쿠키로 설정하기 위해 서버사이드에서 처리 필요
+    // 임시로 일반 쿠키에 저장 (보안상 좋지 않지만 테스트용)
+    document.cookie = `LASTWAR_JWT=${accessToken}; path=/; max-age=${24 * 60 * 60}; secure=false` // 1일
+    document.cookie = `LASTWAR_REFRESH=${refreshToken}; path=/; max-age=${7 * 24 * 60 * 60}; secure=false` // 7일
   },
 
   /**
-   * 사용자 정보 조회 (NextAuth에서 조회)
+   * JWT 토큰 조회
    */
-  getUserInfo(): AccountInfo | null {
-    // NextAuth를 통해 실시간으로 조회해야 하므로 null 반환
+  getAccessToken(): string | null {
+    if (typeof window === 'undefined') return null
+    const cookies = document.cookie.split(';')
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=')
+      if (name === 'LASTWAR_JWT') {
+        return value
+      }
+    }
     return null
   },
 
   /**
-   * 사용자 정보 삭제 (NextAuth가 자동 관리)
+   * 사용자 정보 저장
    */
-  removeUserInfo(): void {
-    // NextAuth가 자동으로 관리하므로 별도 삭제 불필요
+  setUserInfo(user: AccountInfo): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lastwar_user', JSON.stringify(user))
+    }
   },
 
   /**
-   * 모든 인증 정보 삭제 (NextAuth가 자동 관리)
+   * 사용자 정보 조회
+   */
+  getUserInfo(): AccountInfo | null {
+    if (typeof window === 'undefined') return null
+    const userStr = localStorage.getItem('lastwar_user')
+    return userStr ? JSON.parse(userStr) : null
+  },
+
+  /**
+   * 사용자 정보 삭제
+   */
+  removeUserInfo(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('lastwar_user')
+    }
+  },
+
+  /**
+   * 모든 인증 정보 삭제
    */
   clearAll(): void {
-    // NextAuth가 자동으로 관리하므로 별도 삭제 불필요
+    // 쿠키 삭제
+    document.cookie = 'LASTWAR_JWT=; path=/; max-age=0'
+    document.cookie = 'LASTWAR_REFRESH=; path=/; max-age=0'
+    // localStorage 삭제
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('lastwar_user')
+      sessionStorage.removeItem('signup_user_data')
+    }
   }
 }
 
@@ -265,7 +398,18 @@ export const authUtils = {
   /**
    * 사용자가 로그인되어 있는지 확인 (NextAuth 세션 기준)
    */
-  async isLoggedIn(): Promise<boolean> {
+  isLoggedIn(): boolean {
+    // 동기 버전 - 클라이언트에서 빠른 체크용
+    if (typeof window === 'undefined') return false
+    // localStorage 또는 document.cookie에서 next-auth 토큰 확인
+    return document.cookie.includes('next-auth.session-token') || 
+           document.cookie.includes('__Secure-next-auth.session-token')
+  },
+
+  /**
+   * 사용자가 로그인되어 있는지 확인 (비동기 버전)
+   */
+  async isLoggedInAsync(): Promise<boolean> {
     const session = await getSession()
     return !!session?.user
   },

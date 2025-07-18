@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
-import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import { authAPI } from '@/lib/auth-api'
+import { useSession } from "next-auth/react"
 
 interface TestLoginForm {
   email: string
@@ -17,43 +17,45 @@ interface TestLoginForm {
 export default function TestLoginPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { data: session, status } = useSession()
   const [isLoading, setIsLoading] = useState(false)
   const [form, setForm] = useState<TestLoginForm>({
-    email: ''
+    email: 'os1414@hanmail.net'  // 기본값으로 설정
   })
 
-  // 이미 로그인되어 있으면 대시보드로 리다이렉트
+  const { data: session, status } = useSession()
+
+  // 이미 로그인되어 있으면 홈페이지로 리다이렉트
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      router.push('/dashboard')
+      router.push('/')
     }
-  }, [status, session, router])
+  }, [session, status, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const result = await signIn('test', {
+      console.log('[TestLogin] 테스트 로그인 시도:', form.email)
+      
+      const loginResponse = await authAPI.testLogin({
         email: form.email,
-        nickname: form.email.split('@')[0],
-        redirect: false
+        nickname: form.email.split('@')[0]
       })
 
-      if (result?.error) {
-        throw new Error(result.error)
-      }
+      console.log('[TestLogin] 백엔드 응답:', loginResponse)
 
-      if (result?.ok) {
+      if (loginResponse.status === 'login') {
         toast({
           title: '로그인 성공',
-          description: `${form.email.split('@')[0]}님 환영합니다!`,
+          description: `${loginResponse.user?.nickname}님 환영합니다!`,
           variant: 'default'
         })
 
-        // 대시보드로 리다이렉트
-        router.push('/dashboard')
+        console.log('[TestLogin] NextAuth 세션을 통한 로그인 완료 - 홈페이지로 이동')
+        window.location.href = '/'
+      } else {
+        throw new Error(loginResponse.message || '로그인에 실패했습니다')
       }
     } catch (error) {
       console.error('테스트 로그인 오류:', error)
@@ -71,29 +73,6 @@ export default function TestLoginPage() {
     setForm({ email: e.target.value })
   }
 
-  // 세션 로딩 중일 때 로딩 화면
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">로그인 상태를 확인하는 중...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // 이미 로그인되어 있으면 빈 화면 (리다이렉트 중)
-  if (status === 'authenticated') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">대시보드로 이동 중...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
