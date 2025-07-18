@@ -11,6 +11,9 @@ import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { signOut, useSession } from "next-auth/react"
 import { authAPI, authUtils } from "@/lib/auth-api"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger('Sidebar')
 
 const navItems = [
   {
@@ -51,7 +54,7 @@ export default function Sidebar() {
   // NextAuth 세션 정보 확인용 로깅
   useEffect(() => {
     if (session?.user) {
-      console.log('[Sidebar] NextAuth 세션 사용자 정보:', {
+      logger.debug('NextAuth 세션 사용자 정보', {
         nickname: session.user.name,
         serverInfo: session.user.serverInfo,
         allianceTag: session.user.allianceTag,
@@ -63,14 +66,14 @@ export default function Sidebar() {
   // 로그아웃 함수 (NextAuth + 백엔드 쿠키 정리)
   const handleLogout = async () => {
     try {
-      console.log('[Sidebar] 로그아웃 시작 - 백엔드 및 NextAuth')
+      logger.debug('로그아웃 시작 - 백엔드 및 NextAuth')
       // 1. 백엔드 로그아웃 API 호출 (JWT 쿠키 정리)
       await authAPI.logout()
       
       // 2. NextAuth 로그아웃
       await signOut({ callbackUrl: '/login' })
     } catch (error) {
-      console.error('[Sidebar] 로그아웃 중 오류:', error)
+      logger.error('로그아웃 중 오류', error)
       // 오류가 발생해도 NextAuth 로그아웃은 진행
       await signOut({ callbackUrl: '/login' })
     }

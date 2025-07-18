@@ -37,7 +37,6 @@ export default function LoginPage() {
       
       // 3초 이내 중복 요청 방지
       if (lastAttempt && (now - parseInt(lastAttempt)) < 3000) {
-        console.log('너무 빠른 연속 로그인 시도가 감지되었습니다.')
         setIsLoading(false)
         return
       }
@@ -47,8 +46,6 @@ export default function LoginPage() {
       // 2. 카카오 로그인 URL 조회
       const redirectUri = authUtils.generateRedirectUri()
       const { loginUrl } = await authAPI.getKakaoLoginUrl(redirectUri)
-      
-      console.log('[FRONTEND] 카카오 로그인 URL 조회 완료 - redirectUri:', redirectUri)
       
       // 3. 카카오 로그인 페이지로 리다이렉트
       window.location.href = loginUrl

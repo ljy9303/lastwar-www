@@ -1,5 +1,8 @@
 import { fetchFromAPI } from './api-service'
 import { signIn, signOut, getSession } from "next-auth/react"
+import { createLogger } from './logger'
+
+const logger = createLogger('authAPI')
 
 // OAuth 관련 타입 정의
 export interface KakaoLoginUrlResponse {
@@ -84,7 +87,7 @@ export const authAPI = {
    * 카카오 OAuth 로그인 (NextAuth를 통해 백엔드 호출)
    */
   async kakaoLogin(request: LoginRequest): Promise<LoginResponse> {
-    console.log('[authAPI] kakaoLogin 시작 - NextAuth를 통한 인증:', request)
+    logger.debug('kakaoLogin 시작 - NextAuth를 통한 인증', request)
     
     try {
       // NextAuth signIn을 통해 백엔드 호출 (중복 호출 방지)
