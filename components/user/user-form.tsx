@@ -94,7 +94,7 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
           id="level"
           type="number"
           min={1}
-          max={30}
+          max={35}
           value={formData.level || ""}
           onChange={(e) => handleChange("level", Number.parseInt(e.target.value))}
           required
