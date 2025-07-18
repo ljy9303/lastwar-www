@@ -74,8 +74,13 @@ export async function fetchFromAPI<T = any>(endpoint: string, options: RequestIn
       let errorData: any = {} // 타입을 명시적으로 any로 설정하거나 적절한 타입으로 정의
       try {
         errorData = await response.json()
-        if (errorData && typeof errorData === "object" && "message" in errorData) {
-          errorMessage = errorData.message as string
+        if (errorData && typeof errorData === "object") {
+          // 백엔드 GlobalExceptionHandler에서 "error" 키로 응답
+          if ("error" in errorData) {
+            errorMessage = errorData.error as string
+          } else if ("message" in errorData) {
+            errorMessage = errorData.message as string
+          }
         }
       } catch (e) {
         // JSON 파싱 실패 시 기본 메시지 사용

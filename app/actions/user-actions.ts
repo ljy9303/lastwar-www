@@ -41,10 +41,14 @@ export async function createUser(userData: UserCreateRequest): Promise<User> {
     return newUser
   } catch (error) {
     console.error("유저 생성 실패:", error)
-    // HTTP 상태 코드가 400인 경우 중복 유저 에러 처리
-    if (error instanceof Error && error.cause && (error.cause as any).status === 400) {
-      throw new Error("이미 존재하는 유저입니다.")
+    
+    // HTTP 상태 코드가 400인 경우 백엔드 에러 메시지 사용
+    if (error instanceof Error && "status" in error && error.status === 400) {
+      // 백엔드에서 온 정확한 에러 메시지 사용
+      throw new Error(error.message)
     }
+    
+    // 기타 에러 처리
     throw error
   }
 }
