@@ -11,6 +11,9 @@ import { UserPlus, Server, Shield, User, ArrowLeft, Loader2 } from "lucide-react
 import { authAPI, authStorage, authUtils, type SignupRequest } from "@/lib/auth-api"
 import { signIn } from "next-auth/react"
 import { toast } from "@/hooks/use-toast"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger('Signup')
 
 export default function SignupPage() {
   const router = useRouter()
@@ -32,7 +35,7 @@ export default function SignupPage() {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        console.log('[Signup] checkAuthStatus 시작')
+        logger.debug('checkAuthStatus 시작')
         
         // 1. sessionStorage에서 임시 사용자 정보 확인 (카카오 콜백에서 온 경우)
         const signupUserData = sessionStorage.getItem('signup_user_data')
@@ -43,7 +46,7 @@ export default function SignupPage() {
             
             // 10분 이내의 데이터만 유효하게 처리
             if (timeDiff < 10 * 60 * 1000) {
-              console.log('[Signup] sessionStorage에서 사용자 정보 로드 - userId:', userData.userId)
+              logger.debug('sessionStorage에서 사용자 정보 로드', { userId: userData.userId })
               
               const user = {
                 userId: userData.userId,
@@ -60,14 +63,14 @@ export default function SignupPage() {
                 nickname: userData.nickname
               }))
               setCheckingAuth(false)
-              console.log('[Signup] sessionStorage로 사용자 설정 완료')
+              logger.debug('sessionStorage로 사용자 설정 완료')
               return // sessionStorage 데이터가 있으면 여기서 완전히 종료
             } else {
-              console.log('[Signup] sessionStorage 데이터가 만료됨 (10분 초과)')
+              logger.debug('sessionStorage 데이터가 만료됨 (10분 초과)')
               sessionStorage.removeItem('signup_user_data')
             }
           } catch (error) {
-            console.error('[Signup] sessionStorage 데이터 파싱 실패:', error)
+            logger.error('sessionStorage 데이터 파싱 실패', error)
             sessionStorage.removeItem('signup_user_data')
           }
         }
@@ -79,7 +82,7 @@ export default function SignupPage() {
         const nickname = searchParams.get('nickname') || urlParams.get('nickname')
         
         if (userId && email && nickname) {
-          console.log('[Signup] URL 파라미터에서 사용자 정보 로드 (백업) - userId:', userId)
+          logger.debug('URL 파라미터에서 사용자 정보 로드 (백업)', { userId })
           
           const decodedEmail = decodeURIComponent(email)
           const decodedNickname = decodeURIComponent(nickname)
@@ -105,18 +108,18 @@ export default function SignupPage() {
         }
 
         // 2. NextAuth 세션 기반 확인 (URL 파라미터가 없는 경우에만)
-        console.log('[Signup] URL 파라미터 없음 - NextAuth 세션 확인')
+        logger.debug('URL 파라미터 없음 - NextAuth 세션 확인')
         try {
           const sessionCheck = await authAPI.checkSession()
           if (sessionCheck.valid && sessionCheck.user) {
             // 이미 회원가입이 완료된 경우
             if (sessionCheck.user.registrationComplete) {
-              console.log('[Signup] 이미 회원가입 완료 - 홈으로 이동')
+              logger.debug('이미 회원가입 완료 - 홈으로 이동')
               router.push('/')
               return
             }
 
-            console.log('[Signup] NextAuth 세션으로 사용자 정보 설정')
+            logger.debug('NextAuth 세션으로 사용자 정보 설정')
             setCurrentUser(sessionCheck.user)
             setFormData(prev => ({ 
               ...prev, 
@@ -129,15 +132,15 @@ export default function SignupPage() {
             return
           }
         } catch (sessionError) {
-          console.log('[Signup] 세션 확인 중 오류 (무시):', sessionError)
+          logger.debug('세션 확인 중 오류 (무시)', sessionError)
         }
 
         // 3. 둘 다 없으면 로그인 페이지로
-        console.log('[Signup] 인증 정보 없음 - 로그인 페이지로 이동')
+        logger.debug('인증 정보 없음 - 로그인 페이지로 이동')
         router.push('/login')
         
       } catch (error) {
-        console.error('[Signup] 인증 상태 확인 실패:', error)
+        logger.error('인증 상태 확인 실패', error)
         router.push('/login')
       } finally {
         setCheckingAuth(false)
@@ -206,12 +209,12 @@ export default function SignupPage() {
         
         // 토큰과 사용자 정보 저장
         if (signupResponse.accessToken && signupResponse.refreshToken) {
-          console.log('[Signup] 토큰 저장 중...')
+          logger.debug('토큰 저장 중...')
           authStorage.setTokens(signupResponse.accessToken, signupResponse.refreshToken)
         }
         
         if (signupResponse.user) {
-          console.log('[Signup] 사용자 정보 저장 중...')
+          logger.debug('사용자 정보 저장 중...')
           authStorage.setUserInfo(signupResponse.user)
         }
         
@@ -221,7 +224,7 @@ export default function SignupPage() {
         })
 
         // 회원가입 완료 후 NextAuth 세션 업데이트
-        console.log('[Signup] 회원가입 완료 - NextAuth 세션 업데이트')
+        logger.debug('회원가입 완료 - NextAuth 세션 업데이트')
         try {
           // Test provider로 NextAuth 세션 생성 (회원가입 완료된 사용자 정보로)
           await signIn('test', {
@@ -231,10 +234,10 @@ export default function SignupPage() {
           })
           
           // NextAuth 세션 생성 후 홈페이지로 이동
-          console.log('[Signup] NextAuth 세션 생성 완료 - 대시보드로 이동')
+          logger.debug('NextAuth 세션 생성 완료 - 대시보드로 이동')
           router.push('/dashboard')
         } catch (sessionError) {
-          console.error('[Signup] NextAuth 세션 생성 실패:', sessionError)
+          logger.error('NextAuth 세션 생성 실패', sessionError)
           // 세션 생성 실패해도 홈페이지로 이동 (백엔드 JWT는 있음)
           window.location.href = '/'
         }
@@ -248,7 +251,7 @@ export default function SignupPage() {
       }
 
     } catch (error) {
-      console.error('회원가입 실패:', error)
+      logger.error('회원가입 실패', error)
       toast({
         title: "회원가입 오류",
         description: "회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",

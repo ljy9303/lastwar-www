@@ -19,7 +19,6 @@ export default function KakaoCallbackPage() {
     const handleCallback = async () => {
       // 이미 처리 중이면 중복 실행 방지
       if (isProcessing) {
-        console.log('이미 처리 중이므로 중복 실행 방지')
         return
       }
       
@@ -116,7 +115,6 @@ export default function KakaoCallbackPage() {
           
           // OAuth 로그인 성공 로그
           
-          console.log('[Callback] NextAuth 세션 기반 로그인 완료 - 대시보드로 이동')
           router.push('/dashboard')
           
         } else if (loginResponse.status === 'signup_required') {
