@@ -316,6 +316,16 @@ export const authAPI = {
     return fetchFromAPI<any>('/auth/session/info')
   },
 
+  /**
+   * 닉네임 업데이트
+   */
+  async updateNickname(nickname: string): Promise<{ success: boolean; message: string }> {
+    return fetchFromAPI<{ success: boolean; message: string }>('/auth/update-nickname', {
+      method: 'PUT',
+      body: JSON.stringify({ nickname })
+    })
+  },
+
 }
 
 // 토큰 및 사용자 정보 관리
