@@ -3,14 +3,18 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User } from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User, Edit3, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useState, useEffect } from "react"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { useState, useEffect, useRef } from "react"
 import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
-import { signOut, useSession } from "next-auth/react"
+import { signOut, useSession, getSession } from "next-auth/react"
 import { authAPI, authUtils } from "@/lib/auth-api"
+import { toast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
 
 const logger = createLogger('Sidebar')
@@ -44,12 +48,18 @@ export default function Sidebar() {
   const isMobile = useMobile()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [pendingCount, setPendingCount] = useState(3)
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
   
   // NextAuth 세션 정보만 사용 (serverInfo, allianceTag 포함)
   const user = session?.user
   
   const [windowWidth, setWindowWidth] = useState(0)
+  
+  // 닉네임 수정 모달 상태 관리
+  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false)
+  const [editingNickname, setEditingNickname] = useState('')
+  const [isUpdatingNickname, setIsUpdatingNickname] = useState(false)
+  const [nicknameError, setNicknameError] = useState('')
 
   // NextAuth 세션 정보 확인용 로깅
   useEffect(() => {
@@ -76,6 +86,114 @@ export default function Sidebar() {
       logger.error('로그아웃 중 오류', error)
       // 오류가 발생해도 NextAuth 로그아웃은 진행
       await signOut({ callbackUrl: '/login' })
+    }
+  }
+
+  // 닉네임 유효성 검증 함수
+  const validateNickname = (nickname: string): string => {
+    if (!nickname) {
+      return '닉네임을 입력해주세요'
+    }
+    if (nickname.length < 2) {
+      return '닉네임은 최소 2자 이상이어야 합니다'
+    }
+    if (nickname.length > 20) {
+      return '닉네임은 최대 20자까지 입력 가능합니다'
+    }
+    if (!/^[a-zA-Z0-9가-힣]+$/.test(nickname)) {
+      return '닉네임은 영문자, 숫자, 한글만 사용할 수 있습니다'
+    }
+    if (nickname === (user?.nickname || user?.name)) {
+      return '기존 닉네임과 동일합니다'
+    }
+    return ''
+  }
+
+  // 닉네임 모달 열기
+  const openNicknameModal = () => {
+    if (!user?.nickname && !user?.name) return
+    
+    setEditingNickname(user?.nickname || user?.name || '')
+    setIsNicknameModalOpen(true)
+    setNicknameError('')
+    logger.debug('닉네임 수정 모달 열기', { currentNickname: user?.nickname || user?.name })
+  }
+
+  // 닉네임 모달 닫기
+  const closeNicknameModal = () => {
+    setIsNicknameModalOpen(false)
+    setEditingNickname('')
+    setNicknameError('')
+    logger.debug('닉네임 수정 모달 닫기')
+  }
+
+  // 닉네임 수정 저장
+  const saveNickname = async () => {
+    const trimmedNickname = editingNickname.trim()
+    const error = validateNickname(trimmedNickname)
+    
+    if (error) {
+      setNicknameError(error)
+      return
+    }
+
+    setIsUpdatingNickname(true)
+    setNicknameError('')
+
+    try {
+      logger.debug('닉네임 수정 요청', { newNickname: trimmedNickname })
+      
+      // 백엔드 API 호출
+      const response = await authAPI.updateNickname(trimmedNickname)
+      
+      if (response.success) {
+        closeNicknameModal()
+        
+        toast({
+          title: "닉네임 변경 완료",
+          description: `닉네임이 '${trimmedNickname}'로 변경되었습니다. 변경된 정보로 다시 로그인합니다.`,
+        })
+        
+        logger.debug('닉네임 수정 완료 - 로그아웃 진행', { newNickname: trimmedNickname })
+        
+        // 닉네임 변경 완료 후 강제 로그아웃하여 새로운 JWT 토큰으로 재로그인
+        setTimeout(async () => {
+          await handleLogout()
+        }, 2000) // 토스트 메시지를 보여준 후 로그아웃
+      } else {
+        throw new Error(response.message || '닉네임 변경에 실패했습니다')
+      }
+    } catch (error: any) {
+      logger.error('닉네임 수정 실패', error)
+      setNicknameError(error.message || '닉네임 변경 중 오류가 발생했습니다')
+      
+      toast({
+        title: "닉네임 변경 실패",
+        description: error.message || "닉네임 변경 중 오류가 발생했습니다.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsUpdatingNickname(false)
+    }
+  }
+
+  // 입력 필드 변경 처리
+  const handleNicknameChange = (value: string) => {
+    setEditingNickname(value)
+    if (nicknameError) {
+      const error = validateNickname(value.trim())
+      setNicknameError(error)
+    }
+  }
+
+  // 키보드 이벤트 처리
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      saveNickname()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      closeNicknameModal()
     }
   }
 
@@ -149,7 +267,18 @@ export default function Sidebar() {
                   <p className="text-xs text-muted-foreground">
                     {user?.serverInfo ? `${user.serverInfo}서버` : '미설정'} • {user?.allianceTag || '미설정'}
                   </p>
-                  <p className="text-sm font-medium truncate">{user?.nickname || user?.name}</p>
+                  <div className="flex items-center gap-2 group">
+                    <p className="text-sm font-medium truncate flex-1">{user?.nickname || user?.name}</p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={openNicknameModal}
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="닉네임 수정"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               <Button 
@@ -232,7 +361,18 @@ export default function Sidebar() {
                     <p className="text-xs text-muted-foreground">
                       {user?.serverInfo ? `${user.serverInfo}서버` : '미설정'} • {user?.allianceTag || '미설정'}
                     </p>
-                    <p className="text-sm font-medium truncate">{user?.nickname || user?.name}</p>
+                    <div className="flex items-center gap-2 group">
+                    <p className="text-sm font-medium truncate flex-1">{user?.nickname || user?.name}</p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={openNicknameModal}
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="닉네임 수정"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </Button>
+                  </div>
                   </div>
                 </div>
                 <Button 
@@ -261,6 +401,67 @@ export default function Sidebar() {
             )}
         </h1>
       </div>
+
+      {/* 닉네임 수정 모달 */}
+      <Dialog open={isNicknameModalOpen} onOpenChange={setIsNicknameModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>닉네임 수정</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <div>새로운 닉네임을 입력해주세요. 2~20자 사이의 영문자, 숫자, 한글만 사용할 수 있습니다.</div>
+              <div className="text-amber-600 font-medium">
+                ⚠️ 닉네임 변경이 완료되면 자동으로 로그아웃되며, 다시 로그인해야 합니다.
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="nickname" className="text-right">
+                닉네임
+              </Label>
+              <div className="col-span-3 space-y-2">
+                <Input
+                  id="nickname"
+                  value={editingNickname}
+                  onChange={(e) => handleNicknameChange(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="새 닉네임을 입력하세요"
+                  className="w-full"
+                  disabled={isUpdatingNickname}
+                  autoFocus
+                />
+                {nicknameError && (
+                  <p className="text-sm text-red-500">{nicknameError}</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={closeNicknameModal}
+              disabled={isUpdatingNickname}
+            >
+              취소
+            </Button>
+            <Button 
+              type="submit" 
+              onClick={saveNickname}
+              disabled={isUpdatingNickname || !editingNickname.trim()}
+            >
+              {isUpdatingNickname ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  변경 중...
+                </>
+              ) : (
+                '변경하기'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
