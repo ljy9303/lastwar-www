@@ -48,7 +48,7 @@ export default function Sidebar() {
   const isMobile = useMobile()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [pendingCount, setPendingCount] = useState(3)
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
   
   // NextAuth 세션 정보만 사용 (serverInfo, allianceTag 포함)
   const user = session?.user
@@ -147,7 +147,17 @@ export default function Sidebar() {
       const response = await authAPI.updateNickname(trimmedNickname)
       
       if (response.success) {
-        // NextAuth 세션 업데이트를 위해 세션 갱신
+        // NextAuth 세션 강제 업데이트 - 사이드바 즉시 갱신을 위해
+        await updateSession({
+          ...session,
+          user: {
+            ...session?.user,
+            name: trimmedNickname,
+            nickname: trimmedNickname
+          }
+        })
+        
+        // 추가로 getSession()도 호출하여 서버 세션과 동기화
         await getSession()
         
         closeNicknameModal()
