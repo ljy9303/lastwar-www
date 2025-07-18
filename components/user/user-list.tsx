@@ -48,6 +48,7 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
     return `${power.toFixed(1)}M`
   }
 
+  // 백엔드 기본 정렬과 일치: 연맹활동중 -> 등급 -> 전투력 순
   const [sortField, setSortField] = useState<keyof User | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
@@ -61,8 +62,25 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
   }
 
   const sortedUsers = [...users].sort((a, b) => {
-    if (!sortField) return 0
+    // 프론트엔드에서 정렬이 선택되지 않은 경우, 백엔드 기본 정렬 유지
+    if (!sortField) {
+      // 백엔드와 동일한 정렬: leave(asc) -> userGrade(desc) -> power(desc)
+      
+      // 1. 연맹활동중 우선 (leave = false가 먼저)
+      if (a.leave !== b.leave) {
+        return a.leave ? 1 : -1
+      }
+      
+      // 2. 등급 내림차순 (R5, R4, R3... 순)
+      if (a.userGrade !== b.userGrade) {
+        return b.userGrade.localeCompare(a.userGrade)
+      }
+      
+      // 3. 전투력 내림차순 (높은순)
+      return b.power - a.power
+    }
 
+    // 사용자가 특정 필드로 정렬을 선택한 경우
     const aValue = a[sortField]
     const bValue = b[sortField]
 
