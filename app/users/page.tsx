@@ -20,6 +20,7 @@ import { CsvImportExplanationDialog } from "@/components/user/csv-import-explana
 import { UserMergeDialog } from "@/components/user/user-merge-dialog"
 import { UserGradeStatistics } from "@/components/user/user-grade-statistics"
 import { useToast } from "@/hooks/use-toast"
+import { getSession } from "next-auth/react"
 
 export default function UsersPage() {
   const { toast } = useToast()
@@ -104,7 +105,8 @@ export default function UsersPage() {
       ["닉네임", "본부레벨", "전투력", "등급"],
       ["샘플유저1", "30", "120.5", "R5"],
       ["샘플유저2", "29", "95.2", "R4"],
-      ["SampleUser3", "28", "80.0", "R3"]
+      ["SampleUser3", "28", "", ""],  // 전투력, 등급 빈 값 예시 (기본값: 0.0, R1)
+      ["빈값테스트", "25", "50.0", ""]   // 등급만 빈 값 예시 (기본값: R1)
     ]
     
     const csv = Papa.unparse(sampleData)
@@ -193,9 +195,9 @@ export default function UsersPage() {
         return
       }
       
-      // 최소 컬럼 개수 확인
-      if (row.length < 4) {
-        const error = `${rowNum}행: 최소 4개 컬럼이 필요합니다. (현재: ${row.length}개, 데이터: [${row.join(', ')}])`
+      // 최소 컬럼 개수 확인 (닉네임, 레벨만 필수)
+      if (row.length < 2) {
+        const error = `${rowNum}행: 최소 2개 컬럼이 필요합니다. (현재: ${row.length}개, 데이터: [${row.join(', ')}])`
         console.error(error)
         errors.push(error)
         return
@@ -220,24 +222,32 @@ export default function UsersPage() {
         errors.push(error)
       }
       
-      // 전투력 검증
+      // 전투력 검증 (선택사항, 빈 값은 허용)
       const powerStr = row[2]?.trim()
-      const power = parseFloat(powerStr)
-      console.log(`${rowNum}행 전투력:`, powerStr, "->", power)
-      if (isNaN(power) || power < 0) {
-        const error = `${rowNum}행: 전투력은 0 이상의 숫자여야 합니다. (현재: "${powerStr}")`
-        console.error(error)
-        errors.push(error)
+      if (powerStr && powerStr !== '') {
+        const power = parseFloat(powerStr)
+        console.log(`${rowNum}행 전투력:`, powerStr, "->", power)
+        if (isNaN(power) || power < 0) {
+          const error = `${rowNum}행: 전투력은 0 이상의 숫자여야 합니다. (현재: "${powerStr}")`
+          console.error(error)
+          errors.push(error)
+        }
+      } else {
+        console.log(`${rowNum}행 전투력: 빈 값 (기본값 0.0 사용)`)
       }
       
-      // 등급 검증
+      // 등급 검증 (선택사항, 빈 값은 허용)
       const userGrade = row[3]?.trim()
-      const validGrades = ['R1', 'R2', 'R3', 'R4', 'R5']
-      console.log(`${rowNum}행 등급:`, userGrade)
-      if (!validGrades.includes(userGrade)) {
-        const error = `${rowNum}행: 등급은 R1, R2, R3, R4, R5 중 하나여야 합니다. (현재: "${userGrade}")`
-        console.error(error)
-        errors.push(error)
+      if (userGrade && userGrade !== '') {
+        const validGrades = ['R1', 'R2', 'R3', 'R4', 'R5']
+        console.log(`${rowNum}행 등급:`, userGrade)
+        if (!validGrades.includes(userGrade)) {
+          const error = `${rowNum}행: 등급은 R1, R2, R3, R4, R5 중 하나여야 합니다. (현재: "${userGrade}")`
+          console.error(error)
+          errors.push(error)
+        }
+      } else {
+        console.log(`${rowNum}행 등급: 빈 값 (기본값 R1 사용)`)
       }
     })
     
@@ -267,7 +277,7 @@ export default function UsersPage() {
   }
 
   // CSV 데이터를 User 객체 배열로 변환
-  const processCsvData = (data: string[][]): any[] => {
+  const processCsvData = async (data: string[][]): Promise<any[]> => {
     console.log("processCsvData 시작...")
     
     const hasHeader = data[0]?.some(cell => 
@@ -281,6 +291,21 @@ export default function UsersPage() {
     const allRows = data.slice(startIndex)
     console.log("처리할 전체 행:", allRows.length)
     
+    // 현재 로그인한 사용자의 server_alliance_id 가져오기
+    let serverAllianceId: number | null = null
+    try {
+      const session = await getSession()
+      serverAllianceId = session?.user?.serverAllianceId || null
+      console.log("현재 사용자의 server_alliance_id:", serverAllianceId)
+    } catch (error) {
+      console.error("세션 정보 가져오기 실패:", error)
+      throw new Error("로그인 정보를 확인할 수 없습니다. 다시 로그인해주세요.")
+    }
+    
+    if (!serverAllianceId) {
+      throw new Error("연맹 정보가 없습니다. 로그인 상태를 확인해주세요.")
+    }
+    
     const validRows = allRows.filter((row, index) => {
       const rowNum = index + startIndex + 1
       
@@ -290,15 +315,15 @@ export default function UsersPage() {
         return false
       }
       
-      // 컬럼 수 확인
-      if (row.length < 4) {
+      // 컬럼 수 확인 (최소 2개: 닉네임, 레벨)
+      if (row.length < 2) {
         console.log(`${rowNum}행: 컬럼 수 부족 (${row.length}개) - 제외`)
         return false
       }
       
-      // 필수 데이터 확인
-      if (!row[0]?.trim() || !row[1]?.trim()) {
-        console.log(`${rowNum}행: 필수 데이터 누락 (닉네임: "${row[0]}", 레벨: "${row[1]}") - 제외`)
+      // 필수 데이터 확인 (닉네임만 필수)
+      if (!row[0]?.trim()) {
+        console.log(`${rowNum}행: 닉네임 누락 - 제외`)
         return false
       }
       
@@ -309,11 +334,28 @@ export default function UsersPage() {
     console.log("유효한 행 수:", validRows.length)
 
     const processedUsers = validRows.map((row, index) => {
+      // 전투력 처리: 빈 값이면 0.0으로 기본값 설정
+      let power = 0.0
+      const powerStr = row[2]?.trim()
+      if (powerStr && powerStr !== '') {
+        const parsedPower = parseFloat(powerStr)
+        power = isNaN(parsedPower) ? 0.0 : parsedPower
+      }
+      
+      // 등급 처리: 빈 값이면 R1로 기본값 설정
+      let userGrade = 'R1'
+      const gradeStr = row[3]?.trim()
+      if (gradeStr && gradeStr !== '') {
+        const validGrades = ['R1', 'R2', 'R3', 'R4', 'R5']
+        userGrade = validGrades.includes(gradeStr) ? gradeStr : 'R1'
+      }
+      
       const userObj = {
         name: row[0]?.trim() || '',
         level: parseInt(row[1]?.trim()) || 1,
-        power: parseFloat(row[2]?.trim()) || 0,
-        userGrade: row[3]?.trim() || 'R1'
+        power: power,
+        userGrade: userGrade,
+        serverAllianceId: serverAllianceId // 현재 사용자의 server_alliance_id 추가
       }
       console.log(`유저 ${index + 1} 생성:`, userObj)
       return userObj
@@ -393,7 +435,7 @@ export default function UsersPage() {
 
         // 2단계: 데이터 가공
         console.log("데이터 가공 시작...")
-        const processedUsers = processCsvData(data)
+        const processedUsers = await processCsvData(data)
         console.log("가공된 유저 데이터:", processedUsers)
         console.log("가공된 유저 수:", processedUsers.length)
         
