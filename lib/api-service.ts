@@ -28,8 +28,16 @@ export async function fetchFromAPI<T = any>(endpoint: string, options: RequestIn
     
     const authHeaders: Record<string, string> = {}
     
+    // NextAuth 세션에서 액세스 토큰 사용 (백엔드는 세션 기반 JWT 관리)
     if (session?.accessToken) {
       authHeaders.Authorization = `Bearer ${session.accessToken}`
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[FRONTEND] NextAuth 토큰 사용 - ${method} ${endpoint}`)
+      }
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[FRONTEND] NextAuth 토큰 없음 - ${method} ${endpoint}, session:`, session ? 'exists' : 'null')
+      }
     }
 
     const response = await fetch(url, {
