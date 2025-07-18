@@ -147,7 +147,11 @@ export default function Sidebar() {
       const response = await authAPI.updateNickname(trimmedNickname)
       
       if (response.success) {
-        // NextAuth 세션 강제 업데이트 - 사이드바 즉시 갱신을 위해
+        // 백엔드에서 새로운 JWT 토큰을 쿠키에 설정했으므로
+        // getSession()을 호출하여 새로운 토큰으로 세션 갱신
+        await getSession()
+        
+        // 추가로 클라이언트 세션도 강제 업데이트 (즉시 UI 반영을 위해)
         await updateSession({
           ...session,
           user: {
@@ -156,9 +160,6 @@ export default function Sidebar() {
             nickname: trimmedNickname
           }
         })
-        
-        // 추가로 getSession()도 호출하여 서버 세션과 동기화
-        await getSession()
         
         closeNicknameModal()
         
