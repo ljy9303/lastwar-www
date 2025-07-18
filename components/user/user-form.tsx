@@ -22,6 +22,7 @@ interface UserFormProps {
 export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [nameError, setNameError] = useState<string>("")
   const [formData, setFormData] = useState<UserCreateRequest | UserUpdateRequest>(
     user
       ? {
@@ -42,6 +43,11 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
 
   const handleChange = (field: string, value: string | number | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    
+    // 닉네임 변경 시 에러 상태 초기화
+    if (field === "name") {
+      setNameError("")
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,11 +77,18 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
       }
     } catch (error) {
       console.error("유저 저장 실패:", error)
-      toast({
-        title: "오류 발생",
-        description: error instanceof Error ? error.message : "유저 저장 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
+      
+      // 닉네임 중복 에러인 경우 인풋 필드에 validation 표시
+      if (error instanceof Error && error.message.includes("같은 연맹에 이미 존재하는 닉네임입니다")) {
+        setNameError(error.message)
+      } else {
+        // 기타 에러는 토스트로 표시
+        toast({
+          title: "오류 발생",
+          description: error instanceof Error ? error.message : "유저 저장 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -85,7 +98,16 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-2">
         <Label htmlFor="name">닉네임</Label>
-        <Input id="name" value={formData.name || ""} onChange={(e) => handleChange("name", e.target.value)} required />
+        <Input 
+          id="name" 
+          value={formData.name || ""} 
+          onChange={(e) => handleChange("name", e.target.value)} 
+          className={nameError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+          required 
+        />
+        {nameError && (
+          <p className="text-sm text-red-500 mt-1">{nameError}</p>
+        )}
       </div>
 
       <div className="grid gap-2">
