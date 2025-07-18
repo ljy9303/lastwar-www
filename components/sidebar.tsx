@@ -147,28 +147,19 @@ export default function Sidebar() {
       const response = await authAPI.updateNickname(trimmedNickname)
       
       if (response.success) {
-        // 백엔드에서 새로운 JWT 토큰을 쿠키에 설정했으므로
-        // getSession()을 호출하여 새로운 토큰으로 세션 갱신
-        await getSession()
-        
-        // 추가로 클라이언트 세션도 강제 업데이트 (즉시 UI 반영을 위해)
-        await updateSession({
-          ...session,
-          user: {
-            ...session?.user,
-            name: trimmedNickname,
-            nickname: trimmedNickname
-          }
-        })
-        
         closeNicknameModal()
         
         toast({
           title: "닉네임 변경 완료",
-          description: `닉네임이 '${trimmedNickname}'로 변경되었습니다.`,
+          description: `닉네임이 '${trimmedNickname}'로 변경되었습니다. 변경된 정보로 다시 로그인합니다.`,
         })
         
-        logger.debug('닉네임 수정 완료', { newNickname: trimmedNickname })
+        logger.debug('닉네임 수정 완료 - 로그아웃 진행', { newNickname: trimmedNickname })
+        
+        // 닉네임 변경 완료 후 강제 로그아웃하여 새로운 JWT 토큰으로 재로그인
+        setTimeout(async () => {
+          await handleLogout()
+        }, 2000) // 토스트 메시지를 보여준 후 로그아웃
       } else {
         throw new Error(response.message || '닉네임 변경에 실패했습니다')
       }
@@ -416,8 +407,11 @@ export default function Sidebar() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>닉네임 수정</DialogTitle>
-            <DialogDescription>
-              새로운 닉네임을 입력해주세요. 2~20자 사이의 영문자, 숫자, 한글만 사용할 수 있습니다.
+            <DialogDescription className="space-y-2">
+              <div>새로운 닉네임을 입력해주세요. 2~20자 사이의 영문자, 숫자, 한글만 사용할 수 있습니다.</div>
+              <div className="text-amber-600 font-medium">
+                ⚠️ 닉네임 변경이 완료되면 자동으로 로그아웃되며, 다시 로그인해야 합니다.
+              </div>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
