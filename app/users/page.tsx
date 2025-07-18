@@ -105,8 +105,9 @@ export default function UsersPage() {
       ["닉네임", "본부레벨", "전투력", "등급"],
       ["샘플유저1", "30", "120.5", "R5"],
       ["샘플유저2", "29", "95.2", "R4"],
-      ["SampleUser3", "28", "", ""],  // 전투력, 등급 빈 값 예시 (기본값: 0.0, R1)
-      ["빈값테스트", "25", "50.0", ""]   // 등급만 빈 값 예시 (기본값: R1)
+      ["SampleUser3", "", "", ""],      // 모든 값 빈 값 예시 (기본값: 레벨1, 전투력0.0, 등급R1)
+      ["빈값테스트", "25", "50.0", ""],  // 등급만 빈 값 예시 (기본값: R1)
+      ["닉네임만입력", "", "", ""]        // 닉네임만 입력 예시 (모든 값 기본값 사용)
     ]
     
     const csv = Papa.unparse(sampleData)
@@ -195,9 +196,9 @@ export default function UsersPage() {
         return
       }
       
-      // 최소 컬럼 개수 확인 (닉네임, 레벨만 필수)
-      if (row.length < 2) {
-        const error = `${rowNum}행: 최소 2개 컬럼이 필요합니다. (현재: ${row.length}개, 데이터: [${row.join(', ')}])`
+      // 최소 컬럼 개수 확인 (닉네임만 필수)
+      if (row.length < 1) {
+        const error = `${rowNum}행: 최소 1개 컬럼이 필요합니다. (현재: ${row.length}개, 데이터: [${row.join(', ')}])`
         console.error(error)
         errors.push(error)
         return
@@ -212,14 +213,18 @@ export default function UsersPage() {
         errors.push(error)
       }
       
-      // 본부레벨 검증
+      // 본부레벨 검증 (선택사항, 빈 값은 허용)
       const levelStr = row[1]?.trim()
-      const level = parseInt(levelStr)
-      console.log(`${rowNum}행 레벨:`, levelStr, "->", level)
-      if (isNaN(level) || level < 1 || level > 50) {
-        const error = `${rowNum}행: 본부레벨은 1-50 사이의 숫자여야 합니다. (현재: "${levelStr}")`
-        console.error(error)
-        errors.push(error)
+      if (levelStr && levelStr !== '') {
+        const level = parseInt(levelStr)
+        console.log(`${rowNum}행 레벨:`, levelStr, "->", level)
+        if (isNaN(level) || level < 1 || level > 35) {
+          const error = `${rowNum}행: 본부레벨은 1-35 사이의 숫자여야 합니다. (현재: "${levelStr}")`
+          console.error(error)
+          errors.push(error)
+        }
+      } else {
+        console.log(`${rowNum}행 레벨: 빈 값 (기본값 1 사용)`)
       }
       
       // 전투력 검증 (선택사항, 빈 값은 허용)
@@ -315,8 +320,8 @@ export default function UsersPage() {
         return false
       }
       
-      // 컬럼 수 확인 (최소 2개: 닉네임, 레벨)
-      if (row.length < 2) {
+      // 컬럼 수 확인 (최소 1개: 닉네임만 필수)
+      if (row.length < 1) {
         console.log(`${rowNum}행: 컬럼 수 부족 (${row.length}개) - 제외`)
         return false
       }
@@ -334,6 +339,14 @@ export default function UsersPage() {
     console.log("유효한 행 수:", validRows.length)
 
     const processedUsers = validRows.map((row, index) => {
+      // 레벨 처리: 빈 값이면 1로 기본값 설정
+      let level = 1
+      const levelStr = row[1]?.trim()
+      if (levelStr && levelStr !== '') {
+        const parsedLevel = parseInt(levelStr)
+        level = (isNaN(parsedLevel) || parsedLevel < 1 || parsedLevel > 35) ? 1 : parsedLevel
+      }
+      
       // 전투력 처리: 빈 값이면 0.0으로 기본값 설정
       let power = 0.0
       const powerStr = row[2]?.trim()
@@ -352,7 +365,7 @@ export default function UsersPage() {
       
       const userObj = {
         name: row[0]?.trim() || '',
-        level: parseInt(row[1]?.trim()) || 1,
+        level: level,
         power: power,
         userGrade: userGrade,
         serverAllianceId: serverAllianceId // 현재 사용자의 server_alliance_id 추가
