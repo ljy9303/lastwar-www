@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   Search,
   Save,
@@ -17,6 +18,7 @@ import {
   Clipboard,
   RefreshCw,
   Clock,
+  Info,
 } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -1123,7 +1125,8 @@ export default function SquadsPage() {
   }
 
   return (
-    <div className="container mx-auto">
+    <TooltipProvider>
+      <div className="container mx-auto">
       <div className="flex items-center gap-2 mb-6">
         <h1 className="text-3xl font-bold">
           {selectedEvent ? selectedEvent.title : '스쿼드 관리'}
@@ -1170,70 +1173,76 @@ export default function SquadsPage() {
         <div className="flex gap-2">
           <div className="flex items-center gap-1">
             <span className="text-sm whitespace-nowrap">정렬:</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                // 우클릭이면 정렬 방향만 변경
-                if (e.button === 2 || e.ctrlKey || e.metaKey) {
-                  const newDirection = sortPowerDirection === "asc" ? "desc" : "asc"
-                  setSortPowerDirection(newDirection)
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newSortByGrade = !sortByGrade
+                  setSortByGrade(newSortByGrade)
 
-                  // 모든 팀에 새 정렬 방향 적용
+                  // 모든 팀에 새 정렬 방식 적용
                   const newSquadMembers = { ...squadMembers }
+
+                  // AB_POSSIBLE과 NONE을 제외한 모든 팀 정렬
                   Object.keys(newSquadMembers).forEach((team) => {
                     if (team !== TEAM.AB_POSSIBLE && team !== TEAM.NONE) {
                       const teamKey = team as keyof GroupedSquadResponse
-                      newSquadMembers[teamKey] = sortUsers(newSquadMembers[teamKey], newDirection, sortByGrade)
+                      newSquadMembers[teamKey] = sortUsers(newSquadMembers[teamKey], sortPowerDirection, newSortByGrade)
                     }
                   })
 
                   setSquadMembers(newSquadMembers)
-                  return
-                }
-
-                // 일반 클릭이면 정렬 기준 변경
-                const newSortByGrade = !sortByGrade
-                setSortByGrade(newSortByGrade)
-
-                // 모든 팀에 새 정렬 방식 적용
-                const newSquadMembers = { ...squadMembers }
-
-                // AB_POSSIBLE과 NONE을 제외한 모든 팀 정렬
-                Object.keys(newSquadMembers).forEach((team) => {
-                  if (team !== TEAM.AB_POSSIBLE && team !== TEAM.NONE) {
-                    const teamKey = team as keyof GroupedSquadResponse
-                    newSquadMembers[teamKey] = sortUsers(newSquadMembers[teamKey], sortPowerDirection, newSortByGrade)
-                  }
-                })
-
-                setSquadMembers(newSquadMembers)
-              }}
-              className="h-8 px-3"
-              title={`현재: ${sortByGrade ? "연맹등급" : "전투력"} 우선 정렬\n• 클릭: 정렬 기준 변경 (연맹등급 ↔ 전투력)\n• Ctrl+클릭: 정렬 방향 변경 (${sortPowerDirection === "desc" ? "내림차순 → 오름차순" : "오름차순 → 내림차순"})`}
-            >
-              <span className={sortByGrade ? "font-semibold text-primary" : "text-muted-foreground"}>
-                연맹등급
-              </span>
-              <span className="mx-1 text-muted-foreground">/</span>
-              <span className={!sortByGrade ? "font-semibold text-primary" : "text-muted-foreground"}>
-                전투력
-              </span>
-            </Button>
+                }}
+                className="h-8 px-3"
+              >
+                <span className={sortByGrade ? "font-semibold text-primary" : "text-muted-foreground"}>
+                  연맹등급
+                </span>
+                <span className="mx-1 text-muted-foreground">/</span>
+                <span className={!sortByGrade ? "font-semibold text-primary" : "text-muted-foreground"}>
+                  전투력
+                </span>
+              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>현재: {sortByGrade ? "연맹등급" : "전투력"} 우선 정렬</p>
+                  <p>클릭하면 정렬 기준이 변경됩니다</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
 
           {/* 유저 정보 동기화 버튼 */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={syncUserData}
-            disabled={isSyncing}
-            className="h-8"
-            title="유저 정보 동기화"
-          >
-            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span className="ml-1">동기화</span>
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncUserData}
+              disabled={isSyncing}
+              className="h-8"
+            >
+              {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              <span className="ml-1">동기화</span>
+            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>유저 정보 동기화</p>
+                <p>최신 레벨, 전투력, 연맹등급 정보를</p>
+                <p>users 테이블에서 가져와 업데이트합니다</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         <div className="flex gap-2 w-full md:w-auto">
@@ -1253,23 +1262,37 @@ export default function SquadsPage() {
             </Button>
           )}
 
-          <Button
-            onClick={confirmSquads}
-            disabled={isConfirming || squadMembers.AB_POSSIBLE.length > 0 || !eventId}
-            className="flex-1 md:flex-auto bg-green-600 hover:bg-green-700 text-white"
-          >
-            {isConfirming ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                확정 중...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                팀 구성 확정
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-1 flex-1 md:flex-auto">
+            <Button
+              onClick={confirmSquads}
+              disabled={isConfirming || squadMembers.AB_POSSIBLE.length > 0 || !eventId}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isConfirming ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  확정 중...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  팀 구성 확정
+                </>
+              )}
+            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>팀 구성 확정</p>
+                <p>모든 팀원의 최종 배정을 완료합니다</p>
+                <p>⚠️ AB 가능 인원이 모두 배정되어야 실행 가능</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </div>
 
@@ -1584,6 +1607,7 @@ export default function SquadsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
