@@ -130,17 +130,47 @@ type UserHistory = {
   week4Played: boolean
 }
 
-// Function to sort users based on level and name
-const sortUsers = (users: SquadMember[], powerDirection: "asc" | "desc" = "desc"): SquadMember[] => {
-  return [...users].sort((a, b) => {
-    // Sort by userPower based on direction
-    const powerComparison = powerDirection === "desc" ? b.userPower - a.userPower : a.userPower - b.userPower
+// 연맹등급 순서 정의 (R5가 가장 높음)
+const GRADE_ORDER = {
+  "R5": 5,
+  "R4": 4,
+  "R3": 3,
+  "R2": 2,
+  "R1": 1,
+  "": 0, // 미지정
+} as const
 
-    if (powerComparison !== 0) {
-      return powerComparison
+// Function to sort users based on grade and power
+const sortUsers = (
+  users: SquadMember[], 
+  powerDirection: "asc" | "desc" = "desc",
+  sortByGrade: boolean = false
+): SquadMember[] => {
+  return [...users].sort((a, b) => {
+    if (sortByGrade) {
+      // 연맹등급 우선 정렬
+      const gradeA = GRADE_ORDER[a.userGrade as keyof typeof GRADE_ORDER] || 0
+      const gradeB = GRADE_ORDER[b.userGrade as keyof typeof GRADE_ORDER] || 0
+      const gradeComparison = gradeB - gradeA // 높은 등급(R5) 우선
+
+      if (gradeComparison !== 0) {
+        return gradeComparison
+      }
+
+      // 등급이 같으면 전투력으로 정렬
+      const powerComparison = powerDirection === "desc" ? b.userPower - a.userPower : a.userPower - b.userPower
+      if (powerComparison !== 0) {
+        return powerComparison
+      }
+    } else {
+      // 전투력 우선 정렬
+      const powerComparison = powerDirection === "desc" ? b.userPower - a.userPower : a.userPower - b.userPower
+      if (powerComparison !== 0) {
+        return powerComparison
+      }
     }
 
-    // If power is the same, sort by userName in ascending order
+    // 최종적으로 이름순 정렬
     return a.userName.localeCompare(b.userName)
   })
 }
@@ -187,8 +217,8 @@ export default function SquadsPage() {
   // })
 
   // Sort direction states
-  // const [sortNameDirection, setSortNameDirection] = useState<"asc" | "desc">("asc")
   const [sortPowerDirection, setSortPowerDirection] = useState<"asc" | "desc">("desc")
+  const [sortByGrade, setSortByGrade] = useState<boolean>(false)
 
   // 이벤트 ID는 선택적 - 없으면 일반 스쿼드 관리 모드
 
@@ -210,12 +240,12 @@ export default function SquadsPage() {
 
         // 이벤트 타입에 따른 조건부 그룹 정렬
         const sortedSquadData: GroupedSquadResponse = {
-          A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
-          A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
+          A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection, sortByGrade),
+          A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection, sortByGrade),
           NONE: squadData.NONE || [],
           // A조만 사용하는 이벤트의 경우 B팀 관련 데이터를 빈 배열로 설정
-          B_TEAM: eventData?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_TEAM || [], sortPowerDirection),
-          B_RESERVE: eventData?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
+          B_TEAM: eventData?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_TEAM || [], sortPowerDirection, sortByGrade),
+          B_RESERVE: eventData?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_RESERVE || [], sortPowerDirection, sortByGrade),
           AB_POSSIBLE: eventData?.eventType === DesertEventType.A_TEAM_ONLY ? [] : squadData.AB_POSSIBLE || [],
         }
 
@@ -237,7 +267,7 @@ export default function SquadsPage() {
     }
 
     loadData()
-  }, [eventId, sortPowerDirection])
+  }, [eventId, sortPowerDirection, sortByGrade])
 
   // 유저 히스토리 조회 함수
   const fetchUserHistory = async (userSeq: number) => {
@@ -277,12 +307,12 @@ export default function SquadsPage() {
 
       // 각 그룹 정렬 (동기화 시에도 이벤트 타입 고려)
       const sortedSquadData: GroupedSquadResponse = {
-        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
-        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
+        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection, sortByGrade),
+        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection, sortByGrade),
         NONE: squadData.NONE || [],
         // A조만 사용하는 이벤트의 경우 B팀 관련 데이터를 빈 배열로 설정
-        B_TEAM: selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_TEAM || [], sortPowerDirection),
-        B_RESERVE: selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
+        B_TEAM: selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_TEAM || [], sortPowerDirection, sortByGrade),
+        B_RESERVE: selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY ? [] : sortUsers(squadData.B_RESERVE || [], sortPowerDirection, sortByGrade),
         AB_POSSIBLE: selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY ? [] : squadData.AB_POSSIBLE || [],
       }
 
@@ -328,7 +358,7 @@ export default function SquadsPage() {
   const generateClipboardText = (team: string) => {
     const members = [...squadMembers[team as keyof GroupedSquadResponse]].sort((a, b) => b.userPower - a.userPower)
     return members
-      .map((member, index) => `${index + 1}. ${member.userName} (${formatPower(member.userPower)})`)
+      .map((member, index) => `${index + 1}. ${member.userName} (Lv.${member.userLevel} | ${formatPower(member.userPower)} | ${member.userGrade || "미지정"})`)
       .join("\n")
   }
 
@@ -439,7 +469,7 @@ export default function SquadsPage() {
           newSquadMembers[toTeamKey] = [user, ...newSquadMembers[toTeamKey]]
         } else {
           // 다른 팀으로 이동할 때는 추가 후 정렬
-          newSquadMembers[toTeamKey] = sortUsers([...newSquadMembers[toTeamKey], user], sortPowerDirection)
+          newSquadMembers[toTeamKey] = sortUsers([...newSquadMembers[toTeamKey], user], sortPowerDirection, sortByGrade)
         }
 
         setSquadMembers(newSquadMembers)
@@ -544,10 +574,10 @@ export default function SquadsPage() {
 
       // 각 그룹 정렬
       const sortedSquadData = {
-        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
-        B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
-        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
-        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
+        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection, sortByGrade),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection, sortByGrade),
+        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection, sortByGrade),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection, sortByGrade),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || []
       }
@@ -630,10 +660,10 @@ export default function SquadsPage() {
 
       // 각 그룹 정렬
       const sortedSquadData = {
-        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection),
-        B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection),
-        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection),
-        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection),
+        A_TEAM: sortUsers(squadData.A_TEAM || [], sortPowerDirection, sortByGrade),
+        B_TEAM: sortUsers(squadData.B_TEAM || [], sortPowerDirection, sortByGrade),
+        A_RESERVE: sortUsers(squadData.A_RESERVE || [], sortPowerDirection, sortByGrade),
+        B_RESERVE: sortUsers(squadData.B_RESERVE || [], sortPowerDirection, sortByGrade),
         AB_POSSIBLE: squadData.AB_POSSIBLE || [],
         NONE: squadData.NONE || []
       }
@@ -699,7 +729,7 @@ export default function SquadsPage() {
       
       // 해당 팀에 유저 추가 및 정렬
       const teamKey = targetTeam as keyof GroupedSquadResponse
-      newSquadMembers[teamKey] = sortUsers([...newSquadMembers[teamKey], user], sortPowerDirection)
+      newSquadMembers[teamKey] = sortUsers([...newSquadMembers[teamKey], user], sortPowerDirection, sortByGrade)
       
       // 변경사항 기록
       newPendingChanges[user.userSeq] = {
@@ -884,7 +914,7 @@ export default function SquadsPage() {
             
             {/* 기본 정보 - 컴팩트하게 */}
             <div className="text-xs text-muted-foreground whitespace-nowrap">
-              Lv.{user.userLevel} | {formatPower(user.userPower)}
+              Lv.{user.userLevel} | {formatPower(user.userPower)} | {user.userGrade || "미지정"}
             </div>
 
             {/* Z-Score 배지 - 작게 */}
@@ -1139,7 +1169,32 @@ export default function SquadsPage() {
 
         <div className="flex gap-2">
           <div className="flex items-center gap-1">
-            <span className="text-sm whitespace-nowrap">전투력:</span>
+            <span className="text-sm whitespace-nowrap">정렬:</span>
+            <Button
+              variant={sortByGrade ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                const newSortByGrade = !sortByGrade
+                setSortByGrade(newSortByGrade)
+
+                // 모든 팀에 새 정렬 방식 적용
+                const newSquadMembers = { ...squadMembers }
+
+                // AB_POSSIBLE과 NONE을 제외한 모든 팀 정렬
+                Object.keys(newSquadMembers).forEach((team) => {
+                  if (team !== TEAM.AB_POSSIBLE && team !== TEAM.NONE) {
+                    const teamKey = team as keyof GroupedSquadResponse
+                    newSquadMembers[teamKey] = sortUsers(newSquadMembers[teamKey], sortPowerDirection, newSortByGrade)
+                  }
+                })
+
+                setSquadMembers(newSquadMembers)
+              }}
+              className="h-8 px-2"
+              title={sortByGrade ? "연맹등급 → 전투력 순 정렬 중" : "전투력만으로 정렬 중"}
+            >
+              {sortByGrade ? "연맹등급" : "전투력"}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -1150,17 +1205,18 @@ export default function SquadsPage() {
                 // 모든 팀에 새 정렬 방향 적용
                 const newSquadMembers = { ...squadMembers }
 
-                // AB_POSSIBLE과 UNASSIGNED를 제외한 모든 팀 정렬
+                // AB_POSSIBLE과 NONE을 제외한 모든 팀 정렬
                 Object.keys(newSquadMembers).forEach((team) => {
                   if (team !== TEAM.AB_POSSIBLE && team !== TEAM.NONE) {
                     const teamKey = team as keyof GroupedSquadResponse
-                    newSquadMembers[teamKey] = sortUsers(newSquadMembers[teamKey], newDirection)
+                    newSquadMembers[teamKey] = sortUsers(newSquadMembers[teamKey], newDirection, sortByGrade)
                   }
                 })
 
                 setSquadMembers(newSquadMembers)
               }}
               className="h-8 px-2"
+              title={sortPowerDirection === "desc" ? "내림차순 (높은 순)" : "오름차순 (낮은 순)"}
             >
               {sortPowerDirection === "asc" ? "↑" : "↓"}
             </Button>
@@ -1491,7 +1547,7 @@ export default function SquadsPage() {
                       <div>
                         <div className="font-medium">{member.userName}</div>
                         <div className="text-xs text-muted-foreground">
-                          Lv.{member.userLevel} | {formatPower(member.userPower)}
+                          Lv.{member.userLevel} | {formatPower(member.userPower)} | {member.userGrade || "미지정"}
                           {memberPosition !== -1 && (
                             <span className="ml-2 text-blue-600 dark:text-blue-400">
                               {getPositionLabel(memberPosition)}

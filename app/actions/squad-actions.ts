@@ -12,6 +12,7 @@ export interface SquadMember {
   userName: string
   userLevel: number
   userPower: number
+  userGrade: string
   intentType: string
   isCandidate: boolean
   isPlayed: boolean
