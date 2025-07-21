@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from "react"
 import type { User } from "@/types/user"
-import { motion } from "framer-motion"
-import { Loader2 } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Stars, Gift, Sparkles } from "lucide-react"
 import confetti from "canvas-confetti"
+import { Badge } from "@/components/ui/badge"
 
 interface LotteryAnimationProps {
   selectedUsers: User[]
@@ -19,20 +20,34 @@ export function LotteryAnimation({
   isAnimating,
   onAnimationComplete,
 }: LotteryAnimationProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [speed, setSpeed] = useState(100)
+  const [animationPhase, setAnimationPhase] = useState<"shuffling" | "revealing" | "complete">("shuffling")
   const [winners, setWinners] = useState<User[]>([])
-  const [isComplete, setIsComplete] = useState(false)
+  const [currentRevealIndex, setCurrentRevealIndex] = useState(0)
+  const [displayUsers, setDisplayUsers] = useState<User[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
-  const [visibleUsers, setVisibleUsers] = useState<User[]>([])
+
+  // 전투력 포맷팅 함수
+  const formatPower = (power: number): string => {
+    if (power === 0) return "0"
+    if (power < 1) {
+      return `${(power * 100).toFixed(0)}만`
+    }
+    if (power >= 1000) {
+      return `${(power / 1000).toFixed(1)}B`
+    }
+    if (power >= 100) {
+      return `${power.toFixed(0)}M`
+    }
+    return `${power.toFixed(1)}M`
+  }
 
   // 애니메이션 효과
   useEffect(() => {
     if (!isAnimating) {
-      setCurrentIndex(0)
-      setSpeed(100)
+      setAnimationPhase("shuffling")
       setWinners([])
-      setIsComplete(false)
+      setCurrentRevealIndex(0)
+      setDisplayUsers([])
       return
     }
 
@@ -45,98 +60,88 @@ export function LotteryAnimation({
     // 랜덤으로 당첨자 선정
     const shuffledUsers = [...selectedUsers].sort(() => Math.random() - 0.5)
     const selectedWinners = shuffledUsers.slice(0, winnerCount)
+    setWinners(selectedWinners)
 
-    // 초기 슬롯 머신 표시 유저 설정 (5명)
-    setVisibleUsers(getRandomUsers(5))
+    // 1단계: 셔플링 애니메이션 (2초)
+    setAnimationPhase("shuffling")
+    let shuffleTimer: NodeJS.Timeout
+    let shuffleCount = 0
+    const maxShuffleCount = 20
 
-    // 애니메이션 시작
-    let animationTimer: NodeJS.Timeout
-    let count = 0
-    const maxCount = 40 + winnerCount * 5 // 당첨자 수에 따라 애니메이션 길이 조정
-
-    // 초기 속도 - 매우 빠름
-    setSpeed(50)
-
-    const animate = () => {
-      // 슬롯 머신 효과를 위해 표시되는 유저 업데이트
-      setVisibleUsers(getRandomUsers(5))
-      count++
-
-      // 슬롯 머신 효과를 위한 속도 조절
-      if (count > maxCount * 0.9) {
-        // 마지막 10%에서 급격히 느려짐
-        setSpeed((prevSpeed) => Math.min(prevSpeed * 1.5, 1000))
-      } else if (count > maxCount * 0.7) {
-        // 70-90% 구간에서 점점 느려짐
-        setSpeed((prevSpeed) => Math.min(prevSpeed * 1.2, 500))
-      } else if (count > maxCount * 0.5) {
-        // 50-70% 구간에서 서서히 느려짐
-        setSpeed((prevSpeed) => Math.min(prevSpeed + 20, 200))
-      } else if (count > maxCount * 0.2) {
-        // 20-50% 구간에서 일정 속도 유지
-        setSpeed((prevSpeed) => prevSpeed)
-      } else {
-        // 처음 20%에서 빨라짐
-        setSpeed((prevSpeed) => Math.max(prevSpeed - 3, 30))
+    const shuffleAnimation = () => {
+      // 랜덤한 유저들을 표시
+      const randomUsers = []
+      for (let i = 0; i < Math.min(6, selectedUsers.length); i++) {
+        const randomIndex = Math.floor(Math.random() * selectedUsers.length)
+        randomUsers.push(selectedUsers[randomIndex])
       }
+      setDisplayUsers(randomUsers)
 
-      // 애니메이션 종료
-      if (count >= maxCount) {
-        clearTimeout(animationTimer)
-
-        // 마지막에 당첨자를 슬롯에 표시
-        if (winnerCount <= 5) {
-          // 당첨자가 5명 이하면 모두 표시
-          setVisibleUsers([...selectedWinners])
-        } else {
-          // 당첨자가 5명 초과면 첫 5명만 표시
-          setVisibleUsers([...selectedWinners.slice(0, 5)])
-        }
-
-        setWinners(selectedWinners)
-        setIsComplete(true)
-
-        // 축하 효과
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect()
-          const x = (rect.left + rect.right) / 2 / window.innerWidth
-          const y = (rect.top + rect.bottom) / 2 / window.innerHeight
-
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { x, y: y - 0.1 },
-          })
-        }
-
-        // 결과 전달
+      shuffleCount++
+      if (shuffleCount >= maxShuffleCount) {
+        clearTimeout(shuffleTimer)
+        // 2단계: 당첨자 공개 애니메이션 시작
         setTimeout(() => {
-          onAnimationComplete(selectedWinners)
-        }, 800)
+          setAnimationPhase("revealing")
+          setCurrentRevealIndex(0)
+        }, 300)
         return
       }
 
-      animationTimer = setTimeout(animate, speed)
+      const nextDelay = 50 + shuffleCount * 8 // 점점 느려지는 효과
+      shuffleTimer = setTimeout(shuffleAnimation, nextDelay)
     }
 
-    // 랜덤 유저 선택 함수
-    function getRandomUsers(count: number) {
-      const result: User[] = []
-      for (let i = 0; i < count; i++) {
-        const randomIndex = Math.floor(Math.random() * selectedUsers.length)
-        result.push(selectedUsers[randomIndex])
-      }
-      return result
-    }
-
-    // 애니메이션 시작
-    animationTimer = setTimeout(animate, speed)
+    shuffleTimer = setTimeout(shuffleAnimation, 100)
 
     // 클린업
     return () => {
-      clearTimeout(animationTimer)
+      clearTimeout(shuffleTimer)
     }
-  }, [isAnimating, selectedUsers, winnerCount, onAnimationComplete])
+  }, [isAnimating, selectedUsers, winnerCount])
+
+  // 당첨자 공개 애니메이션
+  useEffect(() => {
+    if (animationPhase !== "revealing" || currentRevealIndex >= winners.length) {
+      if (animationPhase === "revealing" && currentRevealIndex >= winners.length) {
+        // 모든 당첨자 공개 완료
+        setTimeout(() => {
+          setAnimationPhase("complete")
+          
+          // 축하 효과
+          if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect()
+            const x = (rect.left + rect.right) / 2 / window.innerWidth
+            const y = (rect.top + rect.bottom) / 2 / window.innerHeight
+
+            // 여러 번의 폭죽 효과
+            for (let i = 0; i < 3; i++) {
+              setTimeout(() => {
+                confetti({
+                  particleCount: 50,
+                  spread: 60,
+                  origin: { x: x + (Math.random() - 0.5) * 0.4, y: y - 0.1 },
+                  colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+                })
+              }, i * 200)
+            }
+          }
+
+          // 결과 전달
+          setTimeout(() => {
+            onAnimationComplete(winners)
+          }, 1500)
+        }, 500)
+      }
+      return
+    }
+
+    const revealTimer = setTimeout(() => {
+      setCurrentRevealIndex(prev => prev + 1)
+    }, 800) // 각 당첨자를 0.8초 간격으로 공개
+
+    return () => clearTimeout(revealTimer)
+  }, [animationPhase, currentRevealIndex, winners, onAnimationComplete])
 
   if (!isAnimating) {
     return null
@@ -145,81 +150,177 @@ export function LotteryAnimation({
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-md mx-auto bg-background rounded-lg shadow-lg p-8 border border-primary/20 overflow-hidden"
+      className="relative w-full max-w-lg mx-auto bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 rounded-2xl shadow-2xl p-8 border-2 border-blue-200 dark:border-blue-800 overflow-hidden"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 z-0" />
+      {/* 배경 장식 */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-4 left-4 animate-pulse">
+          <Stars className="h-6 w-6 text-yellow-500" />
+        </div>
+        <div className="absolute top-8 right-8 animate-bounce">
+          <Sparkles className="h-5 w-5 text-pink-500" />
+        </div>
+        <div className="absolute bottom-6 left-8 animate-pulse">
+          <Gift className="h-6 w-6 text-green-500" />
+        </div>
+        <div className="absolute bottom-4 right-4 animate-bounce">
+          <Stars className="h-4 w-4 text-blue-500" />
+        </div>
+      </div>
 
       <div className="relative z-10">
-        <h3 className="text-xl font-bold text-center mb-6">연맹원 랜덤 추첨 중...</h3>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            🎲 연맹원 랜덤 추첨 🎲
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {selectedUsers.length}명 중 {winnerCount}명 선정
+          </div>
+        </motion.div>
 
-        {!isComplete ? (
-          <div className="flex flex-col items-center justify-center min-h-[300px]">
-            {/* 슬롯 머신 효과 */}
-            <div className="relative w-full overflow-hidden mb-4 border border-primary/20 rounded-lg bg-accent/20 p-2">
-              {/* 슬롯 머신 상단 그라데이션 */}
-              <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-background to-transparent z-10" />
-
-              {/* 슬롯 머신 하단 그라데이션 */}
-              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background to-transparent z-10" />
-
-              {/* 중앙 선택 표시 */}
-              <div className="absolute inset-x-0 top-1/2 h-14 -translate-y-1/2 border-y-2 border-primary z-20 pointer-events-none" />
-
-              {/* 슬롯 아이템들 */}
-              <div className="py-20">
-                {visibleUsers.map((user, idx) => (
-                  <div
-                    key={`${user.userSeq}-${idx}`}
-                    className={`py-3 text-center transition-all duration-200 ${idx === 2 ? "scale-110 font-bold" : "opacity-70"}`}
+        <AnimatePresence mode="wait">
+          {animationPhase === "shuffling" && (
+            <motion.div
+              key="shuffling"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="min-h-[350px] flex flex-col items-center justify-center"
+            >
+              {/* 셔플링 카드들 */}
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                {displayUsers.slice(0, 4).map((user, index) => (
+                  <motion.div
+                    key={`shuffle-${user.userSeq}-${index}`}
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: 180 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-32 h-20 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-lg border-2 border-blue-200 dark:border-blue-700 flex flex-col items-center justify-center p-2"
                   >
-                    <div className="text-lg">{user.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Lv.{user.level} | {user.power.toLocaleString()}
+                    <div className="text-sm font-medium truncate w-full text-center">
+                      {user.name}
                     </div>
-                  </div>
+                    <div className="text-xs text-muted-foreground">
+                      Lv.{user.level}
+                    </div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
 
-            <div className="flex flex-col items-center justify-center mt-4">
-              <div className="relative w-12 h-12 mb-2">
-                <Loader2 className="h-12 w-12 animate-spin text-primary absolute" />
-                <div className="h-12 w-12 rounded-full border-2 border-primary/30 absolute"></div>
-              </div>
-              <span className="text-primary font-medium animate-pulse">추첨 중...</span>
-              <p className="text-xs text-muted-foreground mt-2">
-                {selectedUsers.length}명 중 {winnerCount}명 선정 중
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-center mb-4">
-              <div className="text-lg font-semibold">🎉 추첨 완료! 🎉</div>
-              <div className="text-sm text-muted-foreground">{winners.length}명의 당첨자가 선정되었습니다</div>
-            </div>
+              {/* 로딩 애니메이션 */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="w-16 h-16 rounded-full border-4 border-blue-200 border-t-blue-600 mb-4"
+              />
+              
+              <motion.div
+                animate={{ opacity: [1, 0.5, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="text-lg font-medium text-blue-600 dark:text-blue-400"
+              >
+                추첨 중...
+              </motion.div>
+            </motion.div>
+          )}
 
-            <div className="max-h-[300px] overflow-y-auto p-2 space-y-2">
-              {winners.map((winner, index) => (
+          {animationPhase === "revealing" && (
+            <motion.div
+              key="revealing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="min-h-[350px]"
+            >
+              <div className="text-center mb-6">
                 <motion.div
-                  key={winner.userSeq}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center justify-between p-3 rounded-md bg-primary/5 border border-primary/10"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-xl font-bold text-green-600 dark:text-green-400"
                 >
-                  <div>
-                    <div className="font-medium">{winner.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Lv.{winner.level} | {winner.power.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="text-sm font-semibold text-primary">#{index + 1}</div>
+                  🎉 당첨자 발표 🎉
                 </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+
+              <div className="space-y-3 max-h-[280px] overflow-y-auto">
+                {winners.slice(0, currentRevealIndex + 1).map((winner, index) => (
+                  <motion.div
+                    key={winner.userSeq}
+                    initial={{ opacity: 0, scale: 0, y: 50 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ 
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 25,
+                      delay: index === currentRevealIndex ? 0 : 0
+                    }}
+                    className="relative bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 rounded-xl p-4 border-2 border-yellow-200 dark:border-yellow-800 shadow-lg"
+                  >
+                    {/* 순위 뱃지 */}
+                    <div className="absolute -top-2 -left-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg">
+                      {index + 1}
+                    </div>
+
+                    <div className="flex items-center justify-between ml-4">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-lg">{winner.name}</span>
+                            {winner.userGrade && (
+                              <Badge variant="outline" className="text-xs border-blue-300 text-blue-700">
+                                {winner.userGrade}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            Lv.{winner.level} | {formatPower(winner.power)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <motion.div
+                        animate={{ rotate: [0, -10, 10, 0] }}
+                        transition={{ duration: 0.5, repeat: 2 }}
+                        className="text-2xl"
+                      >
+                        🏆
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {animationPhase === "complete" && (
+            <motion.div
+              key="complete"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-12"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="text-6xl mb-4"
+              >
+                🎊
+              </motion.div>
+              
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                추첨 완료!
+              </div>
+              
+              <div className="text-lg text-muted-foreground">
+                총 {winners.length}명의 당첨자가 선정되었습니다
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
