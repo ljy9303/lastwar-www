@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { Client, Frame, IMessage } from "@stomp/stompjs"
+import { useSession } from "next-auth/react"
 import { ChatMessage } from "@/lib/chat-service"
+import { authStorage } from "@/lib/auth-api"
 
 interface SendMessageRequest {
   roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
@@ -28,6 +30,7 @@ type EventListener = (event: RealtimeEvent) => void
  * STOMP WebSocket 연결 및 실시간 채팅 관리 훅
  */
 export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
+  const { data: session } = useSession()
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
@@ -53,12 +56,21 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
     setLastError(null)
 
     try {
+      // JWT 토큰 조회
+      const accessToken = authStorage.getAccessToken()
+      
       // STOMP 클라이언트 생성
       const client = new Client({
         brokerURL: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws",
         connectHeaders: {
-          // JWT 토큰이 있으면 헤더에 추가 (추후 구현)
-          // Authorization: `Bearer ${token}`
+          // JWT 토큰을 Authorization 헤더에 포함
+          ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+          // 세션 사용자 정보 추가
+          ...(session?.user && {
+            'X-User-Id': session.user.id,
+            'X-User-Name': session.user.name || '',
+            'X-Server-Alliance-Id': session.user.serverAllianceId?.toString() || ''
+          })
         },
         debug: (str) => {
           console.log('STOMP Debug:', str)
@@ -106,7 +118,7 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
       setIsConnecting(false)
       scheduleReconnect()
     }
-  }, [isConnecting, isConnected, roomType])
+  }, [isConnecting, isConnected, roomType, session])
 
   // 재연결 스케줄링
   const scheduleReconnect = useCallback(() => {

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
+import { usePathname } from "next/navigation"
 import { MessageCircle, X, Users, Globe, HelpCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -12,6 +13,7 @@ import { ChatModal } from "./chat-modal"
  * PandaRank 스타일의 우하단 고정 채팅 버튼
  */
 export function FloatingChatButton() {
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCounts, setUnreadCounts] = useState({
     global: 0,
@@ -19,11 +21,35 @@ export function FloatingChatButton() {
     inquiry: 1
   })
 
+  // 로그인/회원가입 페이지에서는 플로팅 버튼 숨기기
+  const hiddenPaths = ['/login', '/signup', '/auth/kakao/callback']
+  const shouldHide = hiddenPaths.some(path => pathname?.startsWith(path))
+
   // 전체 읽지 않은 메시지 수
   const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0)
 
   const toggleChat = () => {
-    setIsOpen(!isOpen)
+    setIsOpen(prev => !prev)
+  }
+
+  // 읽지 않은 메시지 수 업데이트 함수 (useCallback으로 안정화)
+  const handleUnreadChange = useCallback((newCounts: { global: number; alliance: number; inquiry: number }) => {
+    setUnreadCounts(prevCounts => {
+      // 값이 실제로 변경된 경우에만 업데이트
+      if (
+        prevCounts.global !== newCounts.global ||
+        prevCounts.alliance !== newCounts.alliance ||
+        prevCounts.inquiry !== newCounts.inquiry
+      ) {
+        return newCounts
+      }
+      return prevCounts
+    })
+  }, [])
+
+  // 숨겨야 하는 페이지에서는 렌더링하지 않음
+  if (shouldHide) {
+    return null
   }
 
   return (
@@ -172,7 +198,7 @@ export function FloatingChatButton() {
         isOpen={isOpen} 
         onClose={() => setIsOpen(false)}
         unreadCounts={unreadCounts}
-        onUnreadChange={setUnreadCounts}
+        onUnreadChange={handleUnreadChange}
       />
     </>
   )

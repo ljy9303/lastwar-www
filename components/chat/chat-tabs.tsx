@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Globe, Users, HelpCircle } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -22,7 +22,7 @@ interface ChatTabsProps {
 export function ChatTabs({ unreadCounts, onUnreadChange }: ChatTabsProps) {
   const [activeTab, setActiveTab] = useState("alliance")
 
-  const handleTabChange = (value: string) => {
+  const handleTabChange = useCallback((value: string) => {
     setActiveTab(value)
     
     // 탭 변경 시 해당 채팅방의 읽지 않은 메시지 수 초기화
@@ -32,7 +32,7 @@ export function ChatTabs({ unreadCounts, onUnreadChange }: ChatTabsProps) {
     else if (value === "inquiry") newCounts.inquiry = 0
     
     onUnreadChange(newCounts)
-  }
+  }, [unreadCounts, onUnreadChange])
 
   return (
     <div className="flex flex-col h-full">

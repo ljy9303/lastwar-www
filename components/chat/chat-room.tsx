@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { MessageBubble } from "./message-bubble"
 import { useWebSocket } from "@/hooks/chat/use-websocket"
 import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
 import { ChatService, type ChatMessage } from "@/lib/chat-service"
 
 interface ChatRoomProps {
@@ -24,6 +25,7 @@ interface ChatRoomProps {
  * 카카오톡 스타일의 실시간 채팅 인터페이스
  */
 export function ChatRoom({ roomType, title, description, color }: ChatRoomProps) {
+  const { data: session } = useSession()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -161,6 +163,16 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
   // 메시지 전송
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return
+    
+    // 사용자 세션 확인
+    if (!session?.user) {
+      toast({
+        title: "로그인 필요",
+        description: "메시지를 전송하려면 로그인이 필요합니다.",
+        variant: "destructive"
+      })
+      return
+    }
 
     const messageContent = newMessage.trim()
     setNewMessage("")
@@ -264,14 +276,18 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={`${title}에 메시지를 입력하세요...`}
+            placeholder={
+              session?.user 
+                ? `${title}에 메시지를 입력하세요...` 
+                : "로그인이 필요합니다"
+            }
             className="flex-1"
             maxLength={1000}
-            disabled={false}
+            disabled={!session?.user}
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || !session?.user}
             size="sm"
             className={`bg-${color}-600 hover:bg-${color}-700`}
           >
