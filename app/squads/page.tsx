@@ -1210,7 +1210,7 @@ export default function SquadsPage() {
                 setSquadMembers(newSquadMembers)
               }}
               className="h-8 px-3"
-              title={`현재: ${sortByGrade ? "연맹등급" : "전투력"} 우선 정렬 ${sortPowerDirection === "desc" ? "(내림차순)" : "(오름차순)"}\n• 클릭: 정렬 기준 변경\n• Ctrl+클릭: 정렬 방향 변경`}
+              title={`현재: ${sortByGrade ? "연맹등급" : "전투력"} 우선 정렬\n• 클릭: 정렬 기준 변경 (연맹등급 ↔ 전투력)\n• Ctrl+클릭: 정렬 방향 변경 (${sortPowerDirection === "desc" ? "내림차순 → 오름차순" : "오름차순 → 내림차순"})`}
             >
               <span className={sortByGrade ? "font-semibold text-primary" : "text-muted-foreground"}>
                 연맹등급
@@ -1218,9 +1218,6 @@ export default function SquadsPage() {
               <span className="mx-1 text-muted-foreground">/</span>
               <span className={!sortByGrade ? "font-semibold text-primary" : "text-muted-foreground"}>
                 전투력
-              </span>
-              <span className="ml-1 text-xs text-muted-foreground">
-                {sortPowerDirection === "desc" ? "↓" : "↑"}
               </span>
             </Button>
           </div>
