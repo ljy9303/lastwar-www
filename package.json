@@ -39,6 +39,7 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
+    "@stomp/stompjs": "^7.1.1",
     "@types/papaparse": "^5.3.16",
     "autoprefixer": "^10.4.20",
     "canvas-confetti": "latest",

@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { Client, Frame, IMessage } from "@stomp/stompjs"
+import { ChatMessage } from "@/lib/chat-service"
 
 interface SendMessageRequest {
   roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
@@ -9,31 +11,41 @@ interface SendMessageRequest {
   parentMessageId?: number
 }
 
-interface WebSocketMessage {
-  eventType: string
+interface RealtimeEvent {
+  eventType: "MESSAGE" | "USER_JOIN" | "USER_LEAVE" | "TYPING" | "ONLINE_COUNT"
   roomType: string
-  message?: any
+  message?: ChatMessage
   userName?: string
+  userCount?: number
   timestamp: string
 }
 
+// 메시지 이벤트 리스너 타입
+type MessageEventListener = (message: ChatMessage) => void
+type EventListener = (event: RealtimeEvent) => void
+
 /**
- * WebSocket 연결 및 실시간 채팅 관리 훅
+ * STOMP WebSocket 연결 및 실시간 채팅 관리 훅
  */
 export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
+  const [onlineCount, setOnlineCount] = useState(0)
   
-  const socketRef = useRef<WebSocket | null>(null)
-  const stompClientRef = useRef<any>(null)
+  const stompClientRef = useRef<Client | null>(null)
+  const subscriptionRef = useRef<any>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttempts = useRef(0)
+
+  // 이벤트 리스너들
+  const messageListenersRef = useRef<MessageEventListener[]>([])
+  const eventListenersRef = useRef<EventListener[]>([])
 
   const maxReconnectAttempts = 5
   const reconnectInterval = 3000
 
-  // WebSocket 연결
+  // STOMP WebSocket 연결
   const connect = useCallback(async () => {
     if (isConnecting || isConnected) return
 
@@ -41,55 +53,56 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
     setLastError(null)
 
     try {
-      // WebSocket 서버 URL (환경변수에서 가져오기)
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws"
-      
-      // TODO: STOMP over WebSocket 구현
-      // 현재는 기본 WebSocket으로 임시 구현
-      const socket = new WebSocket(wsUrl)
-      
-      socket.onopen = () => {
-        console.log("WebSocket 연결 성공")
-        setIsConnected(true)
-        setIsConnecting(false)
-        reconnectAttempts.current = 0
-        
-        // 채팅방 구독
-        subscribeToRoom(roomType)
-      }
-      
-      socket.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data)
-          handleIncomingMessage(message)
-        } catch (error) {
-          console.error("메시지 파싱 오류:", error)
+      // STOMP 클라이언트 생성
+      const client = new Client({
+        brokerURL: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws",
+        connectHeaders: {
+          // JWT 토큰이 있으면 헤더에 추가 (추후 구현)
+          // Authorization: `Bearer ${token}`
+        },
+        debug: (str) => {
+          console.log('STOMP Debug:', str)
+        },
+        reconnectDelay: reconnectInterval,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
+        onConnect: (frame: Frame) => {
+          console.log("STOMP 연결 성공:", frame)
+          setIsConnected(true)
+          setIsConnecting(false)
+          reconnectAttempts.current = 0
+          
+          // 채팅방 구독
+          subscribeToRoom(roomType)
+        },
+        onStompError: (frame: Frame) => {
+          console.error("STOMP 오류:", frame)
+          setLastError(`STOMP 오류: ${frame.headers['message']}`)
+          setIsConnecting(false)
+        },
+        onWebSocketClose: (event) => {
+          console.log("WebSocket 연결 종료:", event)
+          setIsConnected(false)
+          setIsConnecting(false)
+          
+          // 자동 재연결 (정상 종료가 아닌 경우)
+          if (!event.wasClean && reconnectAttempts.current < maxReconnectAttempts) {
+            scheduleReconnect()
+          }
+        },
+        onWebSocketError: (error) => {
+          console.error("WebSocket 오류:", error)
+          setLastError("WebSocket 연결 오류가 발생했습니다.")
+          setIsConnecting(false)
         }
-      }
-      
-      socket.onclose = (event) => {
-        console.log("WebSocket 연결 종료:", event.code, event.reason)
-        setIsConnected(false)
-        setIsConnecting(false)
-        socketRef.current = null
-        
-        // 자동 재연결 (정상 종료가 아닌 경우)
-        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
-          scheduleReconnect()
-        }
-      }
-      
-      socket.onerror = (error) => {
-        console.error("WebSocket 오류:", error)
-        setLastError("WebSocket 연결 오류가 발생했습니다.")
-        setIsConnecting(false)
-      }
-      
-      socketRef.current = socket
+      })
+
+      stompClientRef.current = client
+      client.activate()
       
     } catch (error) {
-      console.error("WebSocket 연결 실패:", error)
-      setLastError("WebSocket 연결에 실패했습니다.")
+      console.error("STOMP 클라이언트 생성 실패:", error)
+      setLastError("STOMP 클라이언트 생성에 실패했습니다.")
       setIsConnecting(false)
       scheduleReconnect()
     }
@@ -110,16 +123,21 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
     }, reconnectInterval * reconnectAttempts.current)
   }, [connect])
 
-  // WebSocket 연결 해제
+  // STOMP 연결 해제
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
     }
     
-    if (socketRef.current) {
-      socketRef.current.close(1000, "사용자 요청에 의한 연결 종료")
-      socketRef.current = null
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe()
+      subscriptionRef.current = null
+    }
+    
+    if (stompClientRef.current && stompClientRef.current.active) {
+      stompClientRef.current.deactivate()
+      stompClientRef.current = null
     }
     
     setIsConnected(false)
@@ -129,36 +147,60 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
 
   // 채팅방 구독
   const subscribeToRoom = useCallback((room: string) => {
-    // TODO: STOMP 구독 구현
-    console.log(`채팅방 구독: ${room}`)
-    
-    // 임시 구현: 서버에 구독 메시지 전송
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      const subscribeMessage = {
-        action: "subscribe",
-        roomType: room,
-        timestamp: new Date().toISOString()
-      }
-      
-      socketRef.current.send(JSON.stringify(subscribeMessage))
-    }
-  }, [])
-
-  // 메시지 전송
-  const sendMessage = useCallback(async (request: SendMessageRequest) => {
-    if (!isConnected || !socketRef.current) {
-      throw new Error("WebSocket이 연결되지 않았습니다.")
+    if (!stompClientRef.current || !stompClientRef.current.connected) {
+      console.warn("STOMP 클라이언트가 연결되지 않았습니다.")
+      return
     }
 
     try {
-      const message = {
-        action: "sendMessage",
-        ...request,
-        timestamp: new Date().toISOString()
+      // 기존 구독 해제
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe()
       }
+
+      // 새 채팅방 구독 - 서버 연맹 ID는 JWT에서 추출됨
+      const subscription = stompClientRef.current.subscribe(
+        `/topic/chat/*/` + room.toLowerCase(), // server_alliance_id는 서버에서 JWT로 필터링
+        (message: IMessage) => {
+          try {
+            const realtimeEvent: RealtimeEvent = JSON.parse(message.body)
+            handleIncomingEvent(realtimeEvent)
+          } catch (error) {
+            console.error("메시지 파싱 오류:", error)
+          }
+        }
+      )
+
+      subscriptionRef.current = subscription
+      console.log(`채팅방 구독 완료: ${room}`)
+
+      // 입장 알림
+      stompClientRef.current.publish({
+        destination: '/app/chat.join',
+        body: JSON.stringify({
+          roomType: room
+        })
+      })
+
+    } catch (error) {
+      console.error("채팅방 구독 실패:", error)
+      setLastError("채팅방 구독에 실패했습니다.")
+    }
+  }, [])
+
+  // STOMP 메시지 전송
+  const sendMessage = useCallback(async (request: SendMessageRequest) => {
+    if (!isConnected || !stompClientRef.current) {
+      throw new Error("STOMP 클라이언트가 연결되지 않았습니다.")
+    }
+
+    try {
+      stompClientRef.current.publish({
+        destination: '/app/chat.send',
+        body: JSON.stringify(request)
+      })
       
-      socketRef.current.send(JSON.stringify(message))
-      console.log("메시지 전송:", message)
+      console.log("메시지 전송:", request)
       
     } catch (error) {
       console.error("메시지 전송 실패:", error)
@@ -166,26 +208,74 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
     }
   }, [isConnected])
 
-  // 수신 메시지 처리
-  const handleIncomingMessage = useCallback((message: WebSocketMessage) => {
-    console.log("수신 메시지:", message)
+  // 수신 이벤트 처리
+  const handleIncomingEvent = useCallback((event: RealtimeEvent) => {
+    console.log("수신 이벤트:", event)
     
-    // TODO: 메시지 타입별 처리 로직 구현
-    switch (message.eventType) {
+    switch (event.eventType) {
       case "MESSAGE":
-        // 새 메시지 이벤트
+        // 새 메시지 도착
+        if (event.message) {
+          messageListenersRef.current.forEach(listener => {
+            listener(event.message!)
+          })
+        }
         break
+        
       case "USER_JOIN":
-        // 사용자 입장 이벤트
+        // 사용자 입장
+        console.log(`${event.userName}님이 입장했습니다.`)
         break
+        
       case "USER_LEAVE":
-        // 사용자 퇴장 이벤트
+        // 사용자 퇴장
+        console.log(`${event.userName}님이 퇴장했습니다.`)
         break
+        
+      case "ONLINE_COUNT":
+        // 온라인 사용자 수 업데이트
+        if (event.userCount !== undefined) {
+          setOnlineCount(event.userCount)
+        }
+        break
+        
       case "TYPING":
-        // 타이핑 상태 이벤트
+        // 타이핑 상태 (추후 구현)
         break
+        
       default:
-        console.warn("알 수 없는 메시지 타입:", message.eventType)
+        console.warn("알 수 없는 이벤트 타입:", event.eventType)
+    }
+    
+    // 모든 이벤트 리스너에게 알림
+    eventListenersRef.current.forEach(listener => {
+      listener(event)
+    })
+  }, [])
+
+  // 메시지 리스너 등록
+  const addMessageListener = useCallback((listener: MessageEventListener) => {
+    messageListenersRef.current.push(listener)
+    
+    // 리스너 제거 함수 반환
+    return () => {
+      const index = messageListenersRef.current.indexOf(listener)
+      if (index > -1) {
+        messageListenersRef.current.splice(index, 1)
+      }
+    }
+  }, [])
+
+  // 이벤트 리스너 등록
+  const addEventListener = useCallback((listener: EventListener) => {
+    eventListenersRef.current.push(listener)
+    
+    // 리스너 제거 함수 반환
+    return () => {
+      const index = eventListenersRef.current.indexOf(listener)
+      if (index > -1) {
+        eventListenersRef.current.splice(index, 1)
+      }
     }
   }, [])
 
@@ -210,9 +300,12 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
     isConnected,
     isConnecting,
     lastError,
+    onlineCount,
     connect,
     disconnect,
     sendMessage,
+    addMessageListener,
+    addEventListener,
     reconnectAttempts: reconnectAttempts.current,
     maxReconnectAttempts
   }

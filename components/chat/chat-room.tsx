@@ -34,8 +34,15 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
-  // WebSocket 연결 (추후 구현)
-  const { isConnected, sendMessage } = useWebSocket(roomType)
+  // STOMP WebSocket 연결
+  const { 
+    isConnected, 
+    isConnecting,
+    onlineCount,
+    sendMessage, 
+    addMessageListener,
+    lastError 
+  } = useWebSocket(roomType)
 
   // 메시지 목록의 끝으로 스크롤
   const scrollToBottom = () => {
@@ -51,6 +58,24 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // 실시간 메시지 수신 리스너 등록
+  useEffect(() => {
+    const removeListener = addMessageListener((newMessage: ChatMessage) => {
+      // 현재 채팅방의 메시지만 처리
+      if (newMessage.roomType === roomType) {
+        setMessages(prev => {
+          // 중복 메시지 방지
+          const exists = prev.some(msg => msg.messageId === newMessage.messageId)
+          if (exists) return prev
+          
+          return [...prev, newMessage]
+        })
+      }
+    })
+
+    return removeListener
+  }, [addMessageListener, roomType])
 
   // 초기 메시지 로드
   const loadInitialMessages = async () => {
@@ -141,22 +166,23 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
     setNewMessage("")
 
     try {
-      // WebSocket이 연결되어 있으면 WebSocket으로, 아니면 REST API로 전송
+      // WebSocket이 연결되어 있으면 WebSocket으로 우선 전송
       if (isConnected) {
         await sendMessage({
           roomType,
           messageType: "TEXT",
           content: messageContent
         })
+        // WebSocket으로 전송 시 실시간 수신 리스너에서 처리하므로 로컬 추가 안함
       } else {
-        // REST API로 메시지 전송
+        // WebSocket 연결이 없으면 REST API로 전송
         const sentMessage = await ChatService.sendMessage({
           roomType,
           messageType: "TEXT",
           content: messageContent
         })
         
-        // 성공적으로 전송된 메시지를 로컬에 추가
+        // REST API 전송 시에만 로컬에 추가 (실시간 수신이 없으므로)
         setMessages(prev => [...prev, sentMessage])
       }
       
@@ -197,7 +223,7 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
               {title}
             </h3>
             <p className={`text-xs text-${color}-600 dark:text-${color}-400`}>
-              {description}
+              {description} {onlineCount > 0 && `• ${onlineCount}명 접속중`}
             </p>
           </div>
           <div className="flex items-center gap-1">
@@ -254,8 +280,13 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
         </div>
         
         <p className="text-xs mt-1 flex items-center gap-1">
-          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
-          {isConnected ? 'WebSocket 연결됨' : 'REST API 모드'}
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            isConnecting ? 'bg-yellow-500 animate-pulse' : 
+            isConnected ? 'bg-green-500' : 'bg-red-500'
+          }`} />
+          {isConnecting ? 'STOMP 연결 중...' : 
+           isConnected ? 'STOMP 연결됨' : 
+           lastError ? `연결 오류: ${lastError}` : 'REST API 모드'}
         </p>
       </div>
     </div>
