@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { MessageBubble } from "./message-bubble"
 import { useWebSocket } from "@/hooks/chat/use-websocket"
 import { useToast } from "@/hooks/use-toast"
+import { ChatService, type ChatMessage } from "@/lib/chat-service"
 
 interface ChatRoomProps {
   roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
@@ -16,17 +17,7 @@ interface ChatRoomProps {
   color: "purple" | "green" | "orange"
 }
 
-interface ChatMessage {
-  messageId: number
-  userSeq: number
-  userName: string
-  userGrade?: string
-  content: string
-  createdAt: string
-  messageType: "TEXT" | "SYSTEM" | "JOIN" | "LEAVE"
-  isMyMessage: boolean
-  timeDisplay: string
-}
+// ChatMessage 인터페이스는 ChatService에서 import
 
 /**
  * 채팅방 컴포넌트
@@ -65,50 +56,43 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
   const loadInitialMessages = async () => {
     setIsLoading(true)
     try {
-      // TODO: API 호출로 초기 메시지 로드
-      const mockMessages: ChatMessage[] = [
-        {
-          messageId: 1,
-          userSeq: 1,
-          userName: "관리자",
-          userGrade: "R5",
-          content: `${title}에 오신 것을 환영합니다!`,
-          createdAt: new Date().toISOString(),
-          messageType: "SYSTEM",
-          isMyMessage: false,
-          timeDisplay: "방금 전"
-        },
-        {
-          messageId: 2,
-          userSeq: 2,
-          userName: "연맹원123",
-          userGrade: "R4",
-          content: "안녕하세요! 새로운 채팅 시스템이 좋네요",
-          createdAt: new Date().toISOString(),
-          messageType: "TEXT",
-          isMyMessage: false,
-          timeDisplay: "1분 전"
-        },
-        {
-          messageId: 3,
-          userSeq: 100, // 현재 사용자 가정
-          userName: "나",
-          userGrade: "R3",
-          content: "테스트 메시지입니다",
-          createdAt: new Date().toISOString(),
-          messageType: "TEXT",
-          isMyMessage: true,
-          timeDisplay: "방금 전"
-        }
-      ]
+      // 채팅방 입장 처리
+      await ChatService.joinChatRoom(roomType)
       
-      setMessages(mockMessages)
+      // 최신 메시지 20개 로드
+      const response = await ChatService.getChatHistory({
+        roomType,
+        size: 20
+      })
+      
+      setMessages(response.messages)
+      setHasMore(response.hasMore)
+      
     } catch (error) {
+      console.error("초기 메시지 로드 실패:", error)
       toast({
         title: "메시지 로드 실패",
         description: "채팅 메시지를 불러오는 중 오류가 발생했습니다.",
         variant: "destructive"
       })
+      
+      // 오류 시 빈 환영 메시지라도 표시
+      const welcomeMessage: ChatMessage = {
+        messageId: Date.now(),
+        userSeq: 0,
+        userName: "시스템",
+        userGrade: "SYSTEM",
+        content: `${title}에 오신 것을 환영합니다!`,
+        createdAt: new Date().toISOString(),
+        messageType: "SYSTEM",
+        roomType,
+        isMyMessage: false,
+        timeDisplay: "방금 전",
+        deleted: false,
+        readCount: 0,
+        serverAllianceId: 0
+      }
+      setMessages([welcomeMessage])
     } finally {
       setIsLoading(false)
     }
@@ -116,34 +100,29 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
 
   // 이전 메시지 더 로드 (무한스크롤)
   const loadMoreMessages = async () => {
-    if (isLoadingHistory || !hasMore) return
+    if (isLoadingHistory || !hasMore || messages.length === 0) return
     
     setIsLoadingHistory(true)
     try {
-      // TODO: API 호출로 이전 메시지 로드
-      // const lastMessageId = messages[0]?.messageId
-      // const response = await fetchChatHistory(roomType, lastMessageId)
+      // 가장 오래된 메시지 ID를 기준으로 이전 메시지 로드
+      const oldestMessageId = messages[0]?.messageId
       
-      // 임시 목업 데이터
-      await new Promise(resolve => setTimeout(resolve, 1000)) // 로딩 시뮬레이션
+      const response = await ChatService.getChatHistory({
+        roomType,
+        lastMessageId: oldestMessageId,
+        size: 20
+      })
       
-      const olderMessages: ChatMessage[] = [
-        {
-          messageId: 0,
-          userSeq: 3,
-          userName: "이전사용자",
-          userGrade: "R2",
-          content: "이전 메시지입니다",
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          messageType: "TEXT",
-          isMyMessage: false,
-          timeDisplay: "1시간 전"
-        }
-      ]
+      if (response.messages.length > 0) {
+        // 기존 메시지 앞에 이전 메시지들 추가
+        setMessages(prev => [...response.messages, ...prev])
+        setHasMore(response.hasMore)
+      } else {
+        setHasMore(false)
+      }
       
-      setMessages(prev => [...olderMessages, ...prev])
-      setHasMore(false) // 더 이상 로드할 메시지 없음
     } catch (error) {
+      console.error("이전 메시지 로드 실패:", error)
       toast({
         title: "이전 메시지 로드 실패",
         description: "이전 메시지를 불러오는 중 오류가 발생했습니다.",
@@ -157,41 +136,32 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
   // 메시지 전송
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return
-    if (!isConnected) {
-      toast({
-        title: "연결 오류",
-        description: "채팅 서버에 연결되지 않았습니다.",
-        variant: "destructive"
-      })
-      return
-    }
 
     const messageContent = newMessage.trim()
     setNewMessage("")
 
     try {
-      // WebSocket으로 메시지 전송
-      await sendMessage({
-        roomType,
-        messageType: "TEXT",
-        content: messageContent
-      })
-
-      // 임시로 로컬 메시지 추가 (실제로는 WebSocket 응답으로 처리)
-      const tempMessage: ChatMessage = {
-        messageId: Date.now(),
-        userSeq: 100, // 현재 사용자
-        userName: "나",
-        userGrade: "R3",
-        content: messageContent,
-        createdAt: new Date().toISOString(),
-        messageType: "TEXT",
-        isMyMessage: true,
-        timeDisplay: "방금 전"
+      // WebSocket이 연결되어 있으면 WebSocket으로, 아니면 REST API로 전송
+      if (isConnected) {
+        await sendMessage({
+          roomType,
+          messageType: "TEXT",
+          content: messageContent
+        })
+      } else {
+        // REST API로 메시지 전송
+        const sentMessage = await ChatService.sendMessage({
+          roomType,
+          messageType: "TEXT",
+          content: messageContent
+        })
+        
+        // 성공적으로 전송된 메시지를 로컬에 추가
+        setMessages(prev => [...prev, sentMessage])
       }
       
-      setMessages(prev => [...prev, tempMessage])
     } catch (error) {
+      console.error("메시지 전송 실패:", error)
       toast({
         title: "메시지 전송 실패",
         description: "메시지 전송 중 오류가 발생했습니다.",
@@ -271,11 +241,11 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
             placeholder={`${title}에 메시지를 입력하세요...`}
             className="flex-1"
             maxLength={1000}
-            disabled={!isConnected}
+            disabled={false}
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim() || !isConnected}
+            disabled={!newMessage.trim()}
             size="sm"
             className={`bg-${color}-600 hover:bg-${color}-700`}
           >
@@ -283,11 +253,10 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
           </Button>
         </div>
         
-        {!isConnected && (
-          <p className="text-xs text-red-500 mt-1">
-            서버에 연결 중입니다...
-          </p>
-        )}
+        <p className="text-xs mt-1 flex items-center gap-1">
+          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
+          {isConnected ? 'WebSocket 연결됨' : 'REST API 모드'}
+        </p>
       </div>
     </div>
   )
