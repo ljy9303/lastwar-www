@@ -1171,9 +1171,28 @@ export default function SquadsPage() {
           <div className="flex items-center gap-1">
             <span className="text-sm whitespace-nowrap">정렬:</span>
             <Button
-              variant={sortByGrade ? "default" : "outline"}
+              variant="outline"
               size="sm"
-              onClick={() => {
+              onClick={(e) => {
+                // 우클릭이면 정렬 방향만 변경
+                if (e.button === 2 || e.ctrlKey || e.metaKey) {
+                  const newDirection = sortPowerDirection === "asc" ? "desc" : "asc"
+                  setSortPowerDirection(newDirection)
+
+                  // 모든 팀에 새 정렬 방향 적용
+                  const newSquadMembers = { ...squadMembers }
+                  Object.keys(newSquadMembers).forEach((team) => {
+                    if (team !== TEAM.AB_POSSIBLE && team !== TEAM.NONE) {
+                      const teamKey = team as keyof GroupedSquadResponse
+                      newSquadMembers[teamKey] = sortUsers(newSquadMembers[teamKey], newDirection, sortByGrade)
+                    }
+                  })
+
+                  setSquadMembers(newSquadMembers)
+                  return
+                }
+
+                // 일반 클릭이면 정렬 기준 변경
                 const newSortByGrade = !sortByGrade
                 setSortByGrade(newSortByGrade)
 
@@ -1190,35 +1209,19 @@ export default function SquadsPage() {
 
                 setSquadMembers(newSquadMembers)
               }}
-              className="h-8 px-2"
-              title={sortByGrade ? "연맹등급 → 전투력 순 정렬 중" : "전투력만으로 정렬 중"}
+              className="h-8 px-3"
+              title={`현재: ${sortByGrade ? "연맹등급" : "전투력"} 우선 정렬 ${sortPowerDirection === "desc" ? "(내림차순)" : "(오름차순)"}\n• 클릭: 정렬 기준 변경\n• Ctrl+클릭: 정렬 방향 변경`}
             >
-              {sortByGrade ? "연맹등급" : "전투력"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const newDirection = sortPowerDirection === "asc" ? "desc" : "asc"
-                setSortPowerDirection(newDirection)
-
-                // 모든 팀에 새 정렬 방향 적용
-                const newSquadMembers = { ...squadMembers }
-
-                // AB_POSSIBLE과 NONE을 제외한 모든 팀 정렬
-                Object.keys(newSquadMembers).forEach((team) => {
-                  if (team !== TEAM.AB_POSSIBLE && team !== TEAM.NONE) {
-                    const teamKey = team as keyof GroupedSquadResponse
-                    newSquadMembers[teamKey] = sortUsers(newSquadMembers[teamKey], newDirection, sortByGrade)
-                  }
-                })
-
-                setSquadMembers(newSquadMembers)
-              }}
-              className="h-8 px-2"
-              title={sortPowerDirection === "desc" ? "내림차순 (높은 순)" : "오름차순 (낮은 순)"}
-            >
-              {sortPowerDirection === "asc" ? "↑" : "↓"}
+              <span className={sortByGrade ? "font-semibold text-primary" : "text-muted-foreground"}>
+                연맹등급
+              </span>
+              <span className="mx-1 text-muted-foreground">/</span>
+              <span className={!sortByGrade ? "font-semibold text-primary" : "text-muted-foreground"}>
+                전투력
+              </span>
+              <span className="ml-1 text-xs text-muted-foreground">
+                {sortPowerDirection === "desc" ? "↓" : "↑"}
+              </span>
             </Button>
           </div>
 
