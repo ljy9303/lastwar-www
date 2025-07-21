@@ -6,17 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Search, Filter, RefreshCw } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Search, RefreshCw, ArrowUpDown, Users } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 interface UserSelectionProps {
   users: User[]
@@ -26,6 +17,17 @@ interface UserSelectionProps {
   enableListItemClick?: boolean
 }
 
+// 연맹등급 순서 정의
+const GRADE_ORDER = {
+  "R5": 5,
+  "R4": 4,
+  "R3": 3,
+  "R2": 2,
+  "R1": 1,
+  "미지정": 0,
+  "": 0
+} as const
+
 export function UserSelection({
   users,
   selectedUsers,
@@ -34,31 +36,28 @@ export function UserSelection({
   enableListItemClick = true,
 }: UserSelectionProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false)
-  const [filters, setFilters] = useState({
-    minLevel: "",
-    maxLevel: "",
-    minPower: "",
-    maxPower: "",
-    leaveStatus: "all",
-  })
+  const [sortBy, setSortBy] = useState<"power" | "grade">("power")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
 
-  // 필터링된 유저 목록
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesMinLevel = filters.minLevel === "" || user.level >= Number.parseInt(filters.minLevel)
-    const matchesMaxLevel = filters.maxLevel === "" || user.level <= Number.parseInt(filters.maxLevel)
-    const matchesMinPower = filters.minPower === "" || user.power >= Number.parseInt(filters.minPower)
-    const matchesMaxPower = filters.maxPower === "" || user.power <= Number.parseInt(filters.maxPower)
-    const matchesLeaveStatus =
-      filters.leaveStatus === "all" ||
-      (filters.leaveStatus === "active" && !user.leave) ||
-      (filters.leaveStatus === "left" && user.leave)
-
-    return (
-      matchesSearch && matchesMinLevel && matchesMaxLevel && matchesMinPower && matchesMaxPower && matchesLeaveStatus
-    )
-  })
+  // 검색 및 정렬된 유저 목록
+  const filteredAndSortedUsers = users
+    .filter((user) => user.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === "power") {
+        return sortDirection === "desc" ? b.power - a.power : a.power - b.power
+      } else {
+        // 연맹등급 정렬
+        const gradeA = GRADE_ORDER[a.userGrade as keyof typeof GRADE_ORDER] || 0
+        const gradeB = GRADE_ORDER[b.userGrade as keyof typeof GRADE_ORDER] || 0
+        
+        if (gradeA === gradeB) {
+          // 등급이 같으면 전투력으로 정렬 (내림차순)
+          return b.power - a.power
+        }
+        
+        return sortDirection === "desc" ? gradeB - gradeA : gradeA - gradeB
+      }
+    })
 
   // 유저 선택 토글
   const toggleUserSelection = (user: User) => {
@@ -78,26 +77,36 @@ export function UserSelection({
     if (selectedUsers.length > 0) {
       onSelectUsers([])
     } else {
-      const usersToSelect = filteredUsers.slice(0, maxSelections)
+      const usersToSelect = filteredAndSortedUsers.slice(0, maxSelections)
       onSelectUsers(usersToSelect)
     }
   }
 
-  // 필터 적용
-  const applyFilters = () => {
-    setIsFilterDialogOpen(false)
+  // 정렬 변경
+  const handleSortChange = (newSortBy: "power" | "grade") => {
+    if (sortBy === newSortBy) {
+      // 같은 정렬 기준이면 방향만 변경
+      setSortDirection(sortDirection === "desc" ? "asc" : "desc")
+    } else {
+      // 다른 정렬 기준이면 새로운 기준으로 변경하고 내림차순으로 시작
+      setSortBy(newSortBy)
+      setSortDirection("desc")
+    }
   }
 
-  // 필터 초기화
-  const resetFilters = () => {
-    setFilters({
-      minLevel: "",
-      maxLevel: "",
-      minPower: "",
-      maxPower: "",
-      leaveStatus: "all",
-    })
-    setSearchTerm("")
+  // 전투력 포맷팅 함수
+  const formatPower = (power: number): string => {
+    if (power === 0) return "0"
+    if (power < 1) {
+      return `${(power * 100).toFixed(0)}만`
+    }
+    if (power >= 1000) {
+      return `${(power / 1000).toFixed(1)}B`
+    }
+    if (power >= 100) {
+      return `${power.toFixed(0)}M`
+    }
+    return `${power.toFixed(1)}M`
   }
 
   return (
@@ -112,92 +121,41 @@ export function UserSelection({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              필터
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>유저 필터</DialogTitle>
-              <DialogDescription>유저 목록을 필터링합니다.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="minLevel">최소 레벨</Label>
-                  <Input
-                    id="minLevel"
-                    type="number"
-                    placeholder="최소 레벨"
-                    value={filters.minLevel}
-                    onChange={(e) => setFilters({ ...filters, minLevel: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maxLevel">최대 레벨</Label>
-                  <Input
-                    id="maxLevel"
-                    type="number"
-                    placeholder="최대 레벨"
-                    value={filters.maxLevel}
-                    onChange={(e) => setFilters({ ...filters, maxLevel: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="minPower">최소 전투력</Label>
-                  <Input
-                    id="minPower"
-                    type="number"
-                    placeholder="최소 전투력"
-                    value={filters.minPower}
-                    onChange={(e) => setFilters({ ...filters, minPower: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="maxPower">최대 전투력</Label>
-                  <Input
-                    id="maxPower"
-                    type="number"
-                    placeholder="최대 전투력"
-                    value={filters.maxPower}
-                    onChange={(e) => setFilters({ ...filters, maxPower: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="leaveStatus">연맹 탈퇴 상태</Label>
-                <Select
-                  value={filters.leaveStatus}
-                  onValueChange={(value) => setFilters({ ...filters, leaveStatus: value })}
-                >
-                  <SelectTrigger id="leaveStatus">
-                    <SelectValue placeholder="연맹 탈퇴 상태" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">전체</SelectItem>
-                    <SelectItem value="active">활동중</SelectItem>
-                    <SelectItem value="left">탈퇴</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={resetFilters}>
-                초기화
-              </Button>
-              <Button onClick={applyFilters}>적용</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Button variant="outline" onClick={toggleAllUsers}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          {selectedUsers.length > 0 ? "전체 해제" : "전체 선택"}
-        </Button>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant={sortBy === "power" ? "default" : "outline"}
+            onClick={() => handleSortChange("power")}
+            className="flex items-center gap-2"
+          >
+            <ArrowUpDown className="h-4 w-4" />
+            전투력
+            {sortBy === "power" && (
+              <span className="text-xs">
+                {sortDirection === "desc" ? "↓" : "↑"}
+              </span>
+            )}
+          </Button>
+          
+          <Button 
+            variant={sortBy === "grade" ? "default" : "outline"}
+            onClick={() => handleSortChange("grade")}
+            className="flex items-center gap-2"
+          >
+            <Users className="h-4 w-4" />
+            연맹등급
+            {sortBy === "grade" && (
+              <span className="text-xs">
+                {sortDirection === "desc" ? "↓" : "↑"}
+              </span>
+            )}
+          </Button>
+          
+          <Button variant="outline" onClick={toggleAllUsers}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {selectedUsers.length > 0 ? "전체 해제" : "전체 선택"}
+          </Button>
+        </div>
       </div>
 
       <div className="text-sm text-muted-foreground">
@@ -206,9 +164,9 @@ export function UserSelection({
 
       <div className="border rounded-md">
         <div className="max-h-[70vh] overflow-y-auto">
-          {filteredUsers.length > 0 ? (
+          {filteredAndSortedUsers.length > 0 ? (
             <div className="divide-y">
-              {filteredUsers.map((user) => {
+              {filteredAndSortedUsers.map((user) => {
                 const isSelected = selectedUsers.some((selectedUser) => selectedUser.userSeq === user.userSeq)
                 const isDisabled = !isSelected && selectedUsers.length >= maxSelections
 
@@ -232,9 +190,16 @@ export function UserSelection({
                       onClick={(e) => e.stopPropagation()} // Prevent double-toggling when clicking the checkbox directly
                     />
                     <div className="flex-1">
-                      <div className="font-medium">{user.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{user.name}</span>
+                        {user.userGrade && (
+                          <Badge variant="outline" className="text-xs">
+                            {user.userGrade}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        Lv.{user.level} | {user.power.toLocaleString()} | {user.leave ? "탈퇴" : "활동중"}
+                        Lv.{user.level} | {formatPower(user.power)} | 활동중
                       </div>
                     </div>
                   </div>
