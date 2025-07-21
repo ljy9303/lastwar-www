@@ -4,6 +4,7 @@ import { useState } from "react"
 import type { User } from "@/types/user"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Copy } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
@@ -20,6 +21,21 @@ export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResu
 
   if (winners.length === 0) {
     return null
+  }
+
+  // 전투력 포맷팅 함수 (1 = 1백만)
+  const formatPower = (power: number): string => {
+    if (power === 0) return "0"
+    if (power < 1) {
+      return `${(power * 100).toFixed(0)}만`
+    }
+    if (power >= 1000) {
+      return `${(power / 1000).toFixed(1)}B`
+    }
+    if (power >= 100) {
+      return `${power.toFixed(0)}M`
+    }
+    return `${power.toFixed(1)}M`
   }
 
   // 닉네임 복사 기능
@@ -40,25 +56,12 @@ export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResu
     }
   }
 
-  // 확률 계산 (단순 확률: 당첨자 수 / 전체 선택된 수)
-  const calculateProbability = () => {
-    return drawCount / totalSelected
-  }
-
-  // 확률을 퍼센트로 표시하는 함수
-  const formatProbability = (probability: number) => {
-    return `${(probability * 100).toFixed(2)}%`
-  }
-
-  const probability = calculateProbability()
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>추첨 결과</CardTitle>
         <CardDescription>
-          {format(new Date(), "yyyy년 MM월 dd일 HH:mm", { locale: ko })} | {totalSelected}명 중 {drawCount}명 추첨 |
-          확률: {formatProbability(probability)}
+          {format(new Date(), "yyyy년 MM월 dd일 HH:mm", { locale: ko })} | {totalSelected}명 중 {drawCount}명 추첨
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -70,17 +73,20 @@ export function LotteryResult({ winners, drawCount, totalSelected }: LotteryResu
                   {index + 1}
                 </div>
                 <div>
-                  <div className="font-medium">{winner.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{winner.name}</span>
+                    {winner.userGrade && (
+                      <Badge variant="outline" className="text-xs">
+                        {winner.userGrade}
+                      </Badge>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground">
-                    Lv.{winner.level} | {winner.power.toLocaleString()}
+                    Lv.{winner.level} | {formatPower(winner.power)} | 활동중
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex flex-col items-end">
-                  <div className="text-sm font-medium">{winner.leave ? "탈퇴" : "활동중"}</div>
-                  <div className="text-xs text-muted-foreground">확률: {formatProbability(probability)}</div>
-                </div>
                 <Button
                   variant="ghost"
                   size="sm"
