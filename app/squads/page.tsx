@@ -1173,7 +1173,18 @@ export default function SquadsPage() {
         <div className="flex gap-2">
           <div className="flex items-center gap-1">
             <span className="text-sm whitespace-nowrap">정렬:</span>
-            <div className="flex items-center gap-1">
+            <div className="relative">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="absolute -top-1 -right-1 h-4 w-4 p-0 z-10 bg-background border border-border rounded-full">
+                    <Info className="h-2.5 w-2.5 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>현재: {sortByGrade ? "연맹등급" : "전투력"} 우선 정렬</p>
+                  <p>클릭하면 정렬 기준이 변경됩니다</p>
+                </TooltipContent>
+              </Tooltip>
               <Button
                 variant="outline"
                 size="sm"
@@ -1204,22 +1215,23 @@ export default function SquadsPage() {
                   전투력
                 </span>
               </Button>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    <Info className="h-3 w-3 text-muted-foreground" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>현재: {sortByGrade ? "연맹등급" : "전투력"} 우선 정렬</p>
-                  <p>클릭하면 정렬 기준이 변경됩니다</p>
-                </TooltipContent>
-              </Tooltip>
             </div>
           </div>
 
           {/* 유저 정보 동기화 버튼 */}
-          <div className="flex items-center gap-1">
+          <div className="relative">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="absolute -top-1 -right-1 h-4 w-4 p-0 z-10 bg-background border border-border rounded-full">
+                  <Info className="h-2.5 w-2.5 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>유저 정보 동기화</p>
+                <p>유저 관리 기준으로 최신 레벨, 전투력,</p>
+                <p>연맹등급 정보를 가져옵니다</p>
+              </TooltipContent>
+            </Tooltip>
             <Button
               variant="outline"
               size="sm"
@@ -1230,18 +1242,6 @@ export default function SquadsPage() {
               {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               <span className="ml-1">동기화</span>
             </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <Info className="h-3 w-3 text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>유저 정보 동기화</p>
-                <p>최신 레벨, 전투력, 연맹등급 정보를</p>
-                <p>users 테이블에서 가져와 업데이트합니다</p>
-              </TooltipContent>
-            </Tooltip>
           </div>
         </div>
 
@@ -1262,11 +1262,23 @@ export default function SquadsPage() {
             </Button>
           )}
 
-          <div className="flex items-center gap-1 flex-1 md:flex-auto">
+          <div className="relative flex-1 md:flex-auto">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" className="absolute -top-1 -right-1 h-4 w-4 p-0 z-10 bg-background border border-border rounded-full">
+                  <Info className="h-2.5 w-2.5 text-muted-foreground" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>팀 구성 확정</p>
+                <p>모든 팀원의 최종 배정을 완료합니다</p>
+                <p>⚠️ AB 가능 인원이 모두 배정되어야 실행 가능</p>
+              </TooltipContent>
+            </Tooltip>
             <Button
               onClick={confirmSquads}
               disabled={isConfirming || squadMembers.AB_POSSIBLE.length > 0 || !eventId}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
             >
               {isConfirming ? (
                 <>
@@ -1280,18 +1292,6 @@ export default function SquadsPage() {
                 </>
               )}
             </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <Info className="h-3 w-3 text-muted-foreground" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>팀 구성 확정</p>
-                <p>모든 팀원의 최종 배정을 완료합니다</p>
-                <p>⚠️ AB 가능 인원이 모두 배정되어야 실행 가능</p>
-              </TooltipContent>
-            </Tooltip>
           </div>
         </div>
       </div>
