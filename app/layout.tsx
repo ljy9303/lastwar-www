@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { SessionProvider } from "next-auth/react"
 import AuthLayout from "@/components/AuthLayout"
 import { Toaster } from "@/components/ui/toaster"
+import { FloatingChatButton } from "@/components/chat/floating-chat-button"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -32,6 +33,7 @@ export default function RootLayout({
           >
             <AuthLayout>
               {children}
+              <FloatingChatButton />
             </AuthLayout>
           </SessionProvider>
           <Toaster />
