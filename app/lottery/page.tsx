@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Shuffle } from "lucide-react"
-import { getUsers } from "@/app/actions/user-actions"
+import { fetchFromAPI } from "@/lib/api-service"
 import { useToast } from "@/hooks/use-toast"
 import type { User } from "@/types/user"
 import { UserSelection } from "@/components/lottery/user-selection"
@@ -50,7 +50,8 @@ export default function LotteryPage() {
     const loadUsers = async () => {
       setIsLoading(true)
       try {
-        const data = await getUsers()
+        // 유저관리와 동일한 API 사용 (활동중인 유저만)
+        const data = await fetchFromAPI('/user?leave=false')
         setUsers(data)
       } catch (error) {
         console.error("유저 목록 로드 실패:", error)
@@ -235,7 +236,14 @@ export default function LotteryPage() {
                       {selectedUsers.length > 0 ? (
                         selectedUsers.map((user) => (
                           <div key={user.userSeq} className="text-sm p-2 border-b">
-                            <div className="font-medium">{user.name}</div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{user.name}</span>
+                              {user.userGrade && (
+                                <span className="px-1.5 py-0.5 text-xs bg-muted rounded">
+                                  {user.userGrade}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               Lv.{user.level} | {formatPower(user.power)}
                             </div>
