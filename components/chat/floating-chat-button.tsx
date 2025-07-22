@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, memo } from "react"
 import { usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { createPortal } from "react-dom"
 import { MessageCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,13 +17,15 @@ import { ChatService, type ChatMessage } from "@/lib/chat-service"
  */
 const FloatingChatButton = memo(function FloatingChatButton() {
   const pathname = usePathname()
+  const { data: session, status } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [hasUnread, setHasUnread] = useState(false)
   const [latestMessageId, setLatestMessageId] = useState<number | null>(null)
 
-  // 글로벌 채팅 WebSocket 연결 (백그라운드에서 항상 연결)
-  const { addMessageListener } = useWebSocket('GLOBAL')
+  // 인증된 사용자만 WebSocket 연결
+  const shouldConnectWebSocket = status === 'authenticated' && session?.user
+  const { addMessageListener } = useWebSocket(shouldConnectWebSocket ? 'GLOBAL' : null)
 
   useEffect(() => {
     // 클라이언트 사이드에서만 마운트 상태 설정
@@ -30,15 +33,17 @@ const FloatingChatButton = memo(function FloatingChatButton() {
     return () => clearTimeout(timer)
   }, [])
 
-  // 페이지 로드 시 최신 메시지 확인
+  // 인증된 사용자만 최신 메시지 확인
   useEffect(() => {
-    if (mounted) {
+    if (mounted && status === 'authenticated' && session?.user) {
       checkLatestMessage()
     }
-  }, [mounted])
+  }, [mounted, status, session])
 
-  // 실시간 메시지 수신 감지
+  // 인증된 사용자만 실시간 메시지 수신 감지
   useEffect(() => {
+    if (!shouldConnectWebSocket) return
+
     const removeListener = addMessageListener((newMessage: ChatMessage) => {
       console.log('🔔 실시간 메시지 수신 (백그라운드):', newMessage.messageId, newMessage.content)
       
@@ -49,10 +54,10 @@ const FloatingChatButton = memo(function FloatingChatButton() {
     })
 
     return removeListener
-  }, [addMessageListener, isOpen])
+  }, [addMessageListener, isOpen, shouldConnectWebSocket])
 
   // 로그인/회원가입 페이지에서는 플로팅 버튼 숨기기
-  const hiddenPaths = ['/login', '/signup', '/auth/kakao/callback']
+  const hiddenPaths = ['/login', '/test-login', '/signup', '/auth/kakao/callback']
   const shouldHide = hiddenPaths.some(path => pathname?.startsWith(path))
 
   // 최신 메시지 확인
@@ -104,8 +109,8 @@ const FloatingChatButton = memo(function FloatingChatButton() {
     }
   }
 
-  // 숨겨야 하는 페이지에서는 렌더링하지 않음
-  if (shouldHide || !mounted) {
+  // 숨겨야 하는 페이지이거나 마운트되지 않았거나 인증되지 않은 경우 렌더링하지 않음
+  if (shouldHide || !mounted || status === 'loading' || status === 'unauthenticated') {
     return null
   }
 
