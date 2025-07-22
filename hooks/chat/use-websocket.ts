@@ -29,7 +29,7 @@ type EventListener = (event: RealtimeEvent) => void
 /**
  * STOMP WebSocket 연결 및 실시간 채팅 관리 훅
  */
-export function useWebSocket(roomType: "GLOBAL" | "INQUIRY") {
+export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
   const { data: session } = useSession()
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -50,7 +50,7 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY") {
 
   // STOMP WebSocket 연결
   const connect = useCallback(async () => {
-    if (isConnecting || isConnected) return
+    if (!roomType || isConnecting || isConnected) return
 
     setIsConnecting(true)
     setLastError(null)
@@ -89,8 +89,10 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY") {
           setIsConnecting(false)
           reconnectAttempts.current = 0
           
-          // 채팅방 구독
-          subscribeToRoom(roomType)
+          // 채팅방 구독 (roomType이 있는 경우에만)
+          if (roomType) {
+            subscribeToRoom(roomType)
+          }
         },
         onStompError: (frame: Frame) => {
           console.error("STOMP 오류:", frame)
@@ -276,6 +278,11 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY") {
 
   // 메시지 리스너 등록
   const addMessageListener = useCallback((listener: MessageEventListener) => {
+    if (!roomType) {
+      // roomType이 null이면 빈 함수 반환
+      return () => {}
+    }
+    
     messageListenersRef.current.push(listener)
     
     // 리스너 제거 함수 반환
@@ -285,7 +292,7 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY") {
         messageListenersRef.current.splice(index, 1)
       }
     }
-  }, [])
+  }, [roomType])
 
   // 이벤트 리스너 등록
   const addEventListener = useCallback((listener: EventListener) => {
@@ -302,14 +309,14 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY") {
 
   // 컴포넌트 마운트 시 연결 (최적화)
   useEffect(() => {
-    // 연결되지 않은 경우에만 연결 시도
-    if (!isConnected && !isConnecting) {
+    // roomType이 있고 연결되지 않은 경우에만 연결 시도
+    if (roomType && !isConnected && !isConnecting) {
       connect()
     }
     
     // 컴포넌트 언마운트 시 연결 해제
     return disconnect
-  }, []) // 의존성 배열 제거로 무한 루프 방지
+  }, [roomType]) // roomType 변경 시에도 재연결
 
   // 채팅방 변경 시 재구독 (최적화)
   useEffect(() => {
