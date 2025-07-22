@@ -256,3 +256,5 @@ export async function getDesertStats() {
   console.warn('[DEPRECATED] getDesertStats()는 deprecated되었습니다. getDashboardStats()를 사용하세요.')
   return fetchFromAPI('/desert/stats')
 }
+
+// Chat API functions (실시간 채팅만 지원)
