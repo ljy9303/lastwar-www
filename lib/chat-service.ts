@@ -9,17 +9,16 @@ export interface ChatMessage {
   messageId: number
   userSeq: number
   userName: string
-  userGrade?: string
+  userTag?: string
+  serverTag?: number
+  allianceName?: string
   content: string
   createdAt: string
-  updatedAt?: string
   messageType: "TEXT" | "SYSTEM" | "JOIN" | "LEAVE" | "IMAGE" | "FILE"
   roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
   isMyMessage: boolean
   timeDisplay: string
   deleted: boolean
-  readCount: number
-  parentMessageId?: number
   serverAllianceId: number
 }
 
@@ -40,7 +39,6 @@ export interface SendMessageRequest {
   roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
   messageType: "TEXT" | "SYSTEM" | "JOIN" | "LEAVE"
   content: string
-  parentMessageId?: number
 }
 
 export interface SendMessageResponse extends ChatMessage {}

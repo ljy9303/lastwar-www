@@ -11,10 +11,13 @@ interface ChatMessage {
   messageId: number
   userSeq: number
   userName: string
-  userGrade?: string
+  userTag?: string
+  serverTag?: number
+  allianceName?: string
   content: string
   createdAt: string
   messageType: "TEXT" | "SYSTEM" | "JOIN" | "LEAVE"
+  roomType?: "GLOBAL" | "ALLIANCE" | "INQUIRY"
   isMyMessage: boolean
   timeDisplay: string
 }
@@ -133,10 +136,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
               {message.userName}
+              {message.roomType === "GLOBAL" && message.serverTag && message.allianceName && (
+                <span className="text-xs text-gray-500 ml-1">
+                  #{message.serverTag} {message.allianceName}
+                </span>
+              )}
             </span>
-            {message.userGrade && (
+            {message.userTag && (
               <Badge variant="outline" className="text-xs h-4 px-1">
-                {message.userGrade}
+                {message.userTag}
               </Badge>
             )}
           </div>

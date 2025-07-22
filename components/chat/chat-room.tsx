@@ -108,7 +108,7 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
         messageId: Date.now(),
         userSeq: 0,
         userName: "시스템",
-        userGrade: "SYSTEM",
+        userTag: "SYSTEM",
         content: `${title}에 오신 것을 환영합니다!`,
         createdAt: new Date().toISOString(),
         messageType: "SYSTEM",
@@ -116,7 +116,6 @@ export function ChatRoom({ roomType, title, description, color }: ChatRoomProps)
         isMyMessage: false,
         timeDisplay: "방금 전",
         deleted: false,
-        readCount: 0,
         serverAllianceId: 0
       }
       setMessages([welcomeMessage])
