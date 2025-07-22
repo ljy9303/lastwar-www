@@ -56,8 +56,12 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
     setLastError(null)
 
     try {
-      // JWT 토큰 조회
-      const accessToken = authStorage.getAccessToken()
+      // JWT 토큰 조회 (NextAuth 세션의 accessToken 사용)
+      const accessToken = session?.accessToken || authStorage.getAccessToken()
+      
+      console.log('[WEBSOCKET] 연결 시도 - NextAuth 토큰:', session?.accessToken ? '있음' : '없음', 
+                  '로컬 토큰:', authStorage.getAccessToken() ? '있음' : '없음', 
+                  '세션:', session?.user ? '있음' : '없음')
       
       // STOMP 클라이언트 생성
       const client = new Client({
@@ -299,14 +303,14 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
     return () => {
       disconnect()
     }
-  }, [connect, disconnect])
+  }, []) // 의존성 배열 제거로 무한 루프 방지
 
   // 채팅방 변경 시 재구독
   useEffect(() => {
     if (isConnected) {
       subscribeToRoom(roomType)
     }
-  }, [roomType, isConnected, subscribeToRoom])
+  }, [roomType, isConnected]) // subscribeToRoom 의존성 제거로 무한 루프 방지
 
   return {
     isConnected,

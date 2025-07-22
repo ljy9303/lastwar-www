@@ -20,6 +20,8 @@ export interface ChatMessage {
   timeDisplay: string
   deleted: boolean
   serverAllianceId: number
+  userServer?: number // 사용자 서버 번호 추가
+  allianceName?: string // 연맹 이름 추가
 }
 
 export interface ChatHistoryRequest {
@@ -56,36 +58,65 @@ export class ChatService {
    */
   static async getChatHistory(request: ChatHistoryRequest): Promise<ChatHistoryResponse> {
     try {
-      const response = await fetchFromAPI('/chat/history', {
+      console.log('[CHAT-API] 히스토리 조회 요청:', request)
+      
+      const requestBody = {
+        roomType: request.roomType,
+        lastMessageId: request.lastMessageId || null,
+        size: request.size || 20
+      }
+      
+      console.log('[CHAT-API] 요청 바디:', requestBody)
+      
+      // fetchFromAPI를 사용하여 자동으로 인증 헤더와 에러 처리
+      const data = await fetchFromAPI<ChatHistoryResponse>('/chat/history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          roomType: request.roomType,
-          lastMessageId: request.lastMessageId || null,
-          size: request.size || 20
-        })
+        body: JSON.stringify(requestBody)
       })
 
-      if (!response.ok) {
-        throw new Error(`채팅 히스토리 조회 실패: ${response.status}`)
+      console.log('[CHAT-API] 백엔드 응답 데이터:', data)
+      
+      // 응답 데이터 구조 검증
+      if (!data || typeof data !== 'object') {
+        console.error('[CHAT-API] 응답 데이터가 올바르지 않음:', data)
+        throw new Error('서버에서 올바르지 않은 응답을 받았습니다.')
       }
 
-      const data: ChatHistoryResponse = await response.json()
+      // messages 배열이 없거나 배열이 아닌 경우 빈 배열로 초기화
+      const messages = Array.isArray(data.messages) ? data.messages : []
+      console.log('[CHAT-API] 메시지 개수:', messages.length)
       
       // 시간순 정렬 (오래된 것부터)
-      const sortedMessages = data.messages.sort((a, b) => 
+      const sortedMessages = messages.sort((a, b) => 
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       )
 
-      return {
-        ...data,
-        messages: sortedMessages
+      const result: ChatHistoryResponse = {
+        messages: sortedMessages,
+        hasMore: data.hasMore || false,
+        nextLastMessageId: data.nextLastMessageId,
+        totalCount: data.totalCount
       }
+      
+      console.log('[CHAT-API] 최종 응답:', result)
+      return result
     } catch (error) {
-      console.error('채팅 히스토리 조회 오류:', error)
-      throw error
+      console.error('[CHAT-API] 채팅 히스토리 조회 오류:', error)
+      
+      // 구체적인 오류 메시지 제공
+      if (error instanceof Error) {
+        // fetchFromAPI에서 던진 구조화된 에러인지 확인
+        const apiError = error as Error & { status?: number; data?: any }
+        if (apiError.status) {
+          console.error('[CHAT-API] API 오류 상태:', apiError.status, 'Data:', apiError.data)
+          throw new Error(`채팅 히스토리 조회 실패 (${apiError.status}): ${error.message}`)
+        }
+      }
+      
+      throw new Error(`채팅 히스토리 조회 중 오류 발생: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -98,23 +129,30 @@ export class ChatService {
    */
   static async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
     try {
-      const response = await fetchFromAPI('/chat/send', {
+      console.log('[CHAT-API] 메시지 전송 요청:', request)
+      
+      const data = await fetchFromAPI<SendMessageResponse>('/chat/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(request)
       })
-
-      if (!response.ok) {
-        throw new Error(`메시지 전송 실패: ${response.status}`)
-      }
-
-      const data: SendMessageResponse = await response.json()
+      
+      console.log('[CHAT-API] 메시지 전송 성공:', data)
       return data
     } catch (error) {
-      console.error('메시지 전송 오류:', error)
-      throw error
+      console.error('[CHAT-API] 메시지 전송 오류:', error)
+      
+      // 구체적인 오류 메시지 제공
+      if (error instanceof Error) {
+        const apiError = error as Error & { status?: number; data?: any }
+        if (apiError.status) {
+          throw new Error(`메시지 전송 실패 (${apiError.status}): ${error.message}`)
+        }
+      }
+      
+      throw new Error(`메시지 전송 실패: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -125,16 +163,25 @@ export class ChatService {
    */
   static async joinChatRoom(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"): Promise<void> {
     try {
-      const response = await fetchFromAPI(`/chat/join/${roomType.toLowerCase()}`, {
+      console.log(`[CHAT-API] 채팅방 입장 요청: ${roomType}`)
+      
+      await fetchFromAPI(`/chat/join/${roomType.toLowerCase()}`, {
         method: 'POST'
       })
-
-      if (!response.ok) {
-        throw new Error(`채팅방 입장 실패: ${response.status}`)
-      }
+      
+      console.log(`[CHAT-API] 채팅방 입장 성공: ${roomType}`)
     } catch (error) {
-      console.error('채팅방 입장 오류:', error)
-      throw error
+      console.error(`[CHAT-API] 채팅방 입장 오류 (${roomType}):`, error)
+      
+      // 구체적인 오류 메시지 제공
+      if (error instanceof Error) {
+        const apiError = error as Error & { status?: number; data?: any }
+        if (apiError.status) {
+          throw new Error(`채팅방 입장 실패 (${apiError.status}): ${error.message}`)
+        }
+      }
+      
+      throw new Error(`채팅방 입장 실패: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -145,16 +192,25 @@ export class ChatService {
    */
   static async leaveChatRoom(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"): Promise<void> {
     try {
-      const response = await fetchFromAPI(`/chat/leave/${roomType.toLowerCase()}`, {
+      console.log(`[CHAT-API] 채팅방 퇴장 요청: ${roomType}`)
+      
+      await fetchFromAPI(`/chat/leave/${roomType.toLowerCase()}`, {
         method: 'POST'
       })
-
-      if (!response.ok) {
-        throw new Error(`채팅방 퇴장 실패: ${response.status}`)
-      }
+      
+      console.log(`[CHAT-API] 채팅방 퇴장 성공: ${roomType}`)
     } catch (error) {
-      console.error('채팅방 퇴장 오류:', error)
-      throw error
+      console.error(`[CHAT-API] 채팅방 퇴장 오류 (${roomType}):`, error)
+      
+      // 구체적인 오류 메시지 제공
+      if (error instanceof Error) {
+        const apiError = error as Error & { status?: number; data?: any }
+        if (apiError.status) {
+          throw new Error(`채팅방 퇴장 실패 (${apiError.status}): ${error.message}`)
+        }
+      }
+      
+      throw new Error(`채팅방 퇴장 실패: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

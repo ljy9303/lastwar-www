@@ -37,14 +37,14 @@ export function ChatTabs({ unreadCounts, onUnreadChange }: ChatTabsProps) {
   return (
     <div className="flex flex-col h-full">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
-        {/* 탭 목록 */}
-        <TabsList className="grid w-full grid-cols-3 bg-gray-100 dark:bg-gray-800">
+        {/* 탭 목록 - 타이틀처럼 크고 둥근 형태 */}
+        <TabsList className="grid w-full grid-cols-3 bg-blue-600 h-16 rounded-t-2xl p-2 gap-1">
           {/* 글로벌 채팅 탭 */}
           <TabsTrigger 
             value="global" 
-            className="flex items-center gap-1 text-xs data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700"
+            className="flex items-center gap-2 text-sm font-medium h-12 rounded-xl text-white/80 data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-md transition-all duration-200"
           >
-            <Globe className="h-3 w-3" />
+            <Globe className="h-4 w-4" />
             <span className="hidden sm:inline">글로벌</span>
             {unreadCounts.global > 0 && (
               <Badge variant="destructive" className="min-w-[1rem] h-4 text-xs ml-1">
@@ -56,9 +56,9 @@ export function ChatTabs({ unreadCounts, onUnreadChange }: ChatTabsProps) {
           {/* 연맹 채팅 탭 */}
           <TabsTrigger 
             value="alliance" 
-            className="flex items-center gap-1 text-xs data-[state=active]:bg-green-100 data-[state=active]:text-green-700"
+            className="flex items-center gap-2 text-sm font-medium h-12 rounded-xl text-white/80 data-[state=active]:bg-white data-[state=active]:text-green-700 data-[state=active]:shadow-md transition-all duration-200"
           >
-            <Users className="h-3 w-3" />
+            <Users className="h-4 w-4" />
             <span className="hidden sm:inline">연맹</span>
             {unreadCounts.alliance > 0 && (
               <Badge variant="destructive" className="min-w-[1rem] h-4 text-xs ml-1">
@@ -70,9 +70,9 @@ export function ChatTabs({ unreadCounts, onUnreadChange }: ChatTabsProps) {
           {/* 문의 채팅 탭 */}
           <TabsTrigger 
             value="inquiry" 
-            className="flex items-center gap-1 text-xs data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700"
+            className="flex items-center gap-2 text-sm font-medium h-12 rounded-xl text-white/80 data-[state=active]:bg-white data-[state=active]:text-orange-700 data-[state=active]:shadow-md transition-all duration-200"
           >
-            <HelpCircle className="h-3 w-3" />
+            <HelpCircle className="h-4 w-4" />
             <span className="hidden sm:inline">문의</span>
             {unreadCounts.inquiry > 0 && (
               <Badge variant="destructive" className="min-w-[1rem] h-4 text-xs ml-1">
@@ -103,12 +103,20 @@ export function ChatTabs({ unreadCounts, onUnreadChange }: ChatTabsProps) {
           </TabsContent>
 
           <TabsContent value="inquiry" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-            <ChatRoom 
-              roomType="INQUIRY"
-              title="문의하기"
-              description="관리자에게 문의사항을 남겨주세요"
-              color="orange"
-            />
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+              <div className="bg-orange-100 dark:bg-orange-900/20 rounded-xl p-6 max-w-xs">
+                <HelpCircle className="h-12 w-12 text-orange-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200 mb-2">
+                  문의 채팅
+                </h3>
+                <p className="text-sm text-orange-600 dark:text-orange-300 mb-4">
+                  관리자 문의 기능을 준비 중입니다
+                </p>
+                <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200 text-xs font-medium">
+                  🚧 오픈 준비중
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </div>
       </Tabs>

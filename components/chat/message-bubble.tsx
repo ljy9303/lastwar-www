@@ -4,8 +4,6 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Copy, MoreVertical } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
 
 interface ChatMessage {
   messageId: number
@@ -32,23 +30,6 @@ interface MessageBubbleProps {
  */
 export function MessageBubble({ message }: MessageBubbleProps) {
   const [showActions, setShowActions] = useState(false)
-  const { toast } = useToast()
-
-  const copyMessage = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content)
-      toast({
-        title: "복사 완료",
-        description: "메시지가 클립보드에 복사되었습니다.",
-      })
-    } catch (error) {
-      toast({
-        title: "복사 실패",
-        description: "메시지 복사 중 오류가 발생했습니다.",
-        variant: "destructive"
-      })
-    }
-  }
 
   // 시스템 메시지 (입장, 퇴장, 공지)
   if (message.messageType === "SYSTEM" || message.messageType === "JOIN" || message.messageType === "LEAVE") {
@@ -78,27 +59,6 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         <div className="flex items-end gap-2 max-w-xs">
           {/* 시간 및 액션 */}
           <div className="flex items-center gap-1 mb-1">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: showActions ? 1 : 0, scale: showActions ? 1 : 0.8 }}
-              className="flex gap-1"
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={copyMessage}
-                className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
-              >
-                <MoreVertical className="h-3 w-3" />
-              </Button>
-            </motion.div>
             <span className="text-xs text-gray-500 whitespace-nowrap">
               {message.timeDisplay}
             </span>
@@ -135,11 +95,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           {/* 사용자 정보 */}
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-              {message.userName}
-              {message.roomType === "GLOBAL" && message.serverTag && message.allianceName && (
-                <span className="text-xs text-gray-500 ml-1">
-                  #{message.serverTag} {message.allianceName}
-                </span>
+              {message.roomType === "GLOBAL" && message.serverTag && message.allianceName ? (
+                <>
+                  <span className="text-xs text-gray-500">#{message.serverTag}</span>
+                  <span className="text-xs text-blue-600 dark:text-blue-400 mx-1">[{message.allianceName}]</span>
+                  <span>{message.userName}</span>
+                </>
+              ) : (
+                message.userName
               )}
             </span>
             {message.userTag && (
@@ -163,27 +126,6 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               <span className="text-xs text-gray-500 whitespace-nowrap">
                 {message.timeDisplay}
               </span>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: showActions ? 1 : 0, scale: showActions ? 1 : 0.8 }}
-                className="flex gap-1"
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={copyMessage}
-                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
-                >
-                  <MoreVertical className="h-3 w-3" />
-                </Button>
-              </motion.div>
             </div>
           </div>
         </div>

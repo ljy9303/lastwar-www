@@ -34,7 +34,7 @@ export function ChatModal({ isOpen, onClose, unreadCounts, onUnreadChange }: Cha
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] md:hidden"
             onClick={onClose}
           />
 
@@ -63,46 +63,14 @@ export function ChatModal({ isOpen, onClose, unreadCounts, onUnreadChange }: Cha
               stiffness: 300, 
               damping: 30 
             }}
-            className="fixed bottom-24 right-6 z-50"
+            className="fixed bottom-24 right-6 z-[10001]"
           >
-            <Card className={`shadow-2xl border-2 overflow-hidden ${
+            <Card className={`shadow-2xl border-0 overflow-hidden rounded-2xl ${
               isMinimized 
                 ? "w-48 h-14" 
-                : "w-80 h-96 md:w-96 md:h-[500px]"
+                : "w-[380px] h-[520px] sm:w-[400px] sm:h-[560px] md:w-[440px] md:h-[640px]"
             }`}>
-              {/* 헤더 */}
-              <div className="flex items-center justify-between p-3 bg-blue-600 text-white">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="font-medium text-sm">
-                    {isMinimized ? "채팅" : "연맹원 채팅"}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  {/* 최소화 버튼 */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsMinimized(!isMinimized)}
-                    className="h-6 w-6 p-0 text-white hover:bg-blue-700"
-                  >
-                    <Minimize2 className="h-3 w-3" />
-                  </Button>
-                  
-                  {/* 닫기 버튼 */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onClose}
-                    className="h-6 w-6 p-0 text-white hover:bg-blue-700"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* 채팅 내용 */}
+              {/* 채팅 내용 - 타이틀 영역 제거, 탭이 헤더 역할 */}
               <AnimatePresence>
                 {!isMinimized && (
                   <motion.div
@@ -110,7 +78,7 @@ export function ChatModal({ isOpen, onClose, unreadCounts, onUnreadChange }: Cha
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="flex-1 overflow-hidden"
+                    className="h-full overflow-hidden"
                   >
                     <ChatTabs 
                       unreadCounts={unreadCounts}
@@ -119,6 +87,24 @@ export function ChatModal({ isOpen, onClose, unreadCounts, onUnreadChange }: Cha
                   </motion.div>
                 )}
               </AnimatePresence>
+              
+              {/* 최소화 상태일 때만 간단한 헤더 표시 */}
+              {isMinimized && (
+                <div className="flex items-center justify-between p-3 bg-blue-600 text-white rounded-2xl">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    <span className="font-medium text-sm">채팅</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsMinimized(false)}
+                    className="h-6 w-6 p-0 text-white hover:bg-blue-700"
+                  >
+                    <Minimize2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </Card>
           </motion.div>
         </>

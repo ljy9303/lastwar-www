@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { usePathname } from "next/navigation"
+import { createPortal } from "react-dom"
 import { MessageCircle, X, Users, Globe, HelpCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -15,11 +16,25 @@ import { ChatModal } from "./chat-modal"
 export function FloatingChatButton() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [windowWidth, setWindowWidth] = useState(0)
   const [unreadCounts, setUnreadCounts] = useState({
     global: 0,
     alliance: 3,
     inquiry: 1
   })
+
+  useEffect(() => {
+    setMounted(true)
+    setWindowWidth(window.innerWidth)
+    
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth)
+    }
+    
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // 로그인/회원가입 페이지에서는 플로팅 버튼 숨기기
   const hiddenPaths = ['/login', '/signup', '/auth/kakao/callback']
@@ -27,6 +42,9 @@ export function FloatingChatButton() {
 
   // 전체 읽지 않은 메시지 수
   const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0)
+
+  // 플로팅 버튼은 항상 고정 위치 유지
+  const getButtonBottom = () => '1.5rem'
 
   const toggleChat = () => {
     setIsOpen(prev => !prev)
@@ -48,19 +66,28 @@ export function FloatingChatButton() {
   }, [])
 
   // 숨겨야 하는 페이지에서는 렌더링하지 않음
-  if (shouldHide) {
+  if (shouldHide || !mounted) {
     return null
   }
 
-  return (
+  const buttonContent = (
     <>
-      {/* 플로팅 채팅 버튼 */}
-      <motion.div
-        className="fixed bottom-6 right-6 z-50"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+      {/* 플로팅 채팅 버튼 - 뷰포트 기준 고정 */}
+      <div
+        style={{ 
+          position: 'fixed',
+          bottom: getButtonBottom(),
+          right: '1.5rem',
+          zIndex: 9999, // 항상 고정값 유지
+          pointerEvents: 'auto',
+          transition: 'z-index 0.1s ease'
+        }}
       >
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        >
         <div className="relative">
           {/* 메인 채팅 버튼 */}
           <Button
@@ -191,7 +218,8 @@ export function FloatingChatButton() {
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
       {/* 채팅 모달 */}
       <ChatModal 
@@ -202,4 +230,6 @@ export function FloatingChatButton() {
       />
     </>
   )
+
+  return createPortal(buttonContent, document.body)
 }
