@@ -11,21 +11,20 @@ export interface ChatMessage {
   userName: string
   userTag?: string
   serverTag?: number
-  allianceName?: string
+  allianceName?: string // 연맹 이름
   content: string
   createdAt: string
   messageType: "TEXT" | "SYSTEM" | "JOIN" | "LEAVE" | "IMAGE" | "FILE"
-  roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
+  roomType: "GLOBAL" | "INQUIRY"
   isMyMessage: boolean
   timeDisplay: string
   deleted: boolean
   serverAllianceId: number
-  userServer?: number // 사용자 서버 번호 추가
-  allianceName?: string // 연맹 이름 추가
+  userServer?: number // 사용자 서버 번호
 }
 
 export interface ChatHistoryRequest {
-  roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
+  roomType: "GLOBAL" | "INQUIRY"
   lastMessageId?: number
   size?: number
 }
@@ -38,7 +37,7 @@ export interface ChatHistoryResponse {
 }
 
 export interface SendMessageRequest {
-  roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
+  roomType: "GLOBAL" | "INQUIRY"
   messageType: "TEXT" | "SYSTEM" | "JOIN" | "LEAVE"
   content: string
 }
@@ -161,7 +160,7 @@ export class ChatService {
    * 
    * @param roomType 채팅방 유형
    */
-  static async joinChatRoom(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"): Promise<void> {
+  static async joinChatRoom(roomType: "GLOBAL" | "INQUIRY"): Promise<void> {
     try {
       console.log(`[CHAT-API] 채팅방 입장 요청: ${roomType}`)
       
@@ -190,7 +189,7 @@ export class ChatService {
    * 
    * @param roomType 채팅방 유형
    */
-  static async leaveChatRoom(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"): Promise<void> {
+  static async leaveChatRoom(roomType: "GLOBAL" | "INQUIRY"): Promise<void> {
     try {
       console.log(`[CHAT-API] 채팅방 퇴장 요청: ${roomType}`)
       

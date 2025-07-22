@@ -7,7 +7,7 @@ import { ChatMessage } from "@/lib/chat-service"
 import { authStorage } from "@/lib/auth-api"
 
 interface SendMessageRequest {
-  roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY"
+  roomType: "GLOBAL" | "INQUIRY"
   messageType: "TEXT" | "SYSTEM" | "JOIN" | "LEAVE"
   content: string
   parentMessageId?: number
@@ -29,7 +29,7 @@ type EventListener = (event: RealtimeEvent) => void
 /**
  * STOMP WebSocket 연결 및 실시간 채팅 관리 훅
  */
-export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
+export function useWebSocket(roomType: "GLOBAL" | "INQUIRY") {
   const { data: session } = useSession()
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
@@ -59,9 +59,7 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
       // JWT 토큰 조회 (NextAuth 세션의 accessToken 사용)
       const accessToken = session?.accessToken || authStorage.getAccessToken()
       
-      console.log('[WEBSOCKET] 연결 시도 - NextAuth 토큰:', session?.accessToken ? '있음' : '없음', 
-                  '로컬 토큰:', authStorage.getAccessToken() ? '있음' : '없음', 
-                  '세션:', session?.user ? '있음' : '없음')
+      // 연결 시도 로그 제거로 성능 향상
       
       // STOMP 클라이언트 생성
       const client = new Client({
@@ -77,7 +75,10 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
           })
         },
         debug: (str) => {
-          console.log('STOMP Debug:', str)
+          // WebSocket 연결 상태 디버깅
+          if (str.includes('CONNECTED') || str.includes('ERROR') || str.includes('MESSAGE')) {
+            console.log('🔗 STOMP:', str)
+          }
         },
         reconnectDelay: reconnectInterval,
         heartbeatIncoming: 4000,
@@ -175,14 +176,18 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
       }
 
       // 새 채팅방 구독 - 서버 연맹 ID는 JWT에서 추출됨
+      const topicPath = `/topic/chat/*/` + room.toLowerCase()
+      console.log('🔔 채팅방 구독 경로:', topicPath)
+      
       const subscription = stompClientRef.current.subscribe(
-        `/topic/chat/*/` + room.toLowerCase(), // server_alliance_id는 서버에서 JWT로 필터링
+        topicPath, // server_alliance_id는 서버에서 JWT로 필터링
         (message: IMessage) => {
+          console.log('📩 WebSocket 메시지 수신:', message.body)
           try {
             const realtimeEvent: RealtimeEvent = JSON.parse(message.body)
             handleIncomingEvent(realtimeEvent)
           } catch (error) {
-            console.error("메시지 파싱 오류:", error)
+            console.error("메시지 파싱 오류:", error, message.body)
           }
         }
       )
@@ -207,31 +212,33 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
   // STOMP 메시지 전송
   const sendMessage = useCallback(async (request: SendMessageRequest) => {
     if (!isConnected || !stompClientRef.current) {
+      console.error("❌ STOMP 연결 안됨:", { isConnected, hasClient: !!stompClientRef.current })
       throw new Error("STOMP 클라이언트가 연결되지 않았습니다.")
     }
 
     try {
+      console.log("📤 메시지 전송 시도:", request)
       stompClientRef.current.publish({
         destination: '/app/chat.send',
         body: JSON.stringify(request)
       })
       
-      console.log("메시지 전송:", request)
+      console.log("✅ 메시지 전송 완료:", request.content)
       
     } catch (error) {
-      console.error("메시지 전송 실패:", error)
+      console.error("❌ 메시지 전송 실패:", error)
       throw error
     }
   }, [isConnected])
 
-  // 수신 이벤트 처리
+  // 수신 이벤트 처리 - 실시간 채팅 디버깅
   const handleIncomingEvent = useCallback((event: RealtimeEvent) => {
-    console.log("수신 이벤트:", event)
-    
+    console.log('📨 실시간 이벤트 수신:', event.eventType, event.message?.content)
     switch (event.eventType) {
       case "MESSAGE":
         // 새 메시지 도착
         if (event.message) {
+          console.log('💬 새 메시지 전달:', event.message.userName, event.message.content)
           messageListenersRef.current.forEach(listener => {
             listener(event.message!)
           })
@@ -239,13 +246,11 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
         break
         
       case "USER_JOIN":
-        // 사용자 입장
-        console.log(`${event.userName}님이 입장했습니다.`)
+        // 사용자 입장 - 로그 제거
         break
         
       case "USER_LEAVE":
-        // 사용자 퇴장
-        console.log(`${event.userName}님이 퇴장했습니다.`)
+        // 사용자 퇴장 - 로그 제거
         break
         
       case "ONLINE_COUNT":
@@ -260,7 +265,7 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
         break
         
       default:
-        console.warn("알 수 없는 이벤트 타입:", event.eventType)
+        // 알 수 없는 이벤트 타입 - 로그 제거
     }
     
     // 모든 이벤트 리스너에게 알림
@@ -295,19 +300,21 @@ export function useWebSocket(roomType: "GLOBAL" | "ALLIANCE" | "INQUIRY") {
     }
   }, [])
 
-  // 컴포넌트 마운트 시 연결
+  // 컴포넌트 마운트 시 연결 (최적화)
   useEffect(() => {
-    connect()
+    // 연결되지 않은 경우에만 연결 시도
+    if (!isConnected && !isConnecting) {
+      connect()
+    }
     
     // 컴포넌트 언마운트 시 연결 해제
-    return () => {
-      disconnect()
-    }
+    return disconnect
   }, []) // 의존성 배열 제거로 무한 루프 방지
 
-  // 채팅방 변경 시 재구독
+  // 채팅방 변경 시 재구독 (최적화)
   useEffect(() => {
-    if (isConnected) {
+    // 연결된 상태이고 roomType이 변경된 경우에만 재구독
+    if (isConnected && roomType) {
       subscribeToRoom(roomType)
     }
   }, [roomType, isConnected]) // subscribeToRoom 의존성 제거로 무한 루프 방지

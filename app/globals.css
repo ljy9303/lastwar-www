@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 성능 최적화 CSS 임포트 */
+@import '../styles/performance.css';
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }

@@ -1,0 +1,101 @@
+/* 성능 최적화용 CSS - 선택적 애니메이션 허용 */
+
+/* 1. 기본 트랜지션 최적화 - transition: all 제거 */
+* {
+  /* 기본 트랜지션 제거하되 필요한 것들은 아래에서 허용 */
+}
+
+/* 2. 버튼 및 상호작용 요소 애니메이션 허용 */
+button,
+input,
+.hover\:bg-accent,
+.hover\:text-accent-foreground,
+a {
+  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease !important;
+}
+
+/* 3. 채팅 관련 애니메이션 허용 */
+.chat-modal,
+.chat-button,
+.message-bubble,
+.chat-enter,
+.chat-exit {
+  transition: opacity 0.25s ease, transform 0.25s ease !important;
+}
+
+/* 4. 채팅 모달 애니메이션 */
+.chat-modal-enter {
+  opacity: 0;
+  transform: scale(0.95) translateY(10px);
+}
+
+.chat-modal-enter-active {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.chat-modal-exit {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.chat-modal-exit-active {
+  opacity: 0;
+  transform: scale(0.95) translateY(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* 5. 메시지 버블 애니메이션 */
+.message-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.message-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* 6. GPU 가속 최적화 */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* 7. 필수 애니메이션 허용 */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite !important;
+}
+
+/* 8. 호버 효과 허용 */
+.hover\:scale-105:hover {
+  transform: scale(1.05) !important;
+  transition: transform 0.2s ease !important;
+}
+
+/* 6. 스크롤 성능 최적화 */
+.scroll-container {
+  overflow-anchor: auto;
+  contain: layout style paint;
+  will-change: scroll-position;
+}
+
+/* 7. 텍스트 렌더링 최적화 */
+body {
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+
+/* 8. 메모리 절약을 위한 컨테인먼트 */
+.container,
+.card,
+.modal {
+  contain: layout style;
+}

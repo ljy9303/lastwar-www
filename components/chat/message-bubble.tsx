@@ -1,9 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
+import React, { memo } from "react"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 
 interface ChatMessage {
   messageId: number
@@ -15,7 +13,7 @@ interface ChatMessage {
   content: string
   createdAt: string
   messageType: "TEXT" | "SYSTEM" | "JOIN" | "LEAVE"
-  roomType?: "GLOBAL" | "ALLIANCE" | "INQUIRY"
+  roomType?: "GLOBAL" | "INQUIRY"
   isMyMessage: boolean
   timeDisplay: string
 }
@@ -26,37 +24,27 @@ interface MessageBubbleProps {
 
 /**
  * 메시지 버블 컴포넌트
- * 카카오톡 스타일의 말풍선 UI
+ * 카카오톡 스타일의 말풍선 UI - 이벤트 최적화
  */
-export function MessageBubble({ message }: MessageBubbleProps) {
-  const [showActions, setShowActions] = useState(false)
+const MessageBubble = memo(function MessageBubble({ message }: MessageBubbleProps) {
+  // showActions 상태 제거로 불필요한 리렌더링 방지
 
-  // 시스템 메시지 (입장, 퇴장, 공지)
+  // 시스템 메시지 (입장, 퇴장, 공지) - 애니메이션 제거로 성능 최대화
   if (message.messageType === "SYSTEM" || message.messageType === "JOIN" || message.messageType === "LEAVE") {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex justify-center"
-      >
+      <div className="flex justify-center">
         <div className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1 rounded-full text-xs max-w-xs text-center">
           {message.content}
         </div>
-      </motion.div>
+      </div>
     )
   }
 
-  // 내 메시지 (오른쪽 정렬)
+  // 내 메시지 (오른쪽 정렬) - 부드러운 애니메이션
   if (message.isMyMessage) {
     return (
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="flex justify-end group"
-        onMouseEnter={() => setShowActions(true)}
-        onMouseLeave={() => setShowActions(false)}
-      >
-        <div className="flex items-end gap-2 max-w-xs">
+      <div className="flex justify-end gpu-accelerated message-bubble animate-in slide-in-from-right-2 duration-300">
+        <div className="flex items-end gap-2 max-w-[75%] sm:max-w-[60%] md:max-w-[50%]">
           {/* 시간 및 액션 */}
           <div className="flex items-center gap-1 mb-1">
             <span className="text-xs text-gray-500 whitespace-nowrap">
@@ -71,20 +59,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
     )
   }
 
-  // 다른 사용자 메시지 (왼쪽 정렬)
+  // 다른 사용자 메시지 (왼쪽 정렬) - 부드러운 애니메이션
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="flex justify-start group"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <div className="flex items-start gap-2 max-w-xs">
+    <div className="flex justify-start gpu-accelerated message-bubble animate-in slide-in-from-left-2 duration-300">
+      <div className="flex items-start gap-2 max-w-[75%] sm:max-w-[60%] md:max-w-[50%]">
         {/* 사용자 아바타 */}
         <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold mt-1 flex-shrink-0">
           {message.userName.charAt(0)}
@@ -130,6 +112,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
-}
+})
+
+// displayName 설정 (React DevTools용)
+MessageBubble.displayName = 'MessageBubble'
+
+export { MessageBubble }
