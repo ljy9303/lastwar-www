@@ -73,19 +73,18 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     }
   }, [])
 
+  // 중복 호출 방지를 위한 ref
+  const isLoadingRef = useRef(false)
+
   // 컴포넌트 마운트 시 초기 메시지 로드
   useEffect(() => {
+    if (!isModalOpen) return // 모달이 열려있을 때만 로드
+    
+    // 중복 호출 방지
+    if (isLoadingRef.current) return
+    
     loadInitialMessages()
-  }, [roomType])
-
-  // 모달 열기/닫기 처리
-  useEffect(() => {
-    // 모달이 닫혔다가 다시 열렸을 때만 새로고침
-    if (isModalOpen && !lastModalOpenState && roomType) {
-      loadInitialMessages()
-    }
-    setLastModalOpenState(isModalOpen)
-  }, [isModalOpen, roomType])
+  }, [roomType, isModalOpen])
 
   // 새 메시지가 추가될 때 스크롤 (최적화된 로직)
   useEffect(() => {
@@ -147,6 +146,13 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
 
   // 초기 메시지 로드
   const loadInitialMessages = async () => {
+    // 중복 호출 방지 - 이미 로딩 중이면 리턴
+    if (isLoadingRef.current) {
+      console.log('🚫 [CHAT] loadInitialMessages 중복 호출 방지')
+      return
+    }
+    
+    isLoadingRef.current = true
     setIsLoading(true)
     setAllowInfiniteScroll(false)
     allowInfiniteScrollRef.current = false
@@ -233,6 +239,10 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       })
     } finally {
       setIsLoading(false)
+      // 로딩 완료 후 중복 방지 플래그 해제 (500ms 지연으로 연속 호출 방지)
+      setTimeout(() => {
+        isLoadingRef.current = false
+      }, 500)
     }
   }
 
