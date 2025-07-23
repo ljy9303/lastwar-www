@@ -36,6 +36,9 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   const [lastModalOpenState, setLastModalOpenState] = useState(false)
   const [allowInfiniteScroll, setAllowInfiniteScroll] = useState(false)
   
+  // 메시지 제한 수 (메모리 최적화)
+  const MAX_MESSAGES = 300
+  
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
@@ -50,42 +53,22 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     lastError 
   } = useWebSocket(roomType)
 
-  // 메시지 목록의 끝으로 스크롤 (강화된 로직)
+  // 메시지 목록의 끝으로 스크롤 (최적화된 로직)
   const scrollToBottom = useCallback((force = false) => {
     if (!scrollAreaRef.current) return
     
     const scrollElement = scrollAreaRef.current
+    const { scrollTop, scrollHeight, clientHeight } = scrollElement
     
     if (force) {
-      // 강제 스크롤 시 여러 방법으로 확실하게 맨 아래로
-      const targetScrollTop = scrollElement.scrollHeight - scrollElement.clientHeight
-      
-      // 방법 1: 직접 설정
-      scrollElement.scrollTop = targetScrollTop
-      
-      // 방법 2: scrollTo 사용 (즉시)
-      scrollElement.scrollTo({
-        top: scrollElement.scrollHeight,
-        behavior: 'auto'
-      })
-      
-      // 방법 3: requestAnimationFrame으로 한번 더 확인
-      requestAnimationFrame(() => {
-        if (scrollElement.scrollTop < targetScrollTop - 10) {
-          scrollElement.scrollTop = targetScrollTop
-        }
-      })
-      
+      // 강제 스크롤 - 단일 방법으로 최적화
+      scrollElement.scrollTop = scrollHeight - clientHeight
     } else {
-      // 일반 스크롤 시 사용자가 맨 아래 근처에 있는지 확인
-      const { scrollTop, scrollHeight, clientHeight } = scrollElement
+      // 일반 스크롤 - 사용자가 맨 아래 근처에 있는지 확인
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
       
       if (isNearBottom) {
-        scrollElement.scrollTo({
-          top: scrollHeight,
-          behavior: 'smooth'
-        })
+        scrollElement.scrollTop = scrollHeight - clientHeight
       }
     }
   }, [])
@@ -95,7 +78,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     loadInitialMessages()
   }, [roomType])
 
-  // 모달이 닫혔다가 다시 열릴 때만 최신 메시지 새로고침
+  // 모달 열기/닫기 처리
   useEffect(() => {
     // 모달이 닫혔다가 다시 열렸을 때만 새로고침
     if (isModalOpen && !lastModalOpenState && roomType) {
@@ -104,25 +87,26 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     setLastModalOpenState(isModalOpen)
   }, [isModalOpen, roomType])
 
-  // 새 메시지가 추가될 때 스크롤 (수정된 로직)
+  // 새 메시지가 추가될 때 스크롤 (최적화된 로직)
   useEffect(() => {
     if (messages.length > 0) {
-      // DOM 업데이트를 기다린 후 스크롤
-      const timeoutId = setTimeout(() => {
+      // requestAnimationFrame으로 더 부드러운 스크롤
+      const rafId = requestAnimationFrame(() => {
         scrollToBottom(false) // 조건부 스크롤
-      }, 50)
-      return () => clearTimeout(timeoutId)
+      })
+      return () => cancelAnimationFrame(rafId)
     }
   }, [messages.length, scrollToBottom])
 
-  // 실시간 메시지 수신 리스너 등록 (최적화)
+  // 실시간 메시지 수신 리스너 등록
   useEffect(() => {
     const removeListener = addMessageListener((newMessage: ChatMessage) => {
       // 현재 채팅방의 메시지만 처리
       if (newMessage.roomType === roomType) {
         setMessages(prev => {
-          // 중복 메시지 방지 (성능 최적화)
-          if (prev.some(msg => msg.messageId === newMessage.messageId)) {
+          // 중복 메시지 방지 (O(1) Map 사용으로 성능 향상)
+          const existingIds = new Set(prev.map(msg => msg.messageId))
+          if (existingIds.has(newMessage.messageId)) {
             return prev
           }
           
@@ -139,48 +123,49 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
             isMyMessage: !!isMyMessage
           }
           
-          // 플로팅 버튼에 최신 메시지 ID 알림 (안전한 방식)
+          // 플로팅 버튼에 최신 메시지 ID 알림 (microtask로 최적화)
           if (onMessageUpdate && roomType === 'GLOBAL') {
-            // 렌더링 중 상태 업데이트 방지
-            setTimeout(() => {
+            queueMicrotask(() => {
               onMessageUpdate(correctedMessage.messageId)
-            }, 0)
+            })
           }
           
-          // 무한스크롤을 위해 메시지 제한 제거 (모든 메시지 유지)
-          return [...prev, correctedMessage]
+          const newMessages = [...prev, correctedMessage]
+          
+          // 메시지 수 제한 (메모리 최적화)
+          if (newMessages.length > MAX_MESSAGES) {
+            return newMessages.slice(-MAX_MESSAGES)
+          }
+          
+          return newMessages
         })
       }
     })
 
-    // cleanup 함수에서 리스너만 정리
     return removeListener
-  }, [roomType, addMessageListener]) // session.user 의존성 제거하여 리렌더링 최적화
+  }, [roomType, addMessageListener])
 
   // 초기 메시지 로드
   const loadInitialMessages = async () => {
     setIsLoading(true)
-    setAllowInfiniteScroll(false) // 초기 로딩 중에는 무한스크롤 비활성화
-    allowInfiniteScrollRef.current = false // ref도 함께 비활성화
+    setAllowInfiniteScroll(false)
+    allowInfiniteScrollRef.current = false
+    
     try {
-      // 채팅방 입장 처리
       await ChatService.joinChatRoom(roomType)
       
-      // 최신 메시지 10개 로드 (초기 성능 최적화)
       const response = await ChatService.getChatHistory({
         roomType,
         size: 10
       })
       
-      // 응답 검증
       if (!response || typeof response !== 'object') {
         throw new Error('서버에서 올바르지 않은 응답을 받았습니다.')
       }
       
-      const messages = Array.isArray(response.messages) ? response.messages : []
+      const serverMessages = Array.isArray(response.messages) ? response.messages : []
       
-      // 메시지가 없으면 환영 메시지 추가
-      if (messages.length === 0) {
+      if (serverMessages.length === 0) {
         const welcomeMessage: ChatMessage = {
           messageId: Date.now(),
           userSeq: 0,
@@ -198,21 +183,19 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         }
         setMessages([welcomeMessage])
       } else {
-        setMessages(messages)
+        setMessages(serverMessages)
       }
       setHasMore(response.hasMore || false)
       
-      // 초기 로드 완료 후 맨 아래로 스크롤 (자연스러운 단일 스크롤)
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom(true) // 한 번만 확실하게 스크롤
-          // 스크롤 완료 후 무한스크롤 활성화
-          setTimeout(() => {
-            setAllowInfiniteScroll(true)
-            allowInfiniteScrollRef.current = true
-          }, 300)
-        })
-      }, 100)
+      // 스크롤 처리 (최적화)
+      requestAnimationFrame(() => {
+        scrollToBottom(true)
+        // 무한스크롤 활성화 최적화
+        setTimeout(() => {
+          setAllowInfiniteScroll(true)
+          allowInfiniteScrollRef.current = true
+        }, 200)
+      })
       
     } catch (error) {
       // 에러 로그 간소화
@@ -239,32 +222,34 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       }
       setMessages([welcomeMessage])
       
-      // 오류 시에도 스크롤 (자연스러운 단일 스크롤)
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          scrollToBottom(true) // 한 번만 확실하게 스크롤
-          // 에러 시에도 무한스크롤 활성화
-          setTimeout(() => {
-            setAllowInfiniteScroll(true)
-            allowInfiniteScrollRef.current = true
-          }, 300)
-        })
-      }, 100)
+      // 오류 시에도 스크롤 (최적화)
+      requestAnimationFrame(() => {
+        scrollToBottom(true)
+        // 에러 시에도 무한스크롤 활성화
+        setTimeout(() => {
+          setAllowInfiniteScroll(true)
+          allowInfiniteScrollRef.current = true
+        }, 200)
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
-  // 이전 메시지 더 로드 (무한스크롤) - 중복 호출 방지
+  // 간단하고 안정적인 무한스크롤
   const loadMoreMessages = useCallback(async () => {
-    if (isLoadingHistory || !hasMore) {
+    if (isLoadingHistory || !hasMore || !scrollAreaRef.current || !allowInfiniteScrollRef.current) {
       return
     }
     
     setIsLoadingHistory(true)
+    allowInfiniteScrollRef.current = false
+    
+    const container = scrollAreaRef.current
+    const scrollHeightBeforeLoad = container.scrollHeight
+    const scrollTopBeforeLoad = container.scrollTop
     
     try {
-      // 현재 메시지에서 가장 오래된 메시지 ID 찾기
       const currentMessages = messages.filter(msg => msg.messageType !== "SYSTEM" && msg.userSeq !== 0)
       
       if (currentMessages.length === 0) {
@@ -272,11 +257,9 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         return
       }
       
-      // 가장 작은 messageId 찾기
       const oldestMessage = currentMessages.reduce((oldest, current) => 
         current.messageId < oldest.messageId ? current : oldest
       )
-      
       
       const response = await ChatService.getChatHistory({
         roomType,
@@ -290,17 +273,31 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       
       const newMessages = Array.isArray(response.messages) ? response.messages : []
       
-      // hasMore는 항상 업데이트 (빈 결과여도 백엔드 판단을 신뢰)
-      setHasMore(response.hasMore || false)
-      
       if (newMessages.length > 0) {
         setMessages(prev => {
           const newMessageIds = new Set(newMessages.map(msg => msg.messageId))
           const filteredPrev = prev.filter(msg => !newMessageIds.has(msg.messageId))
-          const mergedMessages = [...newMessages, ...filteredPrev]
-          return mergedMessages
+          const updatedMessages = [...newMessages, ...filteredPrev]
+          
+          // 실제로 새 메시지가 추가되지 않으면 hasMore를 false로 (비동기 최적화)
+          if (updatedMessages.length === prev.length) {
+            queueMicrotask(() => setHasMore(false))
+          }
+          
+          return updatedMessages
+        })
+        
+        // 스크롤 위치 유지
+        requestAnimationFrame(() => {
+          const scrollHeightAfterLoad = container.scrollHeight
+          const heightDifference = scrollHeightAfterLoad - scrollHeightBeforeLoad
+          container.scrollTop = scrollTopBeforeLoad + heightDifference
         })
       }
+      
+      // hasMore 업데이트
+      setHasMore(response.hasMore || false)
+      
     } catch (error) {
       console.error('메시지 로드 오류:', error)
       toast({
@@ -310,6 +307,10 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       })
     } finally {
       setIsLoadingHistory(false)
+      // 재활성화 최적화 (800ms로 단축)
+      setTimeout(() => {
+        allowInfiniteScrollRef.current = true
+      }, 800)
     }
   }, [messages, isLoadingHistory, hasMore, roomType, toast])
 
@@ -350,9 +351,8 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         // REST API 전송 시에만 로컬에 추가 (실시간 수신이 없으므로)
         setMessages(prev => [...prev, sentMessage])
         
-        // 플로팅 버튼에 최신 메시지 ID 알림 (REST API 전송 시, 안전한 방식)
+        // 플로팅 버튼에 최신 메시지 ID 알림
         if (onMessageUpdate && roomType === 'GLOBAL') {
-          // 렌더링 중 상태 업데이트 방지
           setTimeout(() => {
             onMessageUpdate(sentMessage.messageId)
           }, 0)
@@ -389,29 +389,29 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const allowInfiniteScrollRef = useRef(false)
 
-  // 스크롤 상단 도달 시 이전 메시지 로드 (극한 최적화)
+  // 슬랙 스타일 무한스크롤 트리거
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const scrollTop = e.currentTarget?.scrollTop
-    const scrollHeight = e.currentTarget?.scrollHeight
-    const clientHeight = e.currentTarget?.clientHeight
+    const element = e.currentTarget
+    const scrollTop = element.scrollTop
     
-    // 무한스크롤이 허용되지 않거나 히스토리 로딩 중이거나 더 이상 로드할 메시지가 없으면 즉시 return
-    if (!allowInfiniteScrollRef.current || isLoadingHistory || !hasMore) {
+    // 스크롤이 상단 근처에 있는지 체크 (20px 이내)
+    const isAtTop = scrollTop <= 20
+    
+    if (!isAtTop || !allowInfiniteScrollRef.current || isLoadingHistory || !hasMore) {
       return
     }
     
-    // 스크롤이 상단 근처에 있을 때 무한스크롤 트리거 (매우 관대한 조건)
-    if (scrollTop <= 100) { // 100px 이내면 상단으로 간주
-      // 기존 타이머 클리어
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current)
-      }
-      
-      // throttling: 200ms로 더욱 단축하여 반응성 극대화
-      scrollTimeoutRef.current = setTimeout(() => {
-        loadMoreMessages()
-      }, 200)
+    // 기존 타이머 클리어
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current)
     }
+    
+    // 짧은 딜레이로 부드러운 로딩 (50ms로 더 반응성 향상)
+    scrollTimeoutRef.current = setTimeout(() => {
+      if (allowInfiniteScrollRef.current && !isLoadingHistory && hasMore) {
+        loadMoreMessages()
+      }
+    }, 50)
   }, [hasMore, isLoadingHistory, loadMoreMessages])
 
   return (
@@ -451,31 +451,55 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         </div>
       </div>
 
-      {/* 메시지 목록 - 자동 스크롤 최적화 */}
+      {/* 메시지 목록 - 슬랙 스타일 무한스크롤 (최적화) */}
       <div 
-        className="h-[360px] sm:h-[390px] md:h-[440px] p-3 overflow-y-auto scroll-smooth scroll-container" 
+        className="h-[360px] sm:h-[390px] md:h-[440px] p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent will-change-scroll" 
+        style={{ 
+          scrollBehavior: 'auto', // 부드러운 스크롤 비활성화 (정확한 위치 제어)
+          overflowAnchor: 'none', // 수동으로 위치 제어
+          transform: 'translateZ(0)', // GPU 가속 강제 활성화
+          backfaceVisibility: 'hidden' // 리페인트 최적화
+        }}
         ref={scrollAreaRef}
         onScroll={handleScroll}
       >
         {isLoadingHistory && (
-          <div className="text-center py-2">
-            <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-            <span className="ml-2 text-sm text-gray-500">이전 메시지 로드 중...</span>
+          <div className="flex items-center justify-center py-4 bg-gradient-to-b from-blue-50 to-transparent dark:from-blue-950 border-b border-blue-200 dark:border-blue-800 will-change-transform">
+            <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-gray-800 rounded-full shadow-sm border border-blue-200 dark:border-blue-700">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent will-change-transform" />
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">이전 대화 불러오는 중...</span>
+            </div>
           </div>
         )}
         
-        <div className="space-y-2 container">
+        <div className="space-y-2 transform-gpu">
           {useMemo(() => {
-            // 무한스크롤을 위해 모든 메시지 렌더링 (성능보다 기능 우선)
-            const visibleMessages = messages
-            return visibleMessages.map((message, index) => (
-              <div 
-                key={message.messageId}
-                className="gpu-accelerated"
-              >
-                <MessageBubble message={{...message, roomType}} />
-              </div>
-            ))
+            // 메시지 그룹화 최적화
+            return messages.map((message, index) => {
+              // 같은 사용자의 연속 메시지인지 확인
+              const prevMessage = index > 0 ? messages[index - 1] : null
+              const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
+              
+              const isFirstInGroup = !prevMessage || 
+                prevMessage.userSeq !== message.userSeq || 
+                prevMessage.messageType === "SYSTEM" ||
+                message.messageType === "SYSTEM"
+                
+              const isLastInGroup = !nextMessage || 
+                nextMessage.userSeq !== message.userSeq || 
+                nextMessage.messageType === "SYSTEM" ||
+                message.messageType === "SYSTEM"
+              
+              return (
+                <div key={message.messageId} className="will-change-transform">
+                  <MessageBubble 
+                    message={{...message, roomType}} 
+                    isLastInGroup={isLastInGroup}
+                    isFirstInGroup={isFirstInGroup}
+                  />
+                </div>
+              )
+            })
           }, [messages, roomType])}
         </div>
         
