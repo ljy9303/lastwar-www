@@ -2,6 +2,7 @@
 
 import React, { memo } from "react"
 import { Badge } from "@/components/ui/badge"
+import { getLabelDisplayName, getLabelStyle } from "@/lib/user-label-utils"
 
 interface ChatMessage {
   messageId: number
@@ -102,11 +103,21 @@ const MessageBubble = memo(function MessageBubble({ message, isLastInGroup = tru
                   {message.userTag}
                 </Badge>
               )}
-              {message.userLabel && (
-                <Badge variant="secondary" className="text-xs h-4 px-1 bg-purple-100 text-purple-800 border-purple-200">
-                  {message.userLabel}
-                </Badge>
-              )}
+              {message.userLabel && (() => {
+                const labelDisplayName = getLabelDisplayName(message.userLabel)
+                const labelStyle = getLabelStyle(message.userLabel)
+                
+                if (!labelDisplayName || !labelStyle) return null
+                
+                return (
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs h-4 px-1 ${labelStyle.bgColor} ${labelStyle.textColor} ${labelStyle.borderColor}`}
+                  >
+                    {labelDisplayName}
+                  </Badge>
+                )
+              })()}
             </div>
           )}
 
