@@ -14,16 +14,22 @@ interface SendMessageRequest {
 }
 
 interface RealtimeEvent {
-  eventType: "MESSAGE" | "USER_JOIN" | "USER_LEAVE" | "TYPING" | "ONLINE_COUNT"
+  eventType: "MESSAGE" | "USER_JOIN" | "USER_LEAVE" | "TYPING" | "ONLINE_COUNT" | "MESSAGE_HIDDEN" | "MESSAGE_UNHIDDEN"
   roomType: string
   message?: ChatMessage
   userName?: string
   userCount?: number
   timestamp: string
+  // ADMIN 메시지 상태 변경용 필드들
+  messageId?: number
+  hiddenByAdmin?: boolean
+  hiddenReason?: string
+  hiddenAt?: string
 }
 
 // 메시지 이벤트 리스너 타입
 type MessageEventListener = (message: ChatMessage) => void
+type MessageUpdateListener = (update: { messageId: number; hiddenByAdmin: boolean; hiddenReason?: string; hiddenAt?: string }) => void
 type EventListener = (event: RealtimeEvent) => void
 
 /**
@@ -43,6 +49,7 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
 
   // 이벤트 리스너들
   const messageListenersRef = useRef<MessageEventListener[]>([])
+  const messageUpdateListenersRef = useRef<MessageUpdateListener[]>([])
   const eventListenersRef = useRef<EventListener[]>([])
 
   const maxReconnectAttempts = 5
@@ -275,7 +282,7 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
 
   // 수신 이벤트 처리 - 실시간 채팅 디버깅
   const handleIncomingEvent = useCallback((event: RealtimeEvent) => {
-    console.log('📨 실시간 이벤트 수신:', event.eventType, event.message?.content)
+    console.log('📨 실시간 이벤트 수신:', event.eventType, event.message?.content || `messageId: ${event.messageId}`)
     switch (event.eventType) {
       case "MESSAGE":
         // 새 메시지 도착
@@ -283,6 +290,36 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
           console.log('💬 새 메시지 전달:', event.message.userName, event.message.content)
           messageListenersRef.current.forEach(listener => {
             listener(event.message!)
+          })
+        }
+        break
+
+      case "MESSAGE_HIDDEN":
+        // 메시지 가리기 이벤트
+        if (event.messageId !== undefined) {
+          console.log('🙈 메시지 가리기 이벤트:', event.messageId, event.hiddenReason)
+          messageUpdateListenersRef.current.forEach(listener => {
+            listener({
+              messageId: event.messageId!,
+              hiddenByAdmin: true,
+              hiddenReason: event.hiddenReason,
+              hiddenAt: event.hiddenAt
+            })
+          })
+        }
+        break
+
+      case "MESSAGE_UNHIDDEN":
+        // 메시지 가리기 해제 이벤트
+        if (event.messageId !== undefined) {
+          console.log('👁️ 메시지 가리기 해제 이벤트:', event.messageId)
+          messageUpdateListenersRef.current.forEach(listener => {
+            listener({
+              messageId: event.messageId!,
+              hiddenByAdmin: false,
+              hiddenReason: undefined,
+              hiddenAt: undefined
+            })
           })
         }
         break
@@ -334,6 +371,24 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
     }
   }, [roomType])
 
+  // 메시지 업데이트 리스너 등록
+  const addMessageUpdateListener = useCallback((listener: MessageUpdateListener) => {
+    if (!roomType) {
+      // roomType이 null이면 빈 함수 반환
+      return () => {}
+    }
+    
+    messageUpdateListenersRef.current.push(listener)
+    
+    // 리스너 제거 함수 반환
+    return () => {
+      const index = messageUpdateListenersRef.current.indexOf(listener)
+      if (index > -1) {
+        messageUpdateListenersRef.current.splice(index, 1)
+      }
+    }
+  }, [roomType])
+
   // 이벤트 리스너 등록
   const addEventListener = useCallback((listener: EventListener) => {
     eventListenersRef.current.push(listener)
@@ -375,6 +430,7 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
     disconnect,
     sendMessage,
     addMessageListener,
+    addMessageUpdateListener,
     addEventListener,
     reconnectAttempts: reconnectAttempts.current,
     maxReconnectAttempts

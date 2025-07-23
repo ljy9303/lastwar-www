@@ -22,6 +22,11 @@ export interface ChatMessage {
   deleted: boolean
   serverAllianceId: number
   userServer?: number // 사용자 서버 번호
+  // ADMIN 기능 추가
+  hiddenByAdmin?: boolean
+  hiddenAt?: string
+  hiddenByUserSeq?: number
+  hiddenReason?: string
 }
 
 export interface ChatHistoryRequest {
@@ -294,6 +299,274 @@ export class ChatService {
       case 'IMAGE': return '🖼️'
       case 'FILE': return '📎'
       default: return ''
+    }
+  }
+}
+
+// ADMIN 관련 타입 정의
+
+export interface ChatRestrictionType {
+  READ_ONLY: "READ_ONLY"
+  MUTED: "MUTED" 
+  BANNED: "BANNED"
+}
+
+export interface ChatUserRestriction {
+  restrictionId: number
+  userSeq: number
+  roomType: "GLOBAL" | "INQUIRY"
+  restrictionType: "READ_ONLY" | "MUTED" | "BANNED"
+  restrictedByUserSeq: number
+  restrictedAt: string
+  restrictionReason?: string
+  expiresAt?: string
+  active: boolean
+  serverAllianceId: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RestrictUserRequest {
+  targetUserSeq: number
+  roomType: "GLOBAL" | "INQUIRY"
+  restrictionType: "READ_ONLY" | "MUTED" | "BANNED"
+  reason?: string
+  durationMinutes?: number // null이면 영구
+}
+
+export interface UnrestrictUserRequest {
+  targetUserSeq: number
+  roomType: "GLOBAL" | "INQUIRY"
+}
+
+export interface HideMessageRequest {
+  messageId: number
+  reason?: string
+}
+
+export interface HideMessagesRequest {
+  messageIds: number[]
+  reason?: string
+}
+
+export interface UnhideMessagesRequest {
+  messageIds: number[]
+}
+
+export interface AdminResponse<T> {
+  success: boolean
+  message: string
+  data?: T
+}
+
+/**
+ * ADMIN 전용 채팅 관리 API 서비스
+ */
+export class ChatAdminService {
+  
+  /**
+   * 사용자 채팅 제한 적용
+   */
+  static async restrictUser(request: RestrictUserRequest): Promise<AdminResponse<ChatUserRestriction>> {
+    try {
+      const data = await fetchFromAPI<AdminResponse<ChatUserRestriction>>('/admin/chat/restrict', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request)
+      })
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 사용자 제한 적용 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 사용자 채팅 제한 해제
+   */
+  static async unrestrictUser(request: UnrestrictUserRequest): Promise<AdminResponse<void>> {
+    try {
+      const data = await fetchFromAPI<AdminResponse<void>>('/admin/chat/unrestrict', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request)
+      })
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 사용자 제한 해제 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 활성 제한 목록 조회
+   */
+  static async getActiveRestrictions(roomType: "GLOBAL" | "INQUIRY", page = 0, size = 20): Promise<{
+    content: ChatUserRestriction[]
+    totalElements: number
+    totalPages: number
+    number: number
+    size: number
+  }> {
+    try {
+      const data = await fetchFromAPI<{
+        content: ChatUserRestriction[]
+        totalElements: number
+        totalPages: number
+        number: number
+        size: number
+      }>(`/admin/chat/restrictions?roomType=${roomType}&page=${page}&size=${size}`)
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 활성 제한 목록 조회 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 사용자 제한 히스토리 조회
+   */
+  static async getUserRestrictionHistory(userSeq: number): Promise<ChatUserRestriction[]> {
+    try {
+      const data = await fetchFromAPI<ChatUserRestriction[]>(`/admin/chat/restrictions/user/${userSeq}`)
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 사용자 제한 히스토리 조회 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 메시지 가리기
+   */
+  static async hideMessage(request: HideMessageRequest): Promise<AdminResponse<ChatMessage>> {
+    try {
+      const data = await fetchFromAPI<AdminResponse<ChatMessage>>('/admin/chat/messages/hide', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request)
+      })
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 메시지 가리기 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 다중 메시지 가리기
+   */
+  static async hideMessages(request: HideMessagesRequest): Promise<AdminResponse<{hiddenMessages: ChatMessage[], processedCount: number}>> {
+    try {
+      const data = await fetchFromAPI<AdminResponse<{hiddenMessages: ChatMessage[], processedCount: number}>>('/admin/chat/messages/hide/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request)
+      })
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 다중 메시지 가리기 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 다중 메시지 가리기 해제
+   */
+  static async unhideMessages(request: UnhideMessagesRequest): Promise<AdminResponse<{unhiddenMessages: ChatMessage[], processedCount: number}>> {
+    try {
+      const data = await fetchFromAPI<AdminResponse<{unhiddenMessages: ChatMessage[], processedCount: number}>>('/admin/chat/messages/unhide/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request)
+      })
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 다중 메시지 가리기 해제 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 메시지 가리기 해제
+   */
+  static async unhideMessage(messageId: number): Promise<AdminResponse<ChatMessage>> {
+    try {
+      const data = await fetchFromAPI<AdminResponse<ChatMessage>>(`/admin/chat/messages/${messageId}/unhide`, {
+        method: 'POST'
+      })
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 메시지 가리기 해제 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 가려진 메시지 목록 조회
+   */
+  static async getHiddenMessages(roomType?: "GLOBAL" | "INQUIRY", page = 0, size = 20): Promise<{
+    content: ChatMessage[]
+    totalElements: number
+    totalPages: number
+    number: number
+    size: number
+  }> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+      
+      if (roomType) {
+        params.append('roomType', roomType)
+      }
+
+      const data = await fetchFromAPI<{
+        content: ChatMessage[]
+        totalElements: number
+        totalPages: number
+        number: number
+        size: number
+      }>(`/admin/chat/messages/hidden?${params}`)
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 가려진 메시지 목록 조회 실패:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 관리자 활동 로그 조회
+   */
+  static async getAdminActivity(adminUserSeq?: number): Promise<ChatUserRestriction[]> {
+    try {
+      const params = adminUserSeq ? `?adminUserSeq=${adminUserSeq}` : ''
+      const data = await fetchFromAPI<ChatUserRestriction[]>(`/admin/chat/activity${params}`)
+
+      return data
+    } catch (error) {
+      console.error('[ADMIN-CHAT] 관리자 활동 로그 조회 실패:', error)
+      throw error
     }
   }
 }
