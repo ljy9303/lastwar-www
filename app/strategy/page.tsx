@@ -27,7 +27,7 @@ export default function StrategyPage() {
           </div>
           <CardTitle className="text-2xl">오픈 준비중입니다</CardTitle>
           <CardDescription className="text-base max-w-md mx-auto">
-            연맹원들이 서로의 공략과 전략을 공유할 수 있는 게시판을 준비하고 있습니다.
+            다양한 서버 연맹에서 공략과 전략을 공유할 수 있는 게시판을 준비하고 있습니다.
             곧 만나볼 수 있도록 열심히 개발 중이니 조금만 기다려주세요!
           </CardDescription>
         </CardHeader>
@@ -35,9 +35,9 @@ export default function StrategyPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/30">
               <Users className="h-8 w-8 text-primary mb-2" />
-              <h3 className="font-semibold mb-1">연맹원 소통</h3>
+              <h3 className="font-semibold mb-1">서버 간 공유</h3>
               <p className="text-sm text-muted-foreground">
-                연맹원들과 함께 전략을 공유하고 토론할 수 있습니다
+                다양한 서버 연맹들과 전략을 공유하고 토론할 수 있습니다
               </p>
             </div>
             <div className="flex flex-col items-center text-center p-4 rounded-lg bg-muted/30">
@@ -68,8 +68,8 @@ export default function StrategyPage() {
             <div className="flex items-start gap-3">
               <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
               <div>
-                <h4 className="font-medium">전략 게시판</h4>
-                <p className="text-sm text-muted-foreground">사막전, 연맹전 등 다양한 콘텐츠별 전략 공유</p>
+                <h4 className="font-medium">서버전 전략 게시판</h4>
+                <p className="text-sm text-muted-foreground">사막전, 서버전 등 다양한 콘텐츠별 전략 공유</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -83,7 +83,7 @@ export default function StrategyPage() {
               <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
               <div>
                 <h4 className="font-medium">질문 & 답변</h4>
-                <p className="text-sm text-muted-foreground">궁금한 점을 물어보고 연맹원들이 답변해주는 공간</p>
+                <p className="text-sm text-muted-foreground">궁금한 점을 물어보고 다양한 서버의 플레이어들이 답변해주는 공간</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
