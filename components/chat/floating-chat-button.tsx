@@ -58,10 +58,16 @@ const FloatingChatButton = memo(function FloatingChatButton() {
 
   // 로그인/회원가입 페이지에서는 플로팅 버튼 숨기기
   const hiddenPaths = ['/login', '/test-login', '/signup', '/auth/kakao/callback']
-  const shouldHide = hiddenPaths.some(path => pathname?.startsWith(path))
+  const shouldHide = hiddenPaths.some(path => pathname?.startsWith(path)) || !shouldConnectWebSocket
 
   // 최신 메시지 확인
   const checkLatestMessage = async () => {
+    // 인증되지 않은 사용자는 API 호출하지 않음
+    if (!session?.user || !session?.accessToken) {
+      console.log('[CHAT] 인증되지 않은 사용자 - 최신 메시지 확인 건너뜀')
+      return
+    }
+    
     try {
       const response = await ChatService.getChatHistory({
         roomType: 'GLOBAL',

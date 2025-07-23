@@ -4,6 +4,7 @@
  */
 
 import { fetchFromAPI } from "@/lib/api-service"
+import { getSession } from "next-auth/react"
 
 export interface ChatMessage {
   messageId: number
@@ -63,6 +64,13 @@ export class ChatService {
    */
   static async getChatHistory(request: ChatHistoryRequest): Promise<ChatHistoryResponse> {
     try {
+      // 인증 상태 사전 체크
+      const session = await getSession()
+      if (!session?.user || !session?.accessToken) {
+        console.warn('[CHAT-API] 인증되지 않은 사용자 - 채팅 히스토리 접근 차단')
+        throw new Error('채팅 서비스는 로그인이 필요합니다. 로그인 후 이용해주세요.')
+      }
+      
       console.log('[CHAT-API] 히스토리 조회 요청:', request)
       
       const requestBody = {
@@ -134,6 +142,13 @@ export class ChatService {
    */
   static async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
     try {
+      // 인증 상태 사전 체크
+      const session = await getSession()
+      if (!session?.user || !session?.accessToken) {
+        console.warn('[CHAT-API] 인증되지 않은 사용자 - 메시지 전송 차단')
+        throw new Error('메시지 전송은 로그인이 필요합니다. 로그인 후 이용해주세요.')
+      }
+      
       console.log('[CHAT-API] 메시지 전송 요청:', request)
       
       const data = await fetchFromAPI<SendMessageResponse>('/chat/send', {
@@ -168,6 +183,13 @@ export class ChatService {
    */
   static async joinChatRoom(roomType: "GLOBAL" | "INQUIRY"): Promise<void> {
     try {
+      // 인증 상태 사전 체크
+      const session = await getSession()
+      if (!session?.user || !session?.accessToken) {
+        console.warn('[CHAT-API] 인증되지 않은 사용자 - 채팅방 입장 차단')
+        throw new Error('채팅방 입장은 로그인이 필요합니다. 로그인 후 이용해주세요.')
+      }
+      
       console.log(`[CHAT-API] 채팅방 입장 요청: ${roomType}`)
       
       await fetchFromAPI(`/chat/join/${roomType.toLowerCase()}`, {
@@ -197,6 +219,13 @@ export class ChatService {
    */
   static async leaveChatRoom(roomType: "GLOBAL" | "INQUIRY"): Promise<void> {
     try {
+      // 인증 상태 사전 체크
+      const session = await getSession()
+      if (!session?.user || !session?.accessToken) {
+        console.warn('[CHAT-API] 인증되지 않은 사용자 - 채팅방 퇴장 차단')
+        throw new Error('채팅방 퇴장은 로그인이 필요합니다. 로그인 후 이용해주세요.')
+      }
+      
       console.log(`[CHAT-API] 채팅방 퇴장 요청: ${roomType}`)
       
       await fetchFromAPI(`/chat/leave/${roomType.toLowerCase()}`, {
