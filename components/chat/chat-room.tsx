@@ -1,15 +1,17 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from "react"
-import { Send } from "lucide-react"
+import { Send, CheckSquare, Square, Eye, EyeOff, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 // ScrollArea 제거하고 기본 div 사용으로 자동 스크롤 문제 해결
 import { MessageBubble } from "./message-bubble"
 import { useWebSocket } from "@/hooks/chat/use-websocket"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
-import { ChatService, type ChatMessage } from "@/lib/chat-service"
+import { ChatService, ChatAdminService, type ChatMessage } from "@/lib/chat-service"
+import { useIsAdmin } from "@/lib/auth-utils"
 
 interface ChatRoomProps {
   roomType: "GLOBAL" | "INQUIRY"
@@ -28,6 +30,7 @@ interface ChatRoomProps {
  */
 const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, isModalOpen = false, onMessageUpdate }: ChatRoomProps) {
   const { data: session } = useSession()
+  const isAdmin = useIsAdmin()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -35,6 +38,11 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [lastModalOpenState, setLastModalOpenState] = useState(false)
   const [allowInfiniteScroll, setAllowInfiniteScroll] = useState(false)
+  
+  // 다중 선택 모드 관련 상태
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(new Set())
+  const [isBulkOperationLoading, setIsBulkOperationLoading] = useState(false)
   
   // 메시지 제한 수 (메모리 최적화)
   const MAX_MESSAGES = 300
@@ -50,6 +58,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     onlineCount,
     sendMessage, 
     addMessageListener,
+    addMessageUpdateListener,
     lastError 
   } = useWebSocket(roomType)
 
@@ -143,6 +152,27 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
 
     return removeListener
   }, [roomType, addMessageListener])
+
+  // 실시간 메시지 상태 업데이트 리스너 등록
+  useEffect(() => {
+    const removeListener = addMessageUpdateListener((update) => {
+      console.log('📝 메시지 상태 업데이트:', update)
+      
+      setMessages(prev => prev.map(message => {
+        if (message.messageId === update.messageId) {
+          return {
+            ...message,
+            hiddenByAdmin: update.hiddenByAdmin,
+            hiddenReason: update.hiddenReason,
+            hiddenAt: update.hiddenAt
+          }
+        }
+        return message
+      }))
+    })
+
+    return removeListener
+  }, [addMessageUpdateListener])
 
   // 초기 메시지 로드
   const loadInitialMessages = async () => {
@@ -395,6 +425,114 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     }
   }
 
+  // 다중 선택 모드 관련 핸들러들
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode)
+    setSelectedMessageIds(new Set())
+  }
+
+  const handleMessageSelection = (messageId: number, selected: boolean) => {
+    setSelectedMessageIds(prev => {
+      const newSet = new Set(prev)
+      if (selected) {
+        newSet.add(messageId)
+      } else {
+        newSet.delete(messageId)
+      }
+      return newSet
+    })
+  }
+
+  const selectAllMessages = () => {
+    const textMessages = messages
+      .filter(msg => msg.messageType === "TEXT" && !msg.hiddenByAdmin)
+      .map(msg => msg.messageId)
+    setSelectedMessageIds(new Set(textMessages))
+  }
+
+  const clearSelection = () => {
+    setSelectedMessageIds(new Set())
+  }
+
+  const handleBulkHide = async () => {
+    if (selectedMessageIds.size === 0) {
+      toast({
+        title: "선택된 메시지 없음",
+        description: "가릴 메시지를 선택해주세요.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsBulkOperationLoading(true)
+    try {
+      const messageIds = Array.from(selectedMessageIds)
+      const response = await ChatAdminService.hideMessages({
+        messageIds,
+        reason: "관리자에 의해 가려진 메시지입니다."
+      })
+
+      if (response.success) {
+        toast({
+          title: "메시지 가리기 완료",
+          description: `${response.data?.processedCount || messageIds.length}개의 메시지가 가려졌습니다.`
+        })
+        setSelectedMessageIds(new Set())
+        setIsSelectionMode(false)
+      } else {
+        throw new Error(response.message)
+      }
+    } catch (error) {
+      console.error('[ADMIN] 다중 메시지 가리기 오류:', error)
+      toast({
+        title: "메시지 가리기 실패",
+        description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsBulkOperationLoading(false)
+    }
+  }
+
+  const handleBulkUnhide = async () => {
+    if (selectedMessageIds.size === 0) {
+      toast({
+        title: "선택된 메시지 없음",
+        description: "복원할 메시지를 선택해주세요.",  
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsBulkOperationLoading(true)
+    try {
+      const messageIds = Array.from(selectedMessageIds)
+      const response = await ChatAdminService.unhideMessages({
+        messageIds
+      })
+
+      if (response.success) {
+        toast({
+          title: "메시지 복원 완료",
+          description: `${response.data?.processedCount || messageIds.length}개의 메시지가 복원되었습니다.`
+        })
+        setSelectedMessageIds(new Set())
+        setIsSelectionMode(false)
+      } else {
+        throw new Error(response.message)
+      }
+    } catch (error) {
+      console.error('[ADMIN] 다중 메시지 복원 오류:', error)
+      toast({
+        title: "메시지 복원 실패",
+        description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsBulkOperationLoading(false)
+    }
+  }
+
   // 스크롤 이벤트 throttling을 위한 ref
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const allowInfiniteScrollRef = useRef(false)
@@ -458,8 +596,95 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
               {description} {onlineCount > 0 && `• ${onlineCount}명 접속중`}
             </p>
           </div>
+          
+          {/* ADMIN 전용 선택 모드 버튼 */}
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isSelectionMode ? "default" : "outline"}
+                size="sm"
+                onClick={toggleSelectionMode}
+                disabled={isBulkOperationLoading}
+                className="h-7 px-2 text-xs"
+              >
+                {isSelectionMode ? <CheckSquare className="h-3 w-3 mr-1" /> : <Square className="h-3 w-3 mr-1" />}
+                {isSelectionMode ? "선택완료" : "선택모드"}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
+      
+      {/* ADMIN 선택 모드 컨트롤 바 */}
+      {isAdmin && isSelectionMode && (
+        <div className="p-2 bg-blue-50 dark:bg-blue-950 border-b border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {selectedMessageIds.size}개 선택됨
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={selectAllMessages}
+                disabled={isBulkOperationLoading}
+                className="h-6 px-2 text-xs"
+              >
+                전체선택
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearSelection}
+                disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
+                className="h-6 px-2 text-xs"
+              >
+                선택해제
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkHide}
+                disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
+                className="h-6 px-2 text-xs"
+              >
+                {isBulkOperationLoading ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1" />
+                ) : (
+                  <EyeOff className="h-3 w-3 mr-1" />
+                )}
+                가리기
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkUnhide}
+                disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
+                className="h-6 px-2 text-xs"
+              >
+                {isBulkOperationLoading ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent mr-1" />
+                ) : (
+                  <Eye className="h-3 w-3 mr-1" />
+                )}
+                복원
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleSelectionMode}
+                disabled={isBulkOperationLoading}
+                className="h-6 px-2 text-xs"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 메시지 목록 - 슬랙 스타일 무한스크롤 (최적화) */}
       <div 
@@ -506,11 +731,14 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                     message={{...message, roomType}} 
                     isLastInGroup={isLastInGroup}
                     isFirstInGroup={isFirstInGroup}
+                    isSelectable={isAdmin && isSelectionMode}
+                    isSelected={selectedMessageIds.has(message.messageId)}
+                    onSelectionChange={handleMessageSelection}
                   />
                 </div>
               )
             })
-          }, [messages, roomType])}
+          }, [messages, roomType, isAdmin, isSelectionMode, selectedMessageIds, handleMessageSelection])}
         </div>
         
         <div ref={messagesEndRef} />

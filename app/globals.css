@@ -95,3 +95,23 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* 채팅 모달 내 드롭다운 메뉴 z-index 설정 */
+[data-radix-popper-content-wrapper] {
+  z-index: 10002 !important;
+}
+
+/* DropdownMenu 컨텐츠 z-index 추가 설정 */
+.dropdown-menu-content {
+  z-index: 10002 !important;
+}
+
+/* Radix UI Portal 컨테이너 z-index 설정 */
+[data-radix-portal] {
+  z-index: 10002 !important;
+}
+
+/* 드롭다운 메뉴 전체 컨테이너 */
+[data-radix-dropdown-menu-content] {
+  z-index: 10002 !important;
+}
