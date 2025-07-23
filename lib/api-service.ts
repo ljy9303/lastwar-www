@@ -14,6 +14,20 @@ export async function fetchFromAPI<T = any>(endpoint: string, options: RequestIn
     console.log(`[FRONTEND] API 요청 시작 - ${method} ${endpoint}`, options.body ? { body: options.body } : '')
   }
 
+  // 로그인/회원가입 페이지에서 채팅 API 호출 차단
+  if (typeof window !== 'undefined' && endpoint.includes('/chat/')) {
+    const currentPath = window.location.pathname
+    const authPages = ['/login', '/signup', '/test-login', '/auth/kakao/callback']
+    const isAuthPage = authPages.some(page => currentPath.startsWith(page))
+    
+    if (isAuthPage) {
+      console.warn(`[FRONTEND] 로그인/회원가입 페이지에서 채팅 API 호출 차단 - ${currentPath}`)
+      const error = new Error('로그인/회원가입 페이지에서는 채팅 기능을 사용할 수 없습니다.') as Error & { status?: number; data?: any }
+      error.status = 403
+      throw error
+    }
+  }
+
   try {
     // NextAuth 세션에서 액세스 토큰 가져오기
     let session
@@ -35,6 +49,13 @@ export async function fetchFromAPI<T = any>(endpoint: string, options: RequestIn
         console.log(`[FRONTEND] NextAuth 토큰 사용 - ${method} ${endpoint}`)
       }
     } else {
+      // 채팅 관련 API는 인증이 필수 - 토큰 없으면 즉시 에러 반환
+      if (endpoint.includes('/chat/')) {
+        const error = new Error('채팅 서비스는 로그인이 필요합니다. 로그인 후 이용해주세요.') as Error & { status?: number; data?: any }
+        error.status = 401
+        throw error
+      }
+      
       if (process.env.NODE_ENV === 'development') {
         console.log(`[FRONTEND] NextAuth 토큰 없음 - ${method} ${endpoint}, session:`, session ? 'exists' : 'null')
       }
