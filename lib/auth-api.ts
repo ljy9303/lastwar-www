@@ -24,6 +24,7 @@ export interface AccountInfo {
   profileImageUrl?: string
   role: string
   status: string
+  label?: string
   serverInfo?: number
   allianceTag?: string
   serverAllianceId?: number
@@ -117,6 +118,7 @@ export const authAPI = {
                 profileImageUrl: session.user.image,
                 role: session.user.role || 'USER',
                 status: 'ACTIVE',
+                label: session.user.label,
                 serverInfo: session.user.serverInfo,
                 allianceTag: session.user.allianceTag,
                 serverAllianceId: session.user.serverAllianceId,
@@ -136,6 +138,7 @@ export const authAPI = {
                 profileImageUrl: session.user.image,
                 role: session.user.role || 'USER',
                 status: 'ACTIVE',
+                label: session.user.label,
                 serverInfo: session.user.serverInfo,
                 allianceTag: session.user.allianceTag,
                 serverAllianceId: session.user.serverAllianceId,
@@ -214,6 +217,7 @@ export const authAPI = {
               profileImageUrl: data.user.profileImageUrl,
               role: data.user.role || 'USER',
               status: 'ACTIVE',
+              label: data.user.label,
               serverAllianceId: data.user.serverAllianceId,
               registrationComplete: data.user.registrationComplete
             },
@@ -250,6 +254,7 @@ export const authAPI = {
           profileImageUrl: session.user.image,
           role: session.user.role || 'USER',
           status: 'ACTIVE',
+          label: session.user.label,
           serverAllianceId: session.user.serverAllianceId,
           registrationComplete: session.user.registrationComplete || false
         }
@@ -299,6 +304,7 @@ export const authAPI = {
         profileImageUrl: session.user.image,
         role: session.user.role || 'USER',
         status: 'ACTIVE',
+        label: session.user.label,
         serverInfo: session.user.serverInfo,
         allianceTag: session.user.allianceTag,
         serverAllianceId: session.user.serverAllianceId,

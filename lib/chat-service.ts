@@ -10,6 +10,7 @@ export interface ChatMessage {
   userSeq: number
   userName: string
   userTag?: string
+  userLabel?: string
   serverTag?: number
   allianceName?: string // 연맹 이름
   content: string

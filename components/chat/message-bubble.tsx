@@ -8,6 +8,7 @@ interface ChatMessage {
   userSeq: number
   userName: string
   userTag?: string
+  userLabel?: string
   serverTag?: number
   allianceName?: string
   content: string
@@ -99,6 +100,11 @@ const MessageBubble = memo(function MessageBubble({ message, isLastInGroup = tru
               {message.userTag && (
                 <Badge variant="outline" className="text-xs h-4 px-1">
                   {message.userTag}
+                </Badge>
+              )}
+              {message.userLabel && (
+                <Badge variant="secondary" className="text-xs h-4 px-1 bg-purple-100 text-purple-800 border-purple-200">
+                  {message.userLabel}
                 </Badge>
               )}
             </div>
