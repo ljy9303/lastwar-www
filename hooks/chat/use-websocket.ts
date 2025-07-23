@@ -210,8 +210,15 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
         return
       }
 
-      // 새 채팅방 구독 - 실제 serverAllianceId 사용으로 멀티테넌트 격리
-      const topicPath = `/topic/chat/${serverAllianceId}/${room.toLowerCase()}`
+      // 채팅방 구독 경로 설정
+      let topicPath: string;
+      if (room === 'GLOBAL') {
+        // GLOBAL 채팅은 모든 서버 사용자 대상
+        topicPath = `/topic/chat/global`;
+      } else {
+        // 다른 채팅방은 서버연맹별 격리
+        topicPath = `/topic/chat/${serverAllianceId}/${room.toLowerCase()}`;
+      }
       console.log('🔔 채팅방 구독 경로:', topicPath)
       
       const subscription = stompClientRef.current.subscribe(
