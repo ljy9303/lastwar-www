@@ -11,6 +11,7 @@ declare module "next-auth" {
       image?: string
       serverAllianceId?: number
       role?: string
+      label?: string
       registrationComplete?: boolean
       serverInfo?: number
       allianceTag?: string
@@ -25,6 +26,7 @@ declare module "next-auth" {
     accessToken?: string
     serverAllianceId?: number
     role?: string
+    label?: string
     registrationComplete?: boolean
     serverInfo?: number
     allianceTag?: string
@@ -36,6 +38,7 @@ declare module "next-auth/jwt" {
     accessToken?: string
     serverAllianceId?: number
     role?: string
+    label?: string
     registrationComplete?: boolean
     serverInfo?: number
     allianceTag?: string
