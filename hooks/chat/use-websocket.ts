@@ -52,12 +52,30 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
   const connect = useCallback(async () => {
     if (!roomType || isConnecting || isConnected) return
 
+    // 세션 및 인증 정보 검증
+    if (!session?.user?.serverAllianceId) {
+      console.error("❌ WebSocket 연결 실패: 인증 정보가 부족합니다.", {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        hasServerAllianceId: !!session?.user?.serverAllianceId
+      })
+      setLastError("인증 정보가 부족하여 실시간 채팅에 연결할 수 없습니다.")
+      return
+    }
+
     setIsConnecting(true)
     setLastError(null)
 
     try {
       // JWT 토큰 조회 (NextAuth 세션의 accessToken 사용)
       const accessToken = session?.accessToken || authStorage.getAccessToken()
+      
+      if (!accessToken) {
+        console.error("❌ WebSocket 연결 실패: 액세스 토큰이 없습니다.")
+        setLastError("인증 토큰이 없어 실시간 채팅에 연결할 수 없습니다.")
+        setIsConnecting(false)
+        return
+      }
       
       // 연결 시도 로그 제거로 성능 향상
       
@@ -129,18 +147,25 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
 
   // 재연결 스케줄링
   const scheduleReconnect = useCallback(() => {
+    // 인증 정보가 없으면 재연결하지 않음
+    if (!session?.user?.serverAllianceId) {
+      console.warn("⚠️ 인증 정보가 없어 WebSocket 재연결을 중단합니다.")
+      setLastError("인증 정보가 없어 재연결할 수 없습니다.")
+      return
+    }
+
     if (reconnectAttempts.current >= maxReconnectAttempts) {
-      setLastError("WebSocket 연결을 재시도할 수 없습니다.")
+      setLastError(`WebSocket 연결 재시도 한계 (${maxReconnectAttempts}회)에 도달했습니다.`)
       return
     }
 
     reconnectAttempts.current++
-    console.log(`WebSocket 재연결 시도 ${reconnectAttempts.current}/${maxReconnectAttempts}`)
+    console.log(`🔄 WebSocket 재연결 시도 ${reconnectAttempts.current}/${maxReconnectAttempts}`)
     
     reconnectTimeoutRef.current = setTimeout(() => {
       connect()
     }, reconnectInterval * reconnectAttempts.current)
-  }, [connect])
+  }, [connect, session])
 
   // STOMP 연결 해제
   const disconnect = useCallback(() => {
@@ -177,8 +202,23 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
         subscriptionRef.current.unsubscribe()
       }
 
-      // 새 채팅방 구독 - 서버 연맹 ID는 JWT에서 추출됨
-      const topicPath = `/topic/chat/*/` + room.toLowerCase()
+      // 멀티테넌트 격리를 위한 serverAllianceId 추출
+      const serverAllianceId = session?.user?.serverAllianceId
+      if (!serverAllianceId) {
+        console.error("❌ serverAllianceId가 없어 WebSocket 구독할 수 없습니다.")
+        setLastError("인증 정보가 부족합니다.")
+        return
+      }
+
+      // 채팅방 구독 경로 설정
+      let topicPath: string;
+      if (room === 'GLOBAL') {
+        // GLOBAL 채팅은 모든 서버 사용자 대상
+        topicPath = `/topic/chat/global`;
+      } else {
+        // 다른 채팅방은 서버연맹별 격리
+        topicPath = `/topic/chat/${serverAllianceId}/${room.toLowerCase()}`;
+      }
       console.log('🔔 채팅방 구독 경로:', topicPath)
       
       const subscription = stompClientRef.current.subscribe(
@@ -209,7 +249,7 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
       console.error("채팅방 구독 실패:", error)
       setLastError("채팅방 구독에 실패했습니다.")
     }
-  }, [])
+  }, [session])
 
   // STOMP 메시지 전송
   const sendMessage = useCallback(async (request: SendMessageRequest) => {
