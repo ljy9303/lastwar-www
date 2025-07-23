@@ -62,9 +62,37 @@ export function DesertEditDialog({ isOpen, desert, onClose, onUpdate }: DesertEd
       onClose()
     } catch (error) {
       console.error("사막전 수정 실패:", error)
+      
+      // 에러 메시지 추출
+      const errorMessage = error instanceof Error ? error.message : "사막전 수정 중 오류가 발생했습니다."
+      
+      // 중복 날짜 에러 메시지인지 확인
+      const isDuplicateError =
+        errorMessage.includes("이미 존재") || 
+        errorMessage.includes("중복") || 
+        errorMessage.includes("해당 날짜")
+      
+      // 권한 관련 에러 메시지인지 확인
+      const isPermissionError = 
+        errorMessage.includes("다른 연맹") || 
+        errorMessage.includes("권한") ||
+        errorMessage.includes("수정할 수 없습니다")
+      
+      let description = errorMessage
+      if (isDuplicateError) {
+        const selectedDate = new Date(eventDate).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+        description = `선택한 날짜(${selectedDate})에 이미 사막전이 존재합니다. 다른 날짜를 선택해주세요.`
+      } else if (isPermissionError) {
+        description = "이 사막전을 수정할 권한이 없습니다."
+      }
+      
       toast({
-        title: "오류",
-        description: "사막전 수정 중 오류가 발생했습니다.",
+        title: "사막전 수정 실패",
+        description,
         variant: "destructive",
       })
     } finally {

@@ -318,13 +318,18 @@ export default function EventsPage() {
       // 에러 메시지 추출
       const errorMessage = error instanceof Error ? error.message : "사막전 생성 중 오류가 발생했습니다."
 
-      // 400 에러 관련 메시지인지 확인
+      // 중복 사막전 에러 메시지인지 확인 (백엔드 메시지 패턴 매칭)
       const isDuplicateError =
-        errorMessage.includes("이미 존재") || errorMessage.includes("중복") || errorMessage.includes("동일한")
+        errorMessage.includes("이미 존재") || 
+        errorMessage.includes("중복") || 
+        errorMessage.includes("동일한") ||
+        errorMessage.includes("해당 날짜")
 
       toast({
         title: "사막전 생성 실패",
-        description: isDuplicateError ? "이미 동일한 제목 또는 날짜의 사막전이 존재합니다." : errorMessage,
+        description: isDuplicateError 
+          ? `선택한 날짜(${format(newEventDate, "yyyy년 MM월 dd일")})에 이미 사막전이 존재합니다. 다른 날짜를 선택해주세요.`
+          : errorMessage,
         variant: "destructive"
       })
     } finally {
