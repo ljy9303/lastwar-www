@@ -174,22 +174,33 @@ export const optimizeMessageArray = <T extends { id: any }>({
     return messages as T[]
   }
   
+  // 최신 메시지는 항상 보존해야 하는 개수 (최소 20개)
+  const alwaysKeepLatest = Math.min(20, Math.floor(maxMessages * 0.2))
+  const availableForOlder = maxMessages - alwaysKeepLatest
+  
   // 사용자가 하단에 있으면 최신 메시지 우선 보존
   if (currentScrollPosition.isNearBottom) {
     return messages.slice(-maxMessages) as T[]
   }
   
-  // 사용자가 상단에 있으면 오래된 메시지 우선 보존  
+  // 사용자가 상단에 있더라도 최신 메시지는 보존
   if (currentScrollPosition.isNearTop) {
-    return messages.slice(0, maxMessages) as T[]
+    // 오래된 메시지 + 항상 보존할 최신 메시지
+    const oldMessages = messages.slice(0, availableForOlder)
+    const latestMessages = messages.slice(-alwaysKeepLatest)
+    return [...oldMessages, ...latestMessages] as T[]
   }
   
-  // 중간에 있으면 현재 위치 기준으로 양쪽 보존
+  // 중간에 있으면 현재 위치 기준으로 양쪽 보존 + 최신 메시지 보존
   const middleIndex = Math.floor(messages.length * currentScrollPosition.percentage / 100)
-  const start = Math.max(0, middleIndex - keepFromTop)
-  const end = Math.min(messages.length, middleIndex + keepFromBottom)
+  const adjustedKeepFromTop = Math.min(keepFromTop, availableForOlder - keepFromBottom)
+  const start = Math.max(0, middleIndex - adjustedKeepFromTop)
+  const end = Math.min(messages.length - alwaysKeepLatest, middleIndex + keepFromBottom)
   
-  return messages.slice(start, end) as T[]
+  const middleMessages = messages.slice(start, end)
+  const latestMessages = messages.slice(-alwaysKeepLatest)
+  
+  return [...middleMessages, ...latestMessages] as T[]
 }
 
 /**
