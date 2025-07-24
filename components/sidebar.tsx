@@ -16,6 +16,7 @@ import { signOut, useSession, getSession } from "next-auth/react"
 import { authAPI, authUtils } from "@/lib/auth-api"
 import { toast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
+import SponsorButton from "@/components/ui/sponsor-button"
 
 const logger = createLogger('Sidebar')
 
@@ -262,8 +263,12 @@ export default function Sidebar() {
             </Link>
           ))}
         </nav>
+        {/* 후원 버튼 */}
+        <div className="p-4">
+          <SponsorButton collapsed={isSidebarCollapsed} />
+        </div>
         {/* 사용자 정보 및 로그아웃 */}
-        <div className="p-4 border-t mt-auto">
+        <div className="p-4 border-t">
           {!isSidebarCollapsed ? (
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-2 rounded-lg bg-accent/50">
@@ -357,8 +362,12 @@ export default function Sidebar() {
                 </Link>
               ))}
             </nav>
+            {/* 모바일 후원 버튼 */}
+            <div className="p-4">
+              <SponsorButton collapsed={false} />
+            </div>
             {/* 모바일 사용자 정보 및 로그아웃 */}
-            <div className="p-4 border-t mt-auto">
+            <div className="p-4 border-t">
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-2 rounded-lg bg-accent/50">
                   <User className="h-8 w-8 p-1.5 rounded-full bg-primary text-primary-foreground flex-shrink-0" />
