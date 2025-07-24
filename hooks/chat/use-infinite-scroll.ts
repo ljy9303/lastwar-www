@@ -269,12 +269,11 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
     get count() { return messageBuffer.current.count },
     get hasMessages() { return messageBuffer.current.count > 0 },
     flushAndScroll: () => {
-      const bufferedMessages = messageBuffer.current.flush()
-      if (bufferedMessages.length > 0) {
-        setMessages(prev => [...prev, ...bufferedMessages])
-        // 잠시 후 하단으로 스크롤
-        setTimeout(() => scrollToBottom(), 100)
-      }
+      // 실제 메시지는 이미 추가되었으므로 버퍼만 비우고 스크롤
+      messageBuffer.current.clear()
+      forceUpdate({})
+      // 하단으로 스크롤
+      setTimeout(() => scrollToBottom(), 100)
     },
     clear: () => {
       messageBuffer.current.clear()
@@ -288,16 +287,33 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
   const addRealtimeMessage = useCallback((message: T) => {
     const position = updateScrollPosition()
     
+    // 실시간 메시지는 항상 메시지 배열에 추가 (최신 메시지 보존을 위해)
+    setMessages(prev => {
+      const updated = [...prev, message]
+      
+      // 메모리 최적화 적용 (최신 메시지는 항상 보존됨)
+      if (updated.length > finalConfig.maxMessagesInMemory && position) {
+        return optimizeMessageArray({
+          messages: updated,
+          maxMessages: finalConfig.maxMessagesInMemory,
+          currentScrollPosition: position,
+          keepFromTop: finalConfig.loadBatchSize,
+          keepFromBottom: finalConfig.loadBatchSize
+        })
+      }
+      
+      return updated
+    })
+    
     if (position?.isNearBottom || !isUserScrolling.current) {
-      // 하단에 있거나 사용자가 스크롤하지 않으면 즉시 추가
-      setMessages(prev => [...prev, message])
+      // 하단에 있거나 사용자가 스크롤하지 않으면 자동 스크롤
       setTimeout(() => scrollToBottom(), 50)
     } else {
-      // 중간/상단에 있으면 버퍼에 저장
+      // 중간/상단에 있으면 버퍼 카운트만 증가 (실제 메시지는 이미 추가됨)
       messageBuffer.current.add(message)
       forceUpdate({})
     }
-  }, [updateScrollPosition, setMessages, scrollToBottom])
+  }, [updateScrollPosition, setMessages, scrollToBottom, finalConfig])
   
   /**
    * 스크롤 이벤트 리스너 등록
