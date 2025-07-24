@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Heart, QrCode, Copy, Check } from "lucide-react"
+import Image from "next/image"
+import { Heart, QrCode, Copy, Check, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
@@ -14,12 +15,13 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // 실제 후원 정보 (나중에 환경변수나 설정으로 관리)
+  // 환경변수에서 후원 정보 가져오기
   const sponsorInfo = {
-    bankName: "카카오뱅크",
-    accountNumber: "3333-12-3456789", // 실제 계좌번호로 변경 필요
-    accountHolder: "관리자", // 실제 예금주명으로 변경 필요
-    qrCodeUrl: "https://qr.kakaopay.com/FTaBcD123xyz" // 실제 카카오페이 QR URL로 변경 필요
+    bankName: process.env.NEXT_PUBLIC_SPONSOR_BANK_NAME || "카카오뱅크",
+    accountNumber: process.env.NEXT_PUBLIC_SPONSOR_ACCOUNT_NUMBER || "계좌번호 미설정",
+    accountHolder: process.env.NEXT_PUBLIC_SPONSOR_ACCOUNT_HOLDER || "예금주 미설정",
+    qrCodeUrl: process.env.NEXT_PUBLIC_SPONSOR_KAKAOPAY_URL || "https://qr.kakaopay.com/FTaBcD123xyz",
+    qrImagePath: process.env.NEXT_PUBLIC_SPONSOR_QR_IMAGE || null
   }
 
   const handleCopyAccount = async () => {
@@ -77,14 +79,38 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
                 카카오페이로 후원하기
               </h3>
             </div>
-            <p className="text-sm text-gray-600 mb-3">
-              QR 코드를 스캔하거나 버튼을 클릭하여 카카오페이로 간편하게 후원해보세요.
-            </p>
+            
+            {/* QR 코드 이미지 또는 설명 */}
+            {sponsorInfo.qrImagePath ? (
+              <div className="flex flex-col items-center mb-4">
+                <div className="relative w-40 h-40 mb-2 bg-white rounded-lg p-2 border">
+                  <Image
+                    src={sponsorInfo.qrImagePath}
+                    alt="카카오페이 QR 코드"
+                    fill
+                    className="object-contain rounded"
+                    onError={() => {
+                      // 이미지 로드 실패 시 fallback 처리
+                      console.warn('QR 이미지 로드 실패:', sponsorInfo.qrImagePath)
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 text-center">
+                  📱 카카오페이 앱으로 QR 코드를 스캔해주세요
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600 mb-3">
+                QR 코드를 스캔하거나 버튼을 클릭하여 카카오페이로 간편하게 후원해보세요.
+              </p>
+            )}
+            
             <Button
               onClick={handleKakaoPayClick}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold"
+              className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold flex items-center justify-center gap-2"
             >
               💛 카카오페이로 후원하기
+              <ExternalLink className="h-4 w-4" />
             </Button>
           </div>
 
