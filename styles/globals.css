@@ -10,6 +10,23 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* 채팅 메시지 텍스트 줄바꿈 강화 */
+  .overflow-wrap-anywhere {
+    overflow-wrap: anywhere;
+  }
+  
+  .word-break-break-all {
+    word-break: break-all;
+  }
+  
+  /* 긴 URL이나 연속 문자열 강제 줄바꿈 */
+  .force-break-word {
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
 }
 
 @layer base {

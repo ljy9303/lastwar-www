@@ -357,13 +357,13 @@ const MessageBubble = memo(function MessageBubble({
           )}
 
           {/* 메시지 버블 */}
-          <div className="bg-blue-500 text-white px-3 py-2 rounded-2xl rounded-br-md shadow-sm will-change-transform">
+          <div className="bg-blue-500 text-white px-3 py-2 rounded-2xl rounded-br-md shadow-sm will-change-transform max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
             {message.hiddenByAdmin ? (
               <p className="text-sm italic text-blue-100">
                 관리자가 해당 메시지를 가렸습니다.
               </p>
             ) : (
-              <p className="text-sm whitespace-pre-wrap break-words">
+              <p className="text-sm whitespace-pre-wrap force-break-word max-w-full">
                 {message.content}
               </p>
             )}
@@ -433,13 +433,13 @@ const MessageBubble = memo(function MessageBubble({
           {/* 메시지 버블과 시간 */}
           <div className="flex items-end gap-2">
             {/* 메시지 버블 */}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-2xl rounded-bl-md shadow-sm will-change-transform">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-2xl rounded-bl-md shadow-sm will-change-transform max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
               {message.hiddenByAdmin ? (
                 <p className="text-sm italic text-gray-500 dark:text-gray-400">
                   관리자가 해당 메시지를 가렸습니다.
                 </p>
               ) : (
-                <p className="text-sm whitespace-pre-wrap break-words text-gray-800 dark:text-gray-200">
+                <p className="text-sm whitespace-pre-wrap force-break-word max-w-full text-gray-800 dark:text-gray-200">
                   {message.content}
                 </p>
               )}
