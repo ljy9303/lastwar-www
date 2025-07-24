@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { MessageBubble } from "./message-bubble"
+import { DateSeparator } from "./date-separator"
 import { useWebSocket } from "@/hooks/chat/use-websocket"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
@@ -14,6 +15,7 @@ import { useIsAdmin } from "@/lib/auth-utils"
 import { getByteLength, MESSAGE_BYTE_LIMIT, getMessageLengthStatus, formatByteSize } from "@/lib/message-utils"
 import { useInfiniteScroll } from "@/hooks/chat/use-infinite-scroll"
 import { useChatCache } from "@/contexts/chat-cache-context"
+import { needsDateSeparator, getDateSeparatorLabel } from "@/lib/chat-time-utils"
 
 interface ChatRoomProps {
   roomType: "GLOBAL" | "INQUIRY"
@@ -757,6 +759,9 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                   nextMessage.messageType === "SYSTEM" ||
                   message.messageType === "SYSTEM"
                 
+                // 날짜 구분선이 필요한지 확인
+                const showDateSeparator = needsDateSeparator(prevMessage, message)
+                
                 return (
                   <div 
                     key={message.messageId} 
@@ -766,6 +771,14 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                       height: virtualItem.end - virtualItem.start
                     }}
                   >
+                    {/* 날짜 구분선 (가상화에서는 메시지와 함께 렌더링) */}
+                    {showDateSeparator && (
+                      <DateSeparator 
+                        label={getDateSeparatorLabel(new Date(message.createdAt))}
+                        className="mb-2"
+                      />
+                    )}
+                    
                     <MessageBubble 
                       message={{...message, roomType}} 
                       isLastInGroup={isLastInGroup}
@@ -793,17 +806,30 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                   nextMessage.messageType === "SYSTEM" ||
                   message.messageType === "SYSTEM"
                 
+                // 날짜 구분선이 필요한지 확인
+                const showDateSeparator = needsDateSeparator(prevMessage, message)
+                
                 return (
-                  <div key={message.messageId} className="will-change-transform message-bubble">
-                    <MessageBubble 
-                      message={{...message, roomType}} 
-                      isLastInGroup={isLastInGroup}
-                      isFirstInGroup={isFirstInGroup}
-                      isSelectable={isAdmin && isSelectionMode}
-                      isSelected={selectedMessageIds.has(message.messageId)}
-                      onSelectionChange={handleMessageSelection}
-                    />
-                  </div>
+                  <React.Fragment key={message.messageId}>
+                    {/* 날짜 구분선 */}
+                    {showDateSeparator && (
+                      <DateSeparator 
+                        label={getDateSeparatorLabel(new Date(message.createdAt))}
+                      />
+                    )}
+                    
+                    {/* 메시지 버블 */}
+                    <div className="will-change-transform message-bubble">
+                      <MessageBubble 
+                        message={{...message, roomType}} 
+                        isLastInGroup={isLastInGroup}
+                        isFirstInGroup={isFirstInGroup}
+                        isSelectable={isAdmin && isSelectionMode}
+                        isSelected={selectedMessageIds.has(message.messageId)}
+                        onSelectionChange={handleMessageSelection}
+                      />
+                    </div>
+                  </React.Fragment>
                 )
               })
             }

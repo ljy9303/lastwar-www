@@ -10,6 +10,7 @@ import { getLabelDisplayName, getLabelStyle } from "@/lib/user-label-utils"
 import { useIsAdmin } from "@/lib/auth-utils"
 import { ChatAdminService, HideMessageRequest, RestrictUserRequest } from "@/lib/chat-service"
 import { toast } from "@/hooks/use-toast"
+import { formatChatTime } from "@/lib/chat-time-utils"
 
 interface ChatMessage {
   messageId: number
@@ -369,7 +370,7 @@ const MessageBubble = memo(function MessageBubble({
               {/* 시간은 마지막 그룹에만 표시 */}
               {isLastInGroup && (
                 <span className="text-xs text-gray-500 whitespace-nowrap">
-                  {message.timeDisplay}
+                  {formatChatTime(message.createdAt)}
                 </span>
               )}
               {renderAdminControls()}
@@ -473,7 +474,7 @@ const MessageBubble = memo(function MessageBubble({
                 {/* 시간은 마지막 그룹에만 표시 */}
                 {isLastInGroup && (
                   <span className="text-xs text-gray-500 whitespace-nowrap">
-                    {message.timeDisplay}
+                    {formatChatTime(message.createdAt)}
                   </span>
                 )}
                 {renderAdminControls()}
