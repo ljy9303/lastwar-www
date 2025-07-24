@@ -97,7 +97,7 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
             후원하기
           </DialogTitle>
           <DialogDescription>
-            서비스 운영에 도움을 주시는 여러분의 따뜻한 마음에 감사드립니다. 💙
+            더 나은 콘텐츠 제작에 보탬이 되어주시는 여러분의 따뜻한 마음에 감사드립니다. 💙
           </DialogDescription>
         </DialogHeader>
         
@@ -208,7 +208,7 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
           {/* 감사 메시지 */}
           <div className="text-center p-3 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">
-              여러분의 후원으로 더 나은 서비스를 만들어나가겠습니다. 🙏
+              여러분의 후원으로 더 나은 콘텐츠 제작에 힘쓰겠습니다. 🙏
             </p>
           </div>
         </div>
