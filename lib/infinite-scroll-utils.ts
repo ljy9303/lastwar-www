@@ -44,8 +44,8 @@ export const DEFAULT_SCROLL_CONFIG: InfiniteScrollConfig = {
   scrollDebounceMs: 16, // 60fps
   apiDebounceMs: 300,
   loadBatchSize: 20, // 서버 부하 고려해서 20개씩
-  maxMessagesInMemory: 200, // 메모리 사용량 최적화
-  virtualizeThreshold: 150 // 150개 초과시 가상화
+  maxMessagesInMemory: 500, // 사용자 경험 개선을 위해 500개로 증가 (~272KB)
+  virtualizeThreshold: 300 // 300개 초과시 가상화
 }
 
 /**
@@ -174,8 +174,8 @@ export const optimizeMessageArray = <T extends { id: any }>({
     return messages as T[]
   }
   
-  // 최신 메시지는 항상 보존해야 하는 개수 (최소 20개)
-  const alwaysKeepLatest = Math.min(20, Math.floor(maxMessages * 0.2))
+  // 최신 메시지는 항상 보존해야 하는 개수 (최소 50개, 최대 전체의 20%)
+  const alwaysKeepLatest = Math.min(50, Math.floor(maxMessages * 0.2))
   const availableForOlder = maxMessages - alwaysKeepLatest
   
   // 사용자가 하단에 있으면 최신 메시지 우선 보존

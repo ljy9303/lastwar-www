@@ -56,8 +56,8 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     scrollDebounceMs: 16,     // 60fps 유지
     apiDebounceMs: 400,       // API 호출 간격 늘림 (서버 부하 감소)
     loadBatchSize: 15,        // 한번에 15개씩 로드 (네트워크 최적화)
-    maxMessagesInMemory: 150, // 메모리 사용량 감소
-    virtualizeThreshold: 100  // 100개 초과시 가상화
+    maxMessagesInMemory: 500, // 사용자 경험 개선을 위해 500개로 증가 (~272KB)
+    virtualizeThreshold: 300  // 300개 초과시 가상화
   }
 
   // STOMP WebSocket 연결
