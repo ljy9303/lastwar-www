@@ -106,6 +106,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     scrollToBottom,
     scrollToPosition,
     newMessageBuffer,
+    memoryLimitAlert,
     loadMore
   } = useInfiniteScroll({
     containerRef: scrollContainerRef,
@@ -635,6 +636,51 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
               <ArrowDown className="h-4 w-4 mr-2" />
               새 메시지 {newMessageBuffer.count}개
             </Button>
+          </div>
+        )}
+        
+        {/* 메모리 한계 시 새 메시지 알림 */}
+        {memoryLimitAlert.hasNewMessage && (
+          <div className="sticky bottom-16 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg shadow-lg animate-in slide-in-from-bottom-2 duration-200 max-w-xs">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">📱 새 메시지가 도착했습니다</p>
+                  <p className="text-xs text-orange-100 mt-1 truncate">
+                    "{memoryLimitAlert.messagePreview}"
+                  </p>
+                  <p className="text-xs text-orange-200 mt-1">
+                    메모리 한계로 일부 과거 메시지가 제거되었습니다
+                  </p>
+                </div>
+                <Button
+                  onClick={memoryLimitAlert.dismiss}
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-orange-200 hover:text-white hover:bg-orange-600"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex gap-2 mt-3">
+                <Button
+                  onClick={memoryLimitAlert.goToLatest}
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 px-3 text-xs bg-white text-orange-600 hover:bg-orange-50"
+                >
+                  최신 메시지 보기
+                </Button>
+                <Button
+                  onClick={memoryLimitAlert.dismiss}
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs text-orange-200 hover:text-white hover:bg-orange-600"
+                >
+                  나중에
+                </Button>
+              </div>
+            </div>
           </div>
         )}
         

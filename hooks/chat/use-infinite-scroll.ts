@@ -54,6 +54,13 @@ interface UseInfiniteScrollReturn {
     flushAndScroll: () => void
     clear: () => void
   }
+  /** 메모리 한계 시 새 메시지 알림 */
+  memoryLimitAlert: {
+    hasNewMessage: boolean
+    messagePreview: string
+    goToLatest: () => void
+    dismiss: () => void
+  }
   /** 수동 로드 함수들 */
   loadMore: {
     up: () => Promise<void>
@@ -78,6 +85,12 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
   const loadingStateManager = useRef(createLoadingStateManager())
   const messageBuffer = useRef(createMessageBuffer<T>())
   const [, forceUpdate] = useState({}) // 강제 리렌더링용
+  
+  // 메모리 한계 알림 상태
+  const [memoryLimitNewMessage, setMemoryLimitNewMessage] = useState<{
+    hasMessage: boolean
+    preview: string
+  }>({ hasMessage: false, preview: '' })
   
   // 내부 상태 ref들
   const lastScrollTop = useRef(0)
@@ -292,6 +305,7 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
    */
   const addRealtimeMessage = useCallback((message: T) => {
     const position = updateScrollPosition()
+    const isAtMemoryLimit = messages.length >= finalConfig.maxMessagesInMemory
     
     // 실시간 메시지는 항상 메시지 배열에 추가 (최신 메시지 보존을 위해)
     setMessages(prev => {
@@ -315,11 +329,25 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
       // 하단에 있거나 사용자가 스크롤하지 않으면 자동 스크롤
       setTimeout(() => scrollToBottom(), 50)
     } else {
-      // 중간/상단에 있으면 버퍼 카운트만 증가 (실제 메시지는 이미 추가됨)
-      messageBuffer.current.add(message)
-      forceUpdate({})
+      // 중간/상단에 있으면서 메모리 한계에 도달한 경우
+      if (isAtMemoryLimit && position?.isNearTop) {
+        // 메모리 한계 알림 표시
+        const messageContent = (message as any).content || '새 메시지'
+        const preview = messageContent.length > 30 
+          ? messageContent.substring(0, 30) + '...' 
+          : messageContent
+        
+        setMemoryLimitNewMessage({
+          hasMessage: true,
+          preview: preview
+        })
+      } else {
+        // 일반적인 버퍼링 처리
+        messageBuffer.current.add(message)
+        forceUpdate({})
+      }
     }
-  }, [updateScrollPosition, setMessages, scrollToBottom, finalConfig])
+  }, [updateScrollPosition, setMessages, scrollToBottom, finalConfig, messages.length])
   
   /**
    * 스크롤 이벤트 리스너 등록
@@ -358,12 +386,30 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
     }
   }, [containerRef])
   
+  /**
+   * 메모리 한계 알림 API
+   */
+  const memoryLimitAlertAPI = {
+    hasNewMessage: memoryLimitNewMessage.hasMessage,
+    messagePreview: memoryLimitNewMessage.preview,
+    goToLatest: () => {
+      // 최신 메시지로 이동하고 알림 해제
+      scrollToBottom(true)
+      setMemoryLimitNewMessage({ hasMessage: false, preview: '' })
+    },
+    dismiss: () => {
+      // 알림만 해제
+      setMemoryLimitNewMessage({ hasMessage: false, preview: '' })
+    }
+  }
+
   return {
     scrollPosition,
     loadingState: loadingStateManager.current.getState(),
     scrollToBottom,
     scrollToPosition,
     newMessageBuffer: newMessageBufferAPI,
+    memoryLimitAlert: memoryLimitAlertAPI,
     loadMore: {
       up: loadPreviousMessages,
       down: loadNextMessages
