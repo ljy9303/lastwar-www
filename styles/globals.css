@@ -10,6 +10,27 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* 채팅 메시지 텍스트 줄바꿈 강화 */
+  .overflow-wrap-anywhere {
+    overflow-wrap: anywhere;
+  }
+  
+  .word-break-break-all {
+    word-break: break-all;
+  }
+  
+  /* 긴 URL이나 연속 문자열 강제 줄바꿈 (더 강력한 설정) */
+  .force-break-word {
+    word-wrap: break-word;
+    word-break: break-all; /* break-word에서 break-all로 변경 - 더 강력한 줄바꿈 */
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    white-space: pre-wrap;
+    line-break: anywhere; /* 추가: 모든 위치에서 줄바꿈 허용 */
+    max-width: 100%; /* 추가: 최대 너비 제한 */
+    box-sizing: border-box; /* 추가: 박스 사이징 명시적 설정 */
+  }
 }
 
 @layer base {

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { ChatService, ChatAdminService, type ChatMessage } from "@/lib/chat-service"
 import { useIsAdmin } from "@/lib/auth-utils"
+import { getByteLength, MESSAGE_BYTE_LIMIT, getMessageLengthStatus, formatByteSize } from "@/lib/message-utils"
 
 interface ChatRoomProps {
   roomType: "GLOBAL" | "INQUIRY"
@@ -46,6 +47,10 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   
   // 메시지 제한 수 (메모리 최적화)
   const MAX_MESSAGES = 300
+  
+  // 메시지 바이트 길이 상태
+  const messageByteLength = useMemo(() => getByteLength(newMessage), [newMessage])
+  const messageLengthStatus = useMemo(() => getMessageLengthStatus(messageByteLength), [messageByteLength])
   
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -369,6 +374,18 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     }
 
     const messageContent = newMessage.trim()
+    
+    // 바이트 길이 검증 추가
+    const contentByteLength = getByteLength(messageContent)
+    if (contentByteLength > MESSAGE_BYTE_LIMIT) {
+      toast({
+        title: "메시지가 너무 깁니다",
+        description: "메시지를 짧게 작성해 주세요.",
+        variant: "destructive"
+      })
+      return
+    }
+    
     setNewMessage("")
 
     try {
@@ -746,6 +763,18 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
 
       {/* 메시지 입력창 */}
       <div className="p-3 border-t bg-white dark:bg-gray-800">
+        {/* 문자 수 카운터 (길이 제한 근처일 때만 표시) */}
+        {newMessage && messageLengthStatus.percentage > 70 && (
+          <div className="mb-2 flex justify-end">
+            <div className={`text-xs ${messageLengthStatus.color}`}>
+              {newMessage.length}자
+              {messageLengthStatus.isOverLimit && (
+                <span className="ml-2 text-red-500 font-semibold">너무 긴 메시지입니다</span>
+              )}
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center gap-2">
           <Input
             value={newMessage}
@@ -756,13 +785,14 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                 ? `${title}에 메시지를 입력하세요...` 
                 : "로그인이 필요합니다"
             }
-            className="flex-1 h-10 text-sm"
-            maxLength={1000}
+            className={`flex-1 h-10 text-sm ${
+              messageLengthStatus.isOverLimit ? 'border-red-500 focus:border-red-500' : ''
+            }`}
             disabled={!session?.user}
           />
           <Button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim() || !session?.user}
+            disabled={!newMessage.trim() || !session?.user || messageLengthStatus.isOverLimit}
             size="sm"
             className={`h-10 px-4 ${
               color === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
