@@ -31,6 +31,65 @@ body {
     max-width: 100%; /* 추가: 최대 너비 제한 */
     box-sizing: border-box; /* 추가: 박스 사이징 명시적 설정 */
   }
+  
+  /* 슬랙 스타일 무한 스크롤 성능 최적화 */
+  .infinite-scroll-container {
+    scroll-behavior: auto; /* 부드러운 스크롤 비활성화로 성능 향상 */
+    overflow-anchor: none; /* 자동 앵커링 비활성화 */
+    transform: translateZ(0); /* GPU 가속 활성화 */
+    backface-visibility: hidden; /* 뒷면 렌더링 최적화 */
+    -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
+    will-change: scroll-position; /* 스크롤 최적화 힌트 */
+  }
+  
+  /* GPU 가속 메시지 버블 */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  /* 메시지 버블 애니메이션 최적화 */
+  .message-bubble {
+    will-change: transform, opacity;
+    contain: layout style paint;
+  }
+  
+  /* 스크롤바 커스터마이징 (Webkit) */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(203 213 225);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(148 163 184);
+  }
+  
+  /* 다크 모드 스크롤바 */
+  .dark .scrollbar-thin {
+    scrollbar-color: rgb(75 85 99) transparent;
+  }
+  
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(75 85 99);
+  }
+  
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(107 114 128);
+  }
 }
 
 @layer base {
