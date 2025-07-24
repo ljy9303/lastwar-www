@@ -558,15 +558,26 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         className="h-[360px] sm:h-[390px] md:h-[440px] p-3 overflow-y-auto infinite-scroll-container scrollbar-thin" 
         ref={scrollContainerRef}
       >
-        {/* 상단 로딩 인디케이터 */}
-        {loadingState.isLoadingUp && (
+        {/* 상단 로딩 인디케이터 또는 한계 도달 메시지 */}
+        {loadingState.isLoadingUp ? (
           <div className="flex items-center justify-center py-3 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full">
               <Loader2 className="h-4 w-4 animate-spin text-gray-600 dark:text-gray-400" />
               <span className="text-xs text-gray-600 dark:text-gray-400">이전 메시지 로딩중...</span>
             </div>
           </div>
-        )}
+        ) : !loadingState.hasMoreUp && messages.length >= infiniteScrollConfig.maxMessagesInMemory ? (
+          <div className="flex items-center justify-center py-3 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-full">
+              <div className="h-4 w-4 rounded-full bg-orange-500 flex items-center justify-center">
+                <span className="text-white text-xs font-bold">!</span>
+              </div>
+              <span className="text-xs text-orange-700 dark:text-orange-300 font-medium">
+                메모리 한계 도달 - 더 이상 이전 메시지를 로드할 수 없습니다 ({messages.length}개)
+              </span>
+            </div>
+          </div>
+        ) : null}
 
         {/* 초기 로딩 */}
         {isInitialLoading && (

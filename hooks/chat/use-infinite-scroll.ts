@@ -133,6 +133,12 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
     const state = loadingStateManager.current.getState()
     if (!loadingStateManager.current.canLoadMore('up')) return
     
+    // 메시지 한계 체크: 500개에 도달했으면 더 이상 로드하지 않음
+    if (messages.length >= finalConfig.maxMessagesInMemory) {
+      loadingStateManager.current.stopLoading('up', false) // hasMore = false로 설정
+      return
+    }
+    
     loadingStateManager.current.startLoading('up')
     
     try {
@@ -150,16 +156,11 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
             
             const combined = [...newMessages, ...prev]
             
-            // 메모리 최적화
-            const currentPosition = updateScrollPosition()
-            if (currentPosition && combined.length > finalConfig.maxMessagesInMemory) {
-              return optimizeMessageArray({
-                messages: combined,
-                maxMessages: finalConfig.maxMessagesInMemory,
-                currentScrollPosition: currentPosition,
-                keepFromTop: finalConfig.loadBatchSize,
-                keepFromBottom: finalConfig.loadBatchSize
-              })
+            // 메모리 한계 체크
+            if (combined.length >= finalConfig.maxMessagesInMemory) {
+              // 한계에 도달하면 더 이상 로드 불가 표시
+              loadingStateManager.current.stopLoading('up', false)
+              return combined.slice(0, finalConfig.maxMessagesInMemory)
             }
             
             return combined
@@ -167,7 +168,9 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
         })
       }
       
-      loadingStateManager.current.stopLoading('up', result.hasMore)
+      // 서버에서 더 이상 메시지가 없거나, 메모리 한계에 도달했는지 체크
+      const hasMoreAndUnderLimit = result.hasMore && (messages.length < finalConfig.maxMessagesInMemory)
+      loadingStateManager.current.stopLoading('up', hasMoreAndUnderLimit)
     } catch (error) {
       console.error('Failed to load previous messages:', error)
       loadingStateManager.current.stopLoading('up', true)
@@ -249,8 +252,11 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
       // 무한 스크롤 트리거 체크
       const state = loadingStateManager.current.getState()
       
-      // 상단 로딩 체크
-      if (position.scrollTop < finalConfig.topLoadThreshold && state.hasMoreUp && !state.isLoadingUp) {
+      // 상단 로딩 체크 (메시지 한계 미도달 시에만)
+      if (position.scrollTop < finalConfig.topLoadThreshold && 
+          state.hasMoreUp && 
+          !state.isLoadingUp && 
+          messages.length < finalConfig.maxMessagesInMemory) {
         loadPreviousMessages()
       }
       
