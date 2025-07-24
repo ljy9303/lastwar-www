@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Heart, QrCode, Copy, Check, ExternalLink } from "lucide-react"
+import { Heart, QrCode, Copy, Check, ExternalLink, Smartphone, Monitor } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
+import { useMobile } from "@/hooks/use-mobile"
 
 interface SponsorButtonProps {
   collapsed?: boolean
@@ -14,6 +15,18 @@ interface SponsorButtonProps {
 export default function SponsorButton({ collapsed = false }: SponsorButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [isMobileDevice, setIsMobileDevice] = useState(false)
+  const isMobileScreen = useMobile()
+
+  // 실제 모바일 디바이스 감지 (User Agent 기반)
+  useEffect(() => {
+    const checkMobileDevice = () => {
+      const userAgent = navigator.userAgent.toLowerCase()
+      const mobileKeywords = ['android', 'iphone', 'ipad', 'mobile', 'tablet']
+      return mobileKeywords.some(keyword => userAgent.includes(keyword))
+    }
+    setIsMobileDevice(checkMobileDevice())
+  }, [])
 
   // 환경변수에서 후원 정보 가져오기
   const sponsorInfo = {
@@ -43,7 +56,25 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
   }
 
   const handleKakaoPayClick = () => {
-    window.open(sponsorInfo.qrCodeUrl, '_blank')
+    if (isMobileDevice) {
+      // 모바일 디바이스에서는 카카오페이 앱으로 연결 시도
+      try {
+        window.location.href = sponsorInfo.qrCodeUrl
+      } catch (error) {
+        toast({
+          title: "카카오페이 앱 실행 실패",
+          description: "카카오페이 앱이 설치되지 않았거나 실행할 수 없습니다. 아래 QR 코드를 스캔해주세요.",
+          variant: "destructive"
+        })
+      }
+    } else {
+      // 데스크톱에서는 안내 메시지 표시
+      toast({
+        title: "모바일에서 이용해주세요",
+        description: "카카오페이는 모바일 앱에서만 사용 가능합니다. QR 코드를 모바일로 스캔해주세요.",
+        variant: "default"
+      })
+    }
   }
 
   return (
@@ -80,8 +111,28 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
               </h3>
             </div>
             
-            {/* QR 코드 이미지 또는 설명 */}
-            {sponsorInfo.qrImagePath ? (
+            {/* 환경별 안내 메시지 */}
+            <div className="mb-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+              <div className="flex items-center gap-2 mb-2">
+                {isMobileDevice ? (
+                  <Smartphone className="h-4 w-4 text-blue-600" />
+                ) : (
+                  <Monitor className="h-4 w-4 text-blue-600" />
+                )}
+                <span className="text-sm font-medium text-blue-800">
+                  {isMobileDevice ? "모바일 환경" : "데스크톱 환경"}
+                </span>
+              </div>
+              <p className="text-xs text-blue-700">
+                {isMobileDevice 
+                  ? "버튼을 클릭하면 카카오페이 앱으로 이동합니다."
+                  : "QR 코드를 모바일 기기로 스캔해주세요. 웹에서는 카카오페이를 직접 사용할 수 없습니다."
+                }
+              </p>
+            </div>
+
+            {/* QR 코드 이미지 */}
+            {sponsorInfo.qrImagePath && (
               <div className="flex flex-col items-center mb-4">
                 <div className="relative w-40 h-40 mb-2 bg-white rounded-lg p-2 border">
                   <Image
@@ -90,7 +141,6 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
                     fill
                     className="object-contain rounded"
                     onError={() => {
-                      // 이미지 로드 실패 시 fallback 처리
                       console.warn('QR 이미지 로드 실패:', sponsorInfo.qrImagePath)
                     }}
                   />
@@ -99,18 +149,22 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
                   📱 카카오페이 앱으로 QR 코드를 스캔해주세요
                 </p>
               </div>
-            ) : (
-              <p className="text-sm text-gray-600 mb-3">
-                QR 코드를 스캔하거나 버튼을 클릭하여 카카오페이로 간편하게 후원해보세요.
-              </p>
             )}
             
             <Button
               onClick={handleKakaoPayClick}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold flex items-center justify-center gap-2"
+              className={`w-full font-semibold flex items-center justify-center gap-2 ${
+                isMobileDevice 
+                  ? "bg-yellow-400 hover:bg-yellow-500 text-gray-900" 
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-700 cursor-help"
+              }`}
             >
-              💛 카카오페이로 후원하기
-              <ExternalLink className="h-4 w-4" />
+              💛 {isMobileDevice ? "카카오페이로 후원하기" : "QR 코드를 스캔해주세요"}
+              {isMobileDevice ? (
+                <ExternalLink className="h-4 w-4" />
+              ) : (
+                <QrCode className="h-4 w-4" />
+              )}
             </Button>
           </div>
 
