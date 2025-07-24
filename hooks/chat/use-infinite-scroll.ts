@@ -18,6 +18,7 @@ import {
   type ScrollPosition,
   type LoadingState
 } from '@/lib/infinite-scroll-utils'
+import { useVirtualScroll } from './use-virtual-scroll'
 
 interface UseInfiniteScrollProps<T> {
   /** 스크롤 컨테이너 ref */
@@ -66,9 +67,16 @@ interface UseInfiniteScrollReturn {
     up: () => Promise<void>
     down: () => Promise<void>
   }
+  /** 가상화 정보 */
+  virtualization: {
+    shouldVirtualize: boolean
+    virtualItems: Array<{ index: number; start: number; end: number }>
+    totalHeight: number
+    getVisibleRange: () => { start: number; end: number }
+  }
 }
 
-export const useInfiniteScroll = <T extends Record<string, any>>({
+export function useInfiniteScroll<T extends Record<string, any>>({
   containerRef,
   messages,
   setMessages,
@@ -77,7 +85,7 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
   config = {},
   getMessageId,
   enabled = true
-}: UseInfiniteScrollProps<T>): UseInfiniteScrollReturn => {
+}: UseInfiniteScrollProps<T>): UseInfiniteScrollReturn {
   const finalConfig = { ...DEFAULT_SCROLL_CONFIG, ...config }
   
   // 상태 관리
@@ -96,6 +104,30 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
   const lastScrollTop = useRef(0)
   const isUserScrolling = useRef(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout>()
+  
+  // 가상화 설정 - 모바일 반응형
+  const getContainerHeight = () => {
+    if (typeof window === 'undefined') return 440
+    if (window.innerWidth < 480) return 320 // 모바일
+    if (window.innerWidth < 640) return 360 // xs
+    if (window.innerWidth < 768) return 390 // sm
+    if (window.innerWidth < 1024) return 440 // md
+    return 480 // lg+
+  }
+
+  const virtualScrollOptions = {
+    itemHeight: typeof window !== 'undefined' && window.innerWidth < 480 ? 65 : 80, // 모바일에서 메시지 높이 감소
+    containerHeight: getContainerHeight(),
+    overscan: typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 5, // 모바일에서 오버스캔 감소
+    threshold: finalConfig.virtualizeThreshold
+  }
+  
+  // 가상 스크롤 훅 사용
+  const virtualScroll = useVirtualScroll(
+    messages,
+    scrollPosition?.scrollTop || 0,
+    virtualScrollOptions
+  )
   
   /**
    * 현재 스크롤 위치 업데이트
@@ -146,8 +178,9 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
     const state = loadingStateManager.current.getState()
     if (!loadingStateManager.current.canLoadMore('up')) return
     
-    // 메시지 한계 체크: 500개에 도달했으면 더 이상 로드하지 않음
+    // 메시지 한계 체크: maxMessagesInMemory에 도달했으면 더 이상 로드하지 않음
     if (messages.length >= finalConfig.maxMessagesInMemory) {
+      console.log(`✅ 이전 대화 로딩 완료: ${messages.length}개 메시지 (최대 조회량 도달)`)
       loadingStateManager.current.stopLoading('up', false) // hasMore = false로 설정
       return
     }
@@ -367,13 +400,22 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
   }, [enabled, containerRef, handleScroll])
   
   /**
-   * 초기 스크롤 위치 설정
+   * 초기 스크롤 위치 설정 및 무한스크롤 상태 초기화
    */
   useEffect(() => {
     if (messages.length > 0) {
       updateScrollPosition()
+      
+      // 메시지가 최대 조회량에 도달한 경우 무한스크롤 상태 업데이트
+      if (messages.length >= finalConfig.maxMessagesInMemory) {
+        console.log(`📜 대화 히스토리 로딩 완료: ${messages.length}개 메시지`)
+        loadingStateManager.current.stopLoading('up', false) // hasMore = false
+      } else {
+        // 더 많은 메시지 로딩 가능
+        loadingStateManager.current.setState({ hasMoreUp: true })
+      }
     }
-  }, [messages.length, updateScrollPosition])
+  }, [messages.length, updateScrollPosition, finalConfig.maxMessagesInMemory])
   
   // 외부에서 사용할 수 있도록 addRealtimeMessage를 ref에 저장
   const apiRef = useRef({ addRealtimeMessage })
@@ -413,6 +455,12 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
     loadMore: {
       up: loadPreviousMessages,
       down: loadNextMessages
+    },
+    virtualization: {
+      shouldVirtualize: virtualScroll.shouldVirtualize,
+      virtualItems: virtualScroll.virtualItems,
+      totalHeight: virtualScroll.totalHeight,
+      getVisibleRange: virtualScroll.getVisibleRange
     }
   }
 }

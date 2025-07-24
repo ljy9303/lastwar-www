@@ -25,25 +25,23 @@ const ChatModal = memo(function ChatModal({ isOpen, onClose, onMessageUpdate }: 
         <>
           {/* 모바일 백드롭 */}
           <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] md:hidden"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] xs:hidden"
             onClick={onClose}
           />
 
           {/* 채팅 모달 - 부드러운 애니메이션 */}
           <div
-            className={`fixed bottom-24 right-6 z-[10001] gpu-accelerated chat-modal transition-all duration-300 ease-out ${
-              isMinimized ? 'translate-x-[calc(100%-200px)] translate-y-[calc(100%-60px)]' : ''
+            className={`fixed z-[10001] gpu-accelerated chat-modal transition-all duration-300 ease-out ${
+              isMinimized 
+                ? 'bottom-4 right-4 translate-x-0 translate-y-0' 
+                : 'bottom-4 xs:bottom-6 sm:bottom-24 left-2 right-2 xs:left-auto xs:right-4 sm:right-6'
             }`}
-            style={{
-              opacity: 1,
-              transform: `scale(1) ${isMinimized ? 'translate(calc(100% - 200px), calc(100% - 60px))' : 'translate(0, 0)'}`
-            }}
           >
             <Card 
-              className={`shadow-2xl border-0 overflow-hidden rounded-2xl container ${
+              className={`shadow-2xl border-0 overflow-hidden rounded-2xl ${
                 isMinimized 
                   ? "w-48 h-14" 
-                  : "w-[380px] h-[520px] sm:w-[400px] sm:h-[560px] md:w-[440px] md:h-[640px]"
+                  : "w-full max-w-[calc(100vw-16px)] h-[480px] xs:w-[380px] xs:h-[520px] sm:w-[400px] sm:h-[560px] md:w-[440px] md:h-[640px] xs:max-w-none"
               }`}
             >
               {/* 채팅 내용 - 모달 오픈 상태 전달 */}

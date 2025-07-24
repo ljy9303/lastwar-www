@@ -33,6 +33,7 @@ export interface ChatMessage {
 export interface ChatHistoryRequest {
   roomType: "GLOBAL" | "INQUIRY"
   lastMessageId?: number
+  afterMessageId?: number // 캐시 이후 새로운 메시지 조회용
   size?: number
 }
 
@@ -76,6 +77,7 @@ export class ChatService {
       const requestBody = {
         roomType: request.roomType,
         lastMessageId: request.lastMessageId || null,
+        afterMessageId: request.afterMessageId || null, // 캐시 이후 메시지 조회용
         size: request.size || 20
       }
       
