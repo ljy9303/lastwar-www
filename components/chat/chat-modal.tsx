@@ -34,14 +34,14 @@ const ChatModal = memo(function ChatModal({ isOpen, onClose, onMessageUpdate }: 
             className={`fixed z-[10001] gpu-accelerated chat-modal transition-all duration-300 ease-out ${
               isMinimized 
                 ? 'bottom-4 right-4 translate-x-0 translate-y-0' 
-                : 'bottom-4 xs:bottom-6 sm:bottom-24 left-2 right-2 xs:left-auto xs:right-4 sm:right-6'
+                : 'bottom-0 xs:bottom-4 xs:left-auto xs:right-4 sm:right-6 left-0 right-0 xs:left-auto'
             }`}
           >
             <Card 
-              className={`shadow-2xl border-0 overflow-hidden rounded-2xl ${
+              className={`shadow-2xl border-0 overflow-hidden ${
                 isMinimized 
-                  ? "w-48 h-14" 
-                  : "w-full max-w-[calc(100vw-16px)] h-[480px] xs:w-[380px] xs:h-[520px] sm:w-[400px] sm:h-[560px] md:w-[440px] md:h-[640px] xs:max-w-none"
+                  ? "w-48 h-14 rounded-2xl" 
+                  : "w-full h-[100vh] h-[100dvh] xs:w-[380px] xs:h-[520px] sm:w-[400px] sm:h-[560px] md:w-[440px] md:h-[640px] xs:max-w-none xs:rounded-2xl rounded-t-2xl xs:rounded-b-2xl"
               }`}
             >
               {/* 채팅 내용 - 모달 오픈 상태 전달 */}

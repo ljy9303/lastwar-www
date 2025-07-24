@@ -5,6 +5,92 @@
 /* 성능 최적화 CSS 임포트 */
 @import '../styles/performance.css';
 
+/* 모바일 채팅 최적화 */
+.mobile-chat-container {
+  /* iOS Safari에서 100vh 문제 해결 */
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height - 새로운 표준 */
+}
+
+/* 모바일에서 입력 필드 줌인 방지 */
+@media screen and (max-width: 768px) {
+  input[type="text"], 
+  input[type="email"], 
+  input[type="search"], 
+  input[type="password"], 
+  textarea {
+    font-size: 16px !important; /* iOS Safari 줌인 방지를 위한 최소 폰트 크기 */
+    transform: translateZ(0); /* 하드웨어 가속으로 렌더링 최적화 */
+  }
+  
+  /* 가상 키보드 대응 */
+  .mobile-chat-container {
+    /* 키보드 출현 시 viewport 변화 대응 */
+    height: 100vh;
+    height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+  
+  /* 채팅 입력창 고정 */
+  .chat-input-area {
+    position: relative;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  /* 메시지 영역 스크롤 최적화 */
+  .chat-messages-area {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
+    overscroll-behavior: none; /* 과도한 스크롤 방지 */
+  }
+}
+
+/* 키보드 출현 시 레이아웃 조정 */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari 전용 */
+  .mobile-chat-container {
+    height: -webkit-fill-available;
+  }
+}
+
+/* 모바일 입력 필드 전용 스타일 */
+.mobile-input {
+  /* iOS Safari 줌인 완전 방지 */
+  font-size: 16px !important;
+  
+  /* 포커스 시 부드러운 전환 */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  
+  /* iOS에서 입력 필드 그림자 제거 */
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  
+  /* 자동완성 스타일 제거 */
+  -webkit-text-fill-color: inherit;
+  
+  /* 하드웨어 가속 */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* iOS Safari 자동완성 배경색 제거 */
+.mobile-input:-webkit-autofill,
+.mobile-input:-webkit-autofill:hover,
+.mobile-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: inherit;
+  -webkit-box-shadow: 0 0 0 30px white inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* 다크모드에서 자동완성 처리 */
+.dark .mobile-input:-webkit-autofill,
+.dark .mobile-input:-webkit-autofill:hover,
+.dark .mobile-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px #1f2937 inset;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
