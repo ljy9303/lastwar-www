@@ -18,6 +18,7 @@ import {
   type ScrollPosition,
   type LoadingState
 } from '@/lib/infinite-scroll-utils'
+import { useVirtualScroll } from './use-virtual-scroll'
 
 interface UseInfiniteScrollProps<T> {
   /** 스크롤 컨테이너 ref */
@@ -54,14 +55,28 @@ interface UseInfiniteScrollReturn {
     flushAndScroll: () => void
     clear: () => void
   }
+  /** 메모리 한계 시 새 메시지 알림 */
+  memoryLimitAlert: {
+    hasNewMessage: boolean
+    messagePreview: string
+    goToLatest: () => void
+    dismiss: () => void
+  }
   /** 수동 로드 함수들 */
   loadMore: {
     up: () => Promise<void>
     down: () => Promise<void>
   }
+  /** 가상화 정보 */
+  virtualization: {
+    shouldVirtualize: boolean
+    virtualItems: Array<{ index: number; start: number; end: number }>
+    totalHeight: number
+    getVisibleRange: () => { start: number; end: number }
+  }
 }
 
-export const useInfiniteScroll = <T extends Record<string, any>>({
+export function useInfiniteScroll<T extends Record<string, any>>({
   containerRef,
   messages,
   setMessages,
@@ -70,7 +85,7 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
   config = {},
   getMessageId,
   enabled = true
-}: UseInfiniteScrollProps<T>): UseInfiniteScrollReturn => {
+}: UseInfiniteScrollProps<T>): UseInfiniteScrollReturn {
   const finalConfig = { ...DEFAULT_SCROLL_CONFIG, ...config }
   
   // 상태 관리
@@ -79,10 +94,40 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
   const messageBuffer = useRef(createMessageBuffer<T>())
   const [, forceUpdate] = useState({}) // 강제 리렌더링용
   
+  // 메모리 한계 알림 상태
+  const [memoryLimitNewMessage, setMemoryLimitNewMessage] = useState<{
+    hasMessage: boolean
+    preview: string
+  }>({ hasMessage: false, preview: '' })
+  
   // 내부 상태 ref들
   const lastScrollTop = useRef(0)
   const isUserScrolling = useRef(false)
   const scrollTimeoutRef = useRef<NodeJS.Timeout>()
+  
+  // 가상화 설정 - 모바일 반응형
+  const getContainerHeight = () => {
+    if (typeof window === 'undefined') return 440
+    if (window.innerWidth < 480) return 320 // 모바일
+    if (window.innerWidth < 640) return 360 // xs
+    if (window.innerWidth < 768) return 390 // sm
+    if (window.innerWidth < 1024) return 440 // md
+    return 480 // lg+
+  }
+
+  const virtualScrollOptions = {
+    itemHeight: typeof window !== 'undefined' && window.innerWidth < 480 ? 65 : 80, // 모바일에서 메시지 높이 감소
+    containerHeight: getContainerHeight(),
+    overscan: typeof window !== 'undefined' && window.innerWidth < 480 ? 3 : 5, // 모바일에서 오버스캔 감소
+    threshold: finalConfig.virtualizeThreshold
+  }
+  
+  // 가상 스크롤 훅 사용
+  const virtualScroll = useVirtualScroll(
+    messages,
+    scrollPosition?.scrollTop || 0,
+    virtualScrollOptions
+  )
   
   /**
    * 현재 스크롤 위치 업데이트
@@ -133,6 +178,13 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
     const state = loadingStateManager.current.getState()
     if (!loadingStateManager.current.canLoadMore('up')) return
     
+    // 메시지 한계 체크: maxMessagesInMemory에 도달했으면 더 이상 로드하지 않음
+    if (messages.length >= finalConfig.maxMessagesInMemory) {
+      console.log(`✅ 이전 대화 로딩 완료: ${messages.length}개 메시지 (최대 조회량 도달)`)
+      loadingStateManager.current.stopLoading('up', false) // hasMore = false로 설정
+      return
+    }
+    
     loadingStateManager.current.startLoading('up')
     
     try {
@@ -150,16 +202,11 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
             
             const combined = [...newMessages, ...prev]
             
-            // 메모리 최적화
-            const currentPosition = updateScrollPosition()
-            if (currentPosition && combined.length > finalConfig.maxMessagesInMemory) {
-              return optimizeMessageArray({
-                messages: combined,
-                maxMessages: finalConfig.maxMessagesInMemory,
-                currentScrollPosition: currentPosition,
-                keepFromTop: finalConfig.loadBatchSize,
-                keepFromBottom: finalConfig.loadBatchSize
-              })
+            // 메모리 한계 체크
+            if (combined.length >= finalConfig.maxMessagesInMemory) {
+              // 한계에 도달하면 더 이상 로드 불가 표시
+              loadingStateManager.current.stopLoading('up', false)
+              return combined.slice(0, finalConfig.maxMessagesInMemory)
             }
             
             return combined
@@ -167,7 +214,9 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
         })
       }
       
-      loadingStateManager.current.stopLoading('up', result.hasMore)
+      // 서버에서 더 이상 메시지가 없거나, 메모리 한계에 도달했는지 체크
+      const hasMoreAndUnderLimit = result.hasMore && (messages.length < finalConfig.maxMessagesInMemory)
+      loadingStateManager.current.stopLoading('up', hasMoreAndUnderLimit)
     } catch (error) {
       console.error('Failed to load previous messages:', error)
       loadingStateManager.current.stopLoading('up', true)
@@ -249,8 +298,11 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
       // 무한 스크롤 트리거 체크
       const state = loadingStateManager.current.getState()
       
-      // 상단 로딩 체크
-      if (position.scrollTop < finalConfig.topLoadThreshold && state.hasMoreUp && !state.isLoadingUp) {
+      // 상단 로딩 체크 (메시지 한계 미도달 시에만)
+      if (position.scrollTop < finalConfig.topLoadThreshold && 
+          state.hasMoreUp && 
+          !state.isLoadingUp && 
+          messages.length < finalConfig.maxMessagesInMemory) {
         loadPreviousMessages()
       }
       
@@ -286,6 +338,7 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
    */
   const addRealtimeMessage = useCallback((message: T) => {
     const position = updateScrollPosition()
+    const isAtMemoryLimit = messages.length >= finalConfig.maxMessagesInMemory
     
     // 실시간 메시지는 항상 메시지 배열에 추가 (최신 메시지 보존을 위해)
     setMessages(prev => {
@@ -309,11 +362,25 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
       // 하단에 있거나 사용자가 스크롤하지 않으면 자동 스크롤
       setTimeout(() => scrollToBottom(), 50)
     } else {
-      // 중간/상단에 있으면 버퍼 카운트만 증가 (실제 메시지는 이미 추가됨)
-      messageBuffer.current.add(message)
-      forceUpdate({})
+      // 중간/상단에 있으면서 메모리 한계에 도달한 경우
+      if (isAtMemoryLimit && position?.isNearTop) {
+        // 메모리 한계 알림 표시
+        const messageContent = (message as any).content || '새 메시지'
+        const preview = messageContent.length > 30 
+          ? messageContent.substring(0, 30) + '...' 
+          : messageContent
+        
+        setMemoryLimitNewMessage({
+          hasMessage: true,
+          preview: preview
+        })
+      } else {
+        // 일반적인 버퍼링 처리
+        messageBuffer.current.add(message)
+        forceUpdate({})
+      }
     }
-  }, [updateScrollPosition, setMessages, scrollToBottom, finalConfig])
+  }, [updateScrollPosition, setMessages, scrollToBottom, finalConfig, messages.length])
   
   /**
    * 스크롤 이벤트 리스너 등록
@@ -333,13 +400,22 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
   }, [enabled, containerRef, handleScroll])
   
   /**
-   * 초기 스크롤 위치 설정
+   * 초기 스크롤 위치 설정 및 무한스크롤 상태 초기화
    */
   useEffect(() => {
     if (messages.length > 0) {
       updateScrollPosition()
+      
+      // 메시지가 최대 조회량에 도달한 경우 무한스크롤 상태 업데이트
+      if (messages.length >= finalConfig.maxMessagesInMemory) {
+        console.log(`📜 대화 히스토리 로딩 완료: ${messages.length}개 메시지`)
+        loadingStateManager.current.stopLoading('up', false) // hasMore = false
+      } else {
+        // 더 많은 메시지 로딩 가능
+        loadingStateManager.current.setState({ hasMoreUp: true })
+      }
     }
-  }, [messages.length, updateScrollPosition])
+  }, [messages.length, updateScrollPosition, finalConfig.maxMessagesInMemory])
   
   // 외부에서 사용할 수 있도록 addRealtimeMessage를 ref에 저장
   const apiRef = useRef({ addRealtimeMessage })
@@ -352,15 +428,39 @@ export const useInfiniteScroll = <T extends Record<string, any>>({
     }
   }, [containerRef])
   
+  /**
+   * 메모리 한계 알림 API
+   */
+  const memoryLimitAlertAPI = {
+    hasNewMessage: memoryLimitNewMessage.hasMessage,
+    messagePreview: memoryLimitNewMessage.preview,
+    goToLatest: () => {
+      // 최신 메시지로 이동하고 알림 해제
+      scrollToBottom(true)
+      setMemoryLimitNewMessage({ hasMessage: false, preview: '' })
+    },
+    dismiss: () => {
+      // 알림만 해제
+      setMemoryLimitNewMessage({ hasMessage: false, preview: '' })
+    }
+  }
+
   return {
     scrollPosition,
     loadingState: loadingStateManager.current.getState(),
     scrollToBottom,
     scrollToPosition,
     newMessageBuffer: newMessageBufferAPI,
+    memoryLimitAlert: memoryLimitAlertAPI,
     loadMore: {
       up: loadPreviousMessages,
       down: loadNextMessages
+    },
+    virtualization: {
+      shouldVirtualize: virtualScroll.shouldVirtualize,
+      virtualItems: virtualScroll.virtualItems,
+      totalHeight: virtualScroll.totalHeight,
+      getVisibleRange: virtualScroll.getVisibleRange
     }
   }
 }

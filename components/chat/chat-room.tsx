@@ -13,6 +13,7 @@ import { ChatService, ChatAdminService, type ChatMessage } from "@/lib/chat-serv
 import { useIsAdmin } from "@/lib/auth-utils"
 import { getByteLength, MESSAGE_BYTE_LIMIT, getMessageLengthStatus, formatByteSize } from "@/lib/message-utils"
 import { useInfiniteScroll } from "@/hooks/chat/use-infinite-scroll"
+import { useChatCache } from "@/contexts/chat-cache-context"
 
 interface ChatRoomProps {
   roomType: "GLOBAL" | "INQUIRY"
@@ -49,6 +50,9 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   
+  // 채팅 캐시 훅
+  const { getCachedMessages, setCachedMessages, addRealtimeMessage: addToCacheRealtimeMessage } = useChatCache()
+
   // 슬랙 스타일 무한 스크롤 설정
   const infiniteScrollConfig = {
     topLoadThreshold: 150,    // 서버 부하 고려해서 조금 더 가까이
@@ -56,8 +60,8 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     scrollDebounceMs: 16,     // 60fps 유지
     apiDebounceMs: 400,       // API 호출 간격 늘림 (서버 부하 감소)
     loadBatchSize: 15,        // 한번에 15개씩 로드 (네트워크 최적화)
-    maxMessagesInMemory: 150, // 메모리 사용량 감소
-    virtualizeThreshold: 100  // 100개 초과시 가상화
+    maxMessagesInMemory: 500, // 메모리 500개로 확장 (~272KB)
+    virtualizeThreshold: 400  // 400개 초과시 가상화
   }
 
   // STOMP WebSocket 연결
@@ -106,7 +110,9 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     scrollToBottom,
     scrollToPosition,
     newMessageBuffer,
-    loadMore
+    memoryLimitAlert,
+    loadMore,
+    virtualization
   } = useInfiniteScroll({
     containerRef: scrollContainerRef,
     messages,
@@ -118,7 +124,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   })
 
   /**
-   * 초기 메시지 로드 (슬랙 스타일 - 간소화)
+   * 초기 메시지 로드 (캐시 활용)
    */
   const loadInitialMessages = useCallback(async () => {
     if (isInitialLoading) return
@@ -129,32 +135,81 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       // 채널 입장
       await ChatService.joinChatRoom(roomType)
       
-      // 초기 메시지 로드
-      const response = await ChatService.getChatHistory({
-        roomType,
-        size: infiniteScrollConfig.loadBatchSize
-      })
+      // 캐시된 메시지 확인
+      const cachedMessages = getCachedMessages(roomType)
       
-      const initialMessages = response.messages || []
-      
-      if (initialMessages.length === 0) {
-        // 환영 메시지 생성
-        const welcomeMessage: ChatMessage = {
-          messageId: Date.now(),
-          userSeq: 0,
-          userName: "시스템",
-          content: `${title}에 오신 것을 환영합니다! 첫 번째 메시지를 보내보세요.`,
-          createdAt: new Date().toISOString(),
-          messageType: "SYSTEM",
+      if (cachedMessages && cachedMessages.length > 0) {
+        console.log(`💾 캐시된 메시지 발견: ${cachedMessages.length}개`)
+        
+        // 캐시된 메시지의 마지막 ID 확인
+        const lastCachedMessageId = Math.max(...cachedMessages.map(msg => msg.messageId))
+        
+        // 캐시 이후 새로운 메시지만 조회
+        const response = await ChatService.getChatHistory({
           roomType,
-          isMyMessage: false,
-          timeDisplay: "방금 전",
-          deleted: false,
-          serverAllianceId: 0
+          afterMessageId: lastCachedMessageId, // 이 ID 이후의 메시지만 조회
+          size: infiniteScrollConfig.loadBatchSize
+        })
+        
+        const newMessages = response.messages || []
+        
+        if (newMessages.length > 0) {
+          console.log(`🆕 새로운 메시지 발견: ${newMessages.length}개`)
+          // 캐시된 메시지 + 새로운 메시지 결합
+          const combinedMessages = [...cachedMessages, ...newMessages]
+          
+          // 메모리 한계 체크하여 초과시 최신 메시지 우선 보존
+          const finalMessages = combinedMessages.length > infiniteScrollConfig.maxMessagesInMemory
+            ? combinedMessages.slice(-infiniteScrollConfig.maxMessagesInMemory)
+            : combinedMessages
+            
+          setMessages(finalMessages)
+          
+          // 캐시 업데이트 (새로운 메시지들 추가)
+          newMessages.forEach(msg => addToCacheRealtimeMessage(roomType, msg))
+          
+          console.log(`✅ 캐시+신규 메시지 로드 완료: ${finalMessages.length}개 (캐시: ${cachedMessages.length}, 신규: ${newMessages.length})`)
+        } else {
+          // 새로운 메시지가 없으면 캐시된 메시지만 사용
+          // 캐시가 메모리 한계를 초과하는 경우 최신 메시지만 유지
+          const finalMessages = cachedMessages.length > infiniteScrollConfig.maxMessagesInMemory
+            ? cachedMessages.slice(-infiniteScrollConfig.maxMessagesInMemory)
+            : cachedMessages
+            
+          setMessages(finalMessages)
+          
+          console.log(`✅ 캐시 메시지 로드 완료: ${finalMessages.length}개 (원본 캐시: ${cachedMessages.length}개)`)
         }
-        setMessages([welcomeMessage])
       } else {
-        setMessages(initialMessages)
+        // 캐시가 없으면 기존 방식으로 초기 메시지 로드
+        const response = await ChatService.getChatHistory({
+          roomType,
+          size: infiniteScrollConfig.loadBatchSize
+        })
+        
+        const initialMessages = response.messages || []
+        
+        if (initialMessages.length === 0) {
+          // 환영 메시지 생성
+          const welcomeMessage: ChatMessage = {
+            messageId: Date.now(),
+            userSeq: 0,
+            userName: "시스템",
+            content: `${title}에 오신 것을 환영합니다! 첫 번째 메시지를 보내보세요.`,
+            createdAt: new Date().toISOString(),
+            messageType: "SYSTEM",
+            roomType,
+            isMyMessage: false,
+            timeDisplay: "방금 전",
+            deleted: false,
+            serverAllianceId: 0
+          }
+          setMessages([welcomeMessage])
+        } else {
+          setMessages(initialMessages)
+          // 초기 메시지들을 캐시에 저장
+          setCachedMessages(roomType, initialMessages)
+        }
       }
       
       // 하단으로 스크롤
@@ -170,7 +225,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     } finally {
       setIsInitialLoading(false)
     }
-  }, [isInitialLoading, roomType, infiniteScrollConfig.loadBatchSize, title, scrollToBottom, toast])
+  }, [isInitialLoading, roomType, infiniteScrollConfig.loadBatchSize, title, scrollToBottom, toast, getCachedMessages, setCachedMessages, addToCacheRealtimeMessage])
 
   // 컴포넌트 마운트 시 초기 메시지 로드
   useEffect(() => {
@@ -178,6 +233,17 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       loadInitialMessages()
     }
   }, [isModalOpen, messages.length, loadInitialMessages])
+
+  // 모달이 닫힐 때 현재 메시지들을 캐시에 저장
+  useEffect(() => {
+    return () => {
+      // 컴포넌트 언마운트 시 또는 모달이 닫힐 때 캐시 저장
+      if (messages.length > 0) {
+        console.log(`💾 캐시 저장: ${messages.length}개 메시지`)
+        setCachedMessages(roomType, messages)
+      }
+    }
+  }, [isModalOpen, messages, roomType, setCachedMessages])
 
   /**
    * 실시간 메시지 수신 처리 (슬랙 스타일)
@@ -218,6 +284,9 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
             setTimeout(() => scrollToBottom(true), 50)
           }
         }
+        
+        // 실시간 메시지를 캐시에도 추가
+        addToCacheRealtimeMessage(roomType, correctedMessage)
         
         // 플로팅 버튼에 최신 메시지 ID 알림
         if (onMessageUpdate && roomType === 'GLOBAL') {
@@ -295,6 +364,9 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         
         setMessages(prev => [...prev, sentMessage])
         scrollToBottom(true)
+        
+        // 전송한 메시지를 캐시에도 추가
+        addToCacheRealtimeMessage(roomType, sentMessage)
         
         if (onMessageUpdate && roomType === 'GLOBAL') {
           onMessageUpdate(sentMessage.messageId)
@@ -432,20 +504,20 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   return (
     <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
       {/* 채팅방 헤더 */}
-      <div className={`p-2.5 border-b bg-${color}-50 dark:bg-${color}-950 border-${color}-200 dark:border-${color}-800`}>
+      <div className={`p-2 xs:p-2.5 border-b bg-${color}-50 dark:bg-${color}-950 border-${color}-200 dark:border-${color}-800`}>
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className={`font-medium text-${color}-800 dark:text-${color}-200`}>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 xs:gap-2">
+              <h3 className={`font-medium text-sm xs:text-base truncate text-${color}-800 dark:text-${color}-200`}>
                 {title}
               </h3>
               {/* 연결 상태 인디케이터 */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <div className={`w-1.5 h-1.5 rounded-full ${
                   isConnecting ? 'bg-yellow-500 animate-pulse' : 
                   isConnected ? 'bg-green-500' : 'bg-red-500'
                 }`} />
-                <span className={`text-xs ${
+                <span className={`text-xs hidden xs:inline ${
                   isConnecting ? 'text-yellow-600' : 
                   isConnected ? 'text-green-600' : 'text-red-600'
                 }`}>
@@ -455,27 +527,34 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                 </span>
               </div>
             </div>
-            <p className={`text-xs mt-0.5 ${
+            <p className={`text-xs mt-0.5 truncate ${
               color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
               color === 'green' ? 'text-green-600 dark:text-green-400' :
               'text-orange-600 dark:text-orange-400'
             }`}>
-              {description} {onlineCount > 0 && `• ${onlineCount}명 접속중`}
+              <span className="hidden xs:inline">{description}</span>
+              <span className="xs:hidden">{description.split(' ')[0]}</span>
+              {onlineCount > 0 && (
+                <span className="hidden xs:inline"> • {onlineCount}명 접속중</span>
+              )}
+              {onlineCount > 0 && (
+                <span className="xs:hidden"> • {onlineCount}명</span>
+              )}
             </p>
           </div>
           
           {/* ADMIN 전용 선택 모드 버튼 */}
           {isAdmin && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 xs:gap-2 flex-shrink-0">
               <Button
                 variant={isSelectionMode ? "default" : "outline"}
                 size="sm"
                 onClick={toggleSelectionMode}
                 disabled={isBulkOperationLoading}
-                className="h-7 px-2 text-xs"
+                className="h-6 xs:h-7 px-1.5 xs:px-2 text-xs"
               >
-                {isSelectionMode ? <CheckSquare className="h-3 w-3 mr-1" /> : <Square className="h-3 w-3 mr-1" />}
-                {isSelectionMode ? "선택완료" : "선택모드"}
+                {isSelectionMode ? <CheckSquare className="h-3 w-3 xs:mr-1" /> : <Square className="h-3 w-3 xs:mr-1" />}
+                <span className="hidden xs:inline">{isSelectionMode ? "선택완료" : "선택모드"}</span>
               </Button>
             </div>
           )}
@@ -484,18 +563,18 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       
       {/* ADMIN 선택 모드 컨트롤 바 */}
       {isAdmin && isSelectionMode && (
-        <div className="p-2 bg-blue-50 dark:bg-blue-950 border-b border-blue-200 dark:border-blue-800">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                {selectedMessageIds.size}개 선택됨
+        <div className="p-1.5 xs:p-2 bg-blue-50 dark:bg-blue-950 border-b border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between gap-2 xs:gap-3">
+            <div className="flex items-center gap-1 xs:gap-2 flex-1 min-w-0">
+              <Badge variant="secondary" className="text-xs flex-shrink-0">
+                {selectedMessageIds.size}개
               </Badge>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={selectAllMessages}
                 disabled={isBulkOperationLoading}
-                className="h-6 px-2 text-xs"
+                className="h-5 xs:h-6 px-1.5 xs:px-2 text-xs hidden xs:inline-flex"
               >
                 전체선택
               </Button>
@@ -504,47 +583,48 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                 size="sm"
                 onClick={clearSelection}
                 disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
-                className="h-6 px-2 text-xs"
+                className="h-5 xs:h-6 px-1.5 xs:px-2 text-xs"
               >
-                선택해제
+                <span className="hidden xs:inline">선택해제</span>
+                <span className="xs:hidden">해제</span>
               </Button>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 xs:gap-2 flex-shrink-0">
               <Button
                 variant="destructive"
-                size="sm"
+                size="sm"  
                 onClick={handleBulkHide}
                 disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
-                className="h-6 px-2 text-xs"
+                className="h-5 xs:h-6 px-1.5 xs:px-2 text-xs"
               >
                 {isBulkOperationLoading ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1" />
+                  <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent xs:mr-1" />
                 ) : (
-                  <EyeOff className="h-3 w-3 mr-1" />
+                  <EyeOff className="h-3 w-3 xs:mr-1" />
                 )}
-                가리기
+                <span className="hidden xs:inline">가리기</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleBulkUnhide}
                 disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
-                className="h-6 px-2 text-xs"
+                className="h-5 xs:h-6 px-1.5 xs:px-2 text-xs"
               >
                 {isBulkOperationLoading ? (
-                  <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent mr-1" />
+                  <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent xs:mr-1" />
                 ) : (
-                  <Eye className="h-3 w-3 mr-1" />
+                  <Eye className="h-3 w-3 xs:mr-1" />
                 )}
-                복원
+                <span className="hidden xs:inline">복원</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleSelectionMode}
                 disabled={isBulkOperationLoading}
-                className="h-6 px-2 text-xs"
+                className="h-5 xs:h-6 px-1 xs:px-2 text-xs"
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -555,114 +635,225 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
 
       {/* 메시지 목록 - 슬랙 스타일 무한스크롤 */}
       <div 
-        className="h-[360px] sm:h-[390px] md:h-[440px] p-3 overflow-y-auto infinite-scroll-container scrollbar-thin" 
+        className="h-[320px] xs:h-[360px] sm:h-[390px] md:h-[440px] lg:h-[480px] p-2 xs:p-3 overflow-y-auto infinite-scroll-container scrollbar-thin" 
         ref={scrollContainerRef}
       >
-        {/* 상단 로딩 인디케이터 */}
-        {loadingState.isLoadingUp && (
-          <div className="flex items-center justify-center py-3 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-600 dark:text-gray-400" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">이전 메시지 로딩중...</span>
+        {/* 상단 로딩 인디케이터 또는 한계 도달 메시지 */}
+        {loadingState.isLoadingUp ? (
+          <div className="flex items-center justify-center py-2 xs:py-3 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-1.5 xs:gap-2 px-2 xs:px-3 py-1 xs:py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full">
+              <Loader2 className="h-3 w-3 xs:h-4 xs:w-4 animate-spin text-gray-600 dark:text-gray-400" />
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                <span className="hidden xs:inline">이전 메시지 로딩중...</span>
+                <span className="xs:hidden">로딩중...</span>
+              </span>
             </div>
           </div>
-        )}
+        ) : !loadingState.hasMoreUp && messages.length >= infiniteScrollConfig.maxMessagesInMemory ? (
+          <div className="flex items-center justify-center py-2 xs:py-3 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-1.5 xs:gap-2 px-2 xs:px-3 py-1 xs:py-1.5 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-full">
+              <div className="h-3 w-3 xs:h-4 xs:w-4 rounded-full bg-blue-500 flex items-center justify-center">
+                <span className="text-white text-xs font-bold">📜</span>
+              </div>
+              <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                <span className="hidden xs:inline">이전 대화를 모두 불러왔습니다 ✨</span>
+                <span className="xs:hidden">모두 불러옴 ✨</span>
+              </span>
+            </div>
+          </div>
+        ) : null}
 
         {/* 초기 로딩 */}
         {isInitialLoading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-full">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-600 dark:text-gray-400" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">채팅을 불러오는 중...</span>
+          <div className="flex items-center justify-center py-6 xs:py-8">
+            <div className="flex items-center gap-2 xs:gap-3 px-3 xs:px-4 py-1.5 xs:py-2 bg-gray-100 dark:bg-gray-800 rounded-full">
+              <Loader2 className="h-4 w-4 xs:h-5 xs:w-5 animate-spin text-gray-600 dark:text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="hidden xs:inline">채팅을 불러오는 중...</span>
+                <span className="xs:hidden">로딩중...</span>
+              </span>
             </div>
           </div>
         )}
         
-        <div className="space-y-2 transform-gpu">
+        {/* 가상화된 메시지 렌더링 */}
+        <div 
+          className="space-y-2 transform-gpu relative" 
+          style={{ height: virtualization.shouldVirtualize ? virtualization.totalHeight : 'auto' }}
+        >
           {useMemo(() => {
-            // 메시지 그룹화 최적화
-            return messages.map((message, index) => {
-              // 같은 사용자의 연속 메시지인지 확인
-              const prevMessage = index > 0 ? messages[index - 1] : null
-              const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
-              
-              const isFirstInGroup = !prevMessage || 
-                prevMessage.userSeq !== message.userSeq || 
-                prevMessage.messageType === "SYSTEM" ||
-                message.messageType === "SYSTEM"
+            // 가상화 여부에 따른 렌더링 분기
+            if (virtualization.shouldVirtualize) {
+              return virtualization.virtualItems.map((virtualItem) => {
+                const index = virtualItem.index
+                const message = messages[index]
                 
-              const isLastInGroup = !nextMessage || 
-                nextMessage.userSeq !== message.userSeq || 
-                nextMessage.messageType === "SYSTEM" ||
-                message.messageType === "SYSTEM"
-              
-              return (
-                <div key={message.messageId} className="will-change-transform">
-                  <MessageBubble 
-                    message={{...message, roomType}} 
-                    isLastInGroup={isLastInGroup}
-                    isFirstInGroup={isFirstInGroup}
-                    isSelectable={isAdmin && isSelectionMode}
-                    isSelected={selectedMessageIds.has(message.messageId)}
-                    onSelectionChange={handleMessageSelection}
-                  />
-                </div>
-              )
-            })
-          }, [messages, roomType, isAdmin, isSelectionMode, selectedMessageIds, handleMessageSelection])}
+                if (!message) return null
+
+                // 같은 사용자의 연속 메시지인지 확인
+                const prevMessage = index > 0 ? messages[index - 1] : null
+                const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
+                
+                const isFirstInGroup = !prevMessage || 
+                  prevMessage.userSeq !== message.userSeq || 
+                  prevMessage.messageType === "SYSTEM" ||
+                  message.messageType === "SYSTEM"
+                  
+                const isLastInGroup = !nextMessage || 
+                  nextMessage.userSeq !== message.userSeq || 
+                  nextMessage.messageType === "SYSTEM" ||
+                  message.messageType === "SYSTEM"
+                
+                return (
+                  <div 
+                    key={message.messageId} 
+                    className="absolute w-full will-change-transform virtualized-item"
+                    style={{
+                      top: virtualItem.start,
+                      height: virtualItem.end - virtualItem.start
+                    }}
+                  >
+                    <MessageBubble 
+                      message={{...message, roomType}} 
+                      isLastInGroup={isLastInGroup}
+                      isFirstInGroup={isFirstInGroup}
+                      isSelectable={isAdmin && isSelectionMode}
+                      isSelected={selectedMessageIds.has(message.messageId)}
+                      onSelectionChange={handleMessageSelection}
+                    />
+                  </div>
+                )
+              })
+            } else {
+              // 일반 렌더링 (가상화 임계점 미만)
+              return messages.map((message, index) => {
+                const prevMessage = index > 0 ? messages[index - 1] : null
+                const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
+                
+                const isFirstInGroup = !prevMessage || 
+                  prevMessage.userSeq !== message.userSeq || 
+                  prevMessage.messageType === "SYSTEM" ||
+                  message.messageType === "SYSTEM"
+                  
+                const isLastInGroup = !nextMessage || 
+                  nextMessage.userSeq !== message.userSeq || 
+                  nextMessage.messageType === "SYSTEM" ||
+                  message.messageType === "SYSTEM"
+                
+                return (
+                  <div key={message.messageId} className="will-change-transform message-bubble">
+                    <MessageBubble 
+                      message={{...message, roomType}} 
+                      isLastInGroup={isLastInGroup}
+                      isFirstInGroup={isFirstInGroup}
+                      isSelectable={isAdmin && isSelectionMode}
+                      isSelected={selectedMessageIds.has(message.messageId)}
+                      onSelectionChange={handleMessageSelection}
+                    />
+                  </div>
+                )
+              })
+            }
+          }, [messages, roomType, isAdmin, isSelectionMode, selectedMessageIds, handleMessageSelection, virtualization])}
         </div>
         
         {/* 슬랙 스타일 새 메시지 버퍼 알림 */}
         {newMessageBuffer.hasMessages && (
-          <div className="sticky bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="sticky bottom-2 xs:bottom-4 left-1/2 transform -translate-x-1/2 z-10">
             <Button
               onClick={newMessageBuffer.flushAndScroll}
               variant="secondary"
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg animate-in slide-in-from-bottom-2 duration-200"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg animate-in slide-in-from-bottom-2 duration-200 h-8 xs:h-9 px-2 xs:px-3 text-xs xs:text-sm"
             >
-              <ArrowDown className="h-4 w-4 mr-2" />
-              새 메시지 {newMessageBuffer.count}개
+              <ArrowDown className="h-3 w-3 xs:h-4 xs:w-4 mr-1 xs:mr-2" />
+              <span className="hidden xs:inline">새 메시지 {newMessageBuffer.count}개</span>
+              <span className="xs:hidden">{newMessageBuffer.count}개</span>
             </Button>
+          </div>
+        )}
+        
+        {/* 새 메시지 도착 알림 (간소화) */}
+        {memoryLimitAlert.hasNewMessage && (
+          <div className="sticky bottom-12 xs:bottom-16 left-1/2 transform -translate-x-1/2 z-20 px-2 xs:px-0">
+            <div className="bg-green-500 hover:bg-green-600 text-white px-3 xs:px-4 py-1.5 xs:py-2 rounded-lg shadow-lg animate-in slide-in-from-bottom-2 duration-200 max-w-xs xs:max-w-sm">
+              <div className="flex items-center gap-2 xs:gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs xs:text-sm font-medium">
+                    <span className="hidden xs:inline">💬 새 메시지가 도착했습니다</span>
+                    <span className="xs:hidden">💬 새 메시지</span>
+                  </p>
+                  <p className="text-xs text-green-100 mt-0.5 xs:mt-1 truncate">
+                    "{memoryLimitAlert.messagePreview}"
+                  </p>
+                </div>
+                <div className="flex gap-1 xs:gap-2 flex-shrink-0">
+                  <Button
+                    onClick={memoryLimitAlert.goToLatest}
+                    variant="secondary"
+                    size="sm"
+                    className="h-6 xs:h-7 px-2 xs:px-3 text-xs bg-white text-green-600 hover:bg-green-50"
+                  >
+                    보기
+                  </Button>
+                  <Button
+                    onClick={memoryLimitAlert.dismiss}
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 xs:h-6 xs:w-6 p-0 text-green-200 hover:text-white hover:bg-green-600"
+                  >
+                    <X className="h-3 w-3 xs:h-4 xs:w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
         
         {/* 하단 로딩 인디케이터 */}
         {loadingState.isLoadingDown && (
-          <div className="flex items-center justify-center py-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-600 dark:text-gray-400" />
-              <span className="text-xs text-gray-600 dark:text-gray-400">새 메시지 로딩중...</span>
+          <div className="flex items-center justify-center py-2 xs:py-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-1.5 xs:gap-2 px-2 xs:px-3 py-1 xs:py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full">
+              <Loader2 className="h-3 w-3 xs:h-4 xs:w-4 animate-spin text-gray-600 dark:text-gray-400" />
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                <span className="hidden xs:inline">새 메시지 로딩중...</span>
+                <span className="xs:hidden">로딩중...</span>
+              </span>
             </div>
           </div>
         )}
       </div>
 
       {/* 메시지 입력창 */}
-      <div className="p-3 border-t bg-white dark:bg-gray-800">
+      <div className="p-2 xs:p-3 border-t bg-white dark:bg-gray-800">
         {/* 문자 수 카운터 (길이 제한 근처일 때만 표시) */}
         {newMessage && messageLengthStatus.percentage > 70 && (
-          <div className="mb-2 flex justify-end">
+          <div className="mb-1.5 xs:mb-2 flex justify-end">
             <div className={`text-xs ${messageLengthStatus.color}`}>
               {newMessage.length}자
               {messageLengthStatus.isOverLimit && (
-                <span className="ml-2 text-red-500 font-semibold">너무 긴 메시지입니다</span>
+                <span className="ml-1 xs:ml-2 text-red-500 font-semibold">
+                  <span className="hidden xs:inline">너무 긴 메시지입니다</span>
+                  <span className="xs:hidden">길이 초과</span>
+                </span>
               )}
             </div>
           </div>
         )}
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 xs:gap-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder={
               session?.user 
-                ? `${title}에 메시지를 입력하세요...` 
+                ? window.innerWidth < 480 
+                  ? "메시지 입력..." 
+                  : `${title}에 메시지를 입력하세요...`
                 : "로그인이 필요합니다"
             }
-            className={`flex-1 h-10 text-sm ${
+            className={`flex-1 h-9 xs:h-10 text-sm ${
               messageLengthStatus.isOverLimit ? 'border-red-500 focus:border-red-500' : ''
             }`}
             disabled={!session?.user}
@@ -671,7 +862,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
             onClick={handleSendMessage}
             disabled={!newMessage.trim() || !session?.user || messageLengthStatus.isOverLimit}
             size="sm"
-            className={`h-10 px-4 ${
+            className={`h-9 xs:h-10 px-2.5 xs:px-4 flex-shrink-0 ${
               color === 'purple' ? 'bg-purple-600 hover:bg-purple-700' :
               color === 'green' ? 'bg-green-600 hover:bg-green-700' :
               'bg-orange-600 hover:bg-orange-700'

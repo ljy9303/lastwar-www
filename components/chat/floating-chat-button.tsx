@@ -124,13 +124,7 @@ const FloatingChatButton = memo(function FloatingChatButton() {
     <>
       {/* 플로팅 채팅 버튼 - 뷰포트 기준 고정 */}
       <div
-        style={{ 
-          position: 'fixed',
-          bottom: '1.5rem',
-          right: '1.5rem',
-          zIndex: 9999,
-          pointerEvents: 'auto'
-        }}
+        className="fixed bottom-4 right-4 xs:bottom-6 xs:right-6 z-[9999] pointer-events-auto"
       >
         <div className="gpu-accelerated relative">
           {/* 메인 채팅 버튼 - 부드러운 애니메이션 */}

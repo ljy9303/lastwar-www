@@ -40,6 +40,11 @@ body {
     backface-visibility: hidden; /* 뒷면 렌더링 최적화 */
     -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
     will-change: scroll-position; /* 스크롤 최적화 힌트 */
+    /* 추가 성능 최적화 */
+    contain: layout style paint; /* 레이아웃 격리 */
+    transform-style: preserve-3d; /* 3D 변환 최적화 */
+    -webkit-backface-visibility: hidden; /* Safari 호환성 */
+    -moz-backface-visibility: hidden; /* Firefox 호환성 */
   }
   
   /* GPU 가속 메시지 버블 */
@@ -53,6 +58,60 @@ body {
   .message-bubble {
     will-change: transform, opacity;
     contain: layout style paint;
+    /* 가상화된 메시지용 추가 최적화 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* 가상화된 아이템 최적화 */
+  .virtualized-item {
+    contain: strict;
+    will-change: transform;
+    transform: translateZ(0);
+    isolation: isolate;
+  }
+  
+  /* 모바일 터치 스크롤 최적화 */
+  @media (max-width: 640px) {
+    .infinite-scroll-container {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      /* 터치 반응성 향상 */
+      touch-action: pan-y;
+      /* 모바일 스크롤 성능 최적화 */
+      -webkit-transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0);
+    }
+    
+    .message-bubble {
+      /* 모바일에서 애니메이션 최적화 */
+      transition: transform 0.15s ease-out;
+    }
+    
+    /* 모바일 터치 영역 확대 */
+    .mobile-touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* 채팅 모달 모바일 최적화 */
+    .chat-modal {
+      /* 모바일에서 고정 높이 사용 */
+      max-width: calc(100vw - 16px);
+      max-height: 480px;
+      height: 480px;
+    }
+  }
+  
+  /* 480px 미만 초소형 모바일 */
+  @media (max-width: 479px) {
+    .chat-modal {
+      max-width: calc(100vw - 8px);
+      max-height: 420px;
+      height: 420px;
+    }
   }
   
   /* 스크롤바 커스터마이징 (Webkit) */
