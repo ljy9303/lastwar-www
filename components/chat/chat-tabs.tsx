@@ -1,20 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { Globe, HelpCircle } from "lucide-react"
+import { Globe, HelpCircle, X, Minimize2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChatRoom } from "./chat-room"
 
 interface ChatTabsProps {
   isModalOpen?: boolean
   onMessageUpdate?: (messageId: number) => void
+  onClose?: () => void
 }
 
 /**
  * 채팅 탭 컴포넌트
  * 글로벌, 문의 채팅 탭 관리
  */
-export function ChatTabs({ isModalOpen = false, onMessageUpdate }: ChatTabsProps) {
+export function ChatTabs({ isModalOpen = false, onMessageUpdate, onClose }: ChatTabsProps) {
   const [activeTab, setActiveTab] = useState("global")
 
   const handleTabChange = (value: string) => {
@@ -31,13 +33,26 @@ export function ChatTabs({ isModalOpen = false, onMessageUpdate }: ChatTabsProps
     >
       <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
         {/* 탭 목록 - 타이틀처럼 크고 둥근 형태 */}
-        <TabsList 
-          className="grid w-full grid-cols-2 bg-blue-600 h-16 rounded-t-2xl p-2 gap-1"
-          style={{
-            contain: 'layout style paint',
-            transform: 'translateZ(0)' // GPU 가속
-          }}
-        >
+        <div className="relative bg-blue-600 rounded-t-2xl">
+          {/* 모바일 닫기 버튼 */}
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="absolute right-2 top-2 z-10 h-8 w-8 p-0 text-white hover:bg-blue-700 xs:hidden"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+          
+          <TabsList 
+            className="grid w-full grid-cols-2 bg-transparent h-16 p-2 gap-1"
+            style={{
+              contain: 'layout style paint',
+              transform: 'translateZ(0)' // GPU 가속
+            }}
+          >
           {/* 글로벌 채팅 탭 */}
           <TabsTrigger 
             value="global" 
@@ -64,6 +79,7 @@ export function ChatTabs({ isModalOpen = false, onMessageUpdate }: ChatTabsProps
             <span className="hidden sm:inline">문의</span>
           </TabsTrigger>
         </TabsList>
+        </div>
 
         {/* 탭 내용 - 성능 최적화 */}
         <div 

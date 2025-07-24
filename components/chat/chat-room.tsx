@@ -37,6 +37,10 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   const [newMessage, setNewMessage] = useState("")
   const [isInitialLoading, setIsInitialLoading] = useState(false)
   
+  // 모바일 키보드 상태 관리
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  
   // 다중 선택 모드 관련 상태
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<number>>(new Set())
@@ -233,6 +237,55 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       loadInitialMessages()
     }
   }, [isModalOpen, messages.length, loadInitialMessages])
+
+  // 모바일 키보드 감지 (Viewport height 변화 기반)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleResize = () => {
+      // 모바일에서만 동작
+      if (window.innerWidth <= 768) {
+        const currentHeight = window.innerHeight
+        const fullHeight = window.screen.height
+        
+        // 키보드가 나타났을 때 viewport height가 크게 줄어듦
+        const keyboardVisible = currentHeight < fullHeight * 0.75
+        
+        if (keyboardVisible !== isKeyboardVisible) {
+          setIsKeyboardVisible(keyboardVisible)
+          
+          // 키보드가 나타났을 때 메시지 영역을 아래로 스크롤
+          if (keyboardVisible && scrollContainerRef.current) {
+            setTimeout(() => scrollToBottom(false), 300)
+          }
+        }
+      }
+    }
+
+    // 초기 상태 설정
+    handleResize()
+    
+    // 리사이즈 이벤트 리스너
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
+    
+    // Visualviewer API 지원 브라우저에서 더 정확한 키보드 감지
+    if ('visualViewport' in window) {
+      const visualViewport = window.visualViewport!
+      visualViewport.addEventListener('resize', handleResize)
+      
+      return () => {
+        window.removeEventListener('resize', handleResize)
+        window.removeEventListener('orientationchange', handleResize)
+        visualViewport.removeEventListener('resize', handleResize)
+      }
+    }
+    
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleResize)
+    }
+  }, [isKeyboardVisible, scrollToBottom])
 
   // 모달이 닫힐 때 현재 메시지들을 캐시에 저장
   useEffect(() => {
@@ -502,7 +555,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
   // 기존 스크롤 핸들러 제거됨 - 슬랙 스타일 무한 스크롤 훅으로 대체
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 mobile-chat-container">
       {/* 채팅방 헤더 */}
       <div className={`p-2 xs:p-2.5 border-b bg-${color}-50 dark:bg-${color}-950 border-${color}-200 dark:border-${color}-800`}>
         <div className="flex items-center justify-between">
@@ -635,7 +688,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
 
       {/* 메시지 목록 - 슬랙 스타일 무한스크롤 */}
       <div 
-        className="h-[320px] xs:h-[360px] sm:h-[390px] md:h-[440px] lg:h-[480px] p-2 xs:p-3 overflow-y-auto infinite-scroll-container scrollbar-thin" 
+        className="h-[320px] xs:h-[360px] sm:h-[390px] md:h-[440px] lg:h-[480px] p-2 xs:p-3 overflow-y-auto infinite-scroll-container scrollbar-thin chat-messages-area" 
         ref={scrollContainerRef}
       >
         {/* 상단 로딩 인디케이터 또는 한계 도달 메시지 */}
@@ -825,7 +878,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
       </div>
 
       {/* 메시지 입력창 */}
-      <div className="p-2 xs:p-3 border-t bg-white dark:bg-gray-800">
+      <div className="p-2 xs:p-3 border-t bg-white dark:bg-gray-800 chat-input-area">
         {/* 문자 수 카운터 (길이 제한 근처일 때만 표시) */}
         {newMessage && messageLengthStatus.percentage > 70 && (
           <div className="mb-1.5 xs:mb-2 flex justify-end">
@@ -843,6 +896,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         
         <div className="flex items-center gap-1.5 xs:gap-2">
           <Input
+            ref={inputRef}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -853,10 +907,15 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                   : `${title}에 메시지를 입력하세요...`
                 : "로그인이 필요합니다"
             }
-            className={`flex-1 h-9 xs:h-10 text-sm ${
+            className={`flex-1 h-9 xs:h-10 text-base mobile-input ${
               messageLengthStatus.isOverLimit ? 'border-red-500 focus:border-red-500' : ''
             }`}
             disabled={!session?.user}
+            style={{
+              fontSize: '16px', // iOS Safari 줌인 방지
+              WebkitAppearance: 'none', // iOS 기본 스타일 제거
+              borderRadius: '0.375rem' // Tailwind rounded 클래스와 동일
+            }}
           />
           <Button
             onClick={handleSendMessage}
