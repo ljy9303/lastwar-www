@@ -54,6 +54,36 @@ export default function TestLoginPage() {
 
         console.log('[TestLogin] NextAuth 세션을 통한 로그인 완료 - 홈페이지로 이동')
         window.location.href = '/'
+        
+      } else if (loginResponse.status === 'signup_required') {
+        // 카카오 로그인과 동일한 signup 처리 로직
+        const userId = loginResponse.user?.userId
+        if (userId && loginResponse.user) {
+          console.log('[TestLogin] 회원가입 페이지로 이동 - userId:', userId)
+          
+          // sessionStorage에 임시 저장 (카카오 로그인과 동일한 방식)
+          const tempUserData = {
+            userId: loginResponse.user.userId,
+            email: loginResponse.user.email,
+            nickname: loginResponse.user.nickname,
+            profileImageUrl: loginResponse.user.profileImageUrl,
+            timestamp: Date.now()
+          }
+          sessionStorage.setItem('signup_user_data', JSON.stringify(tempUserData))
+          
+          toast({
+            title: '회원가입 필요',
+            description: '서버와 연맹 정보를 입력해주세요.',
+            variant: 'default'
+          })
+          
+          // 회원가입 페이지로 이동
+          router.push('/signup')
+        } else {
+          console.error('[TestLogin] 사용자 ID가 없습니다')
+          throw new Error('사용자 정보가 없습니다')
+        }
+        
       } else {
         throw new Error(loginResponse.message || '로그인에 실패했습니다')
       }
@@ -92,12 +122,12 @@ export default function TestLoginPage() {
                 type="email"
                 value={form.email}
                 onChange={handleInputChange}
-                placeholder="기존 계정 이메일을 입력하세요"
+                placeholder="이메일을 입력하세요"
                 className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 required
               />
               <p className="text-xs text-gray-500">
-                기존 계정의 이메일을 입력하면 해당 계정의 서버연맹으로 로그인됩니다
+                기존 계정이면 로그인, 신규 계정이면 회원가입 페이지로 이동됩니다
               </p>
             </div>
 
