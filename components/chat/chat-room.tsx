@@ -379,8 +379,8 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     const contentByteLength = getByteLength(messageContent)
     if (contentByteLength > MESSAGE_BYTE_LIMIT) {
       toast({
-        title: "메시지 길이 초과",
-        description: `메시지가 너무 깁니다. 현재: ${formatByteSize(contentByteLength)}, 최대: ${formatByteSize(MESSAGE_BYTE_LIMIT)}`,
+        title: "메시지가 너무 깁니다",
+        description: "메시지를 짧게 작성해 주세요.",
         variant: "destructive"
       })
       return
@@ -763,17 +763,14 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
 
       {/* 메시지 입력창 */}
       <div className="p-3 border-t bg-white dark:bg-gray-800">
-        {/* 바이트 길이 카운터 */}
-        {newMessage && (
-          <div className="mb-2 flex justify-between items-center text-xs">
-            <div className={messageLengthStatus.color}>
-              {formatByteSize(messageByteLength)} / {formatByteSize(MESSAGE_BYTE_LIMIT)}
+        {/* 문자 수 카운터 (길이 제한 근처일 때만 표시) */}
+        {newMessage && messageLengthStatus.percentage > 70 && (
+          <div className="mb-2 flex justify-end">
+            <div className={`text-xs ${messageLengthStatus.color}`}>
+              {newMessage.length}자
               {messageLengthStatus.isOverLimit && (
-                <span className="ml-2 text-red-500 font-semibold">길이 초과!</span>
+                <span className="ml-2 text-red-500 font-semibold">너무 긴 메시지입니다</span>
               )}
-            </div>
-            <div className="text-gray-400">
-              문자 {newMessage.length}자 · 바이트 {messageByteLength}B
             </div>
           </div>
         )}
