@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast"
 import { fetchFromAPI } from "@/lib/api-service"
 import { DesertEventType } from "@/types/desert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useRequiredEvent } from "@/contexts/current-event-context"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { PositionStatusBoard } from "@/components/squad/position-status-board"
 
@@ -178,10 +179,9 @@ const sortUsers = (
 }
 
 export default function SquadsPage() {
-  const searchParams = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()
-  const eventId = searchParams.get("eventId")
+  const { eventId, eventTitle, goBack } = useRequiredEvent()
 
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -1129,20 +1129,20 @@ export default function SquadsPage() {
       <div className="container mx-auto">
       <div className="flex items-center gap-2 mb-6">
         <h1 className="text-3xl font-bold">
-          {selectedEvent ? selectedEvent.title : '스쿼드 관리'}
+          {eventTitle || '스쿼드 관리'}
         </h1>
         <div className="ml-auto">
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/events">사막전 관리</Link>
+            <Button variant="outline" onClick={goBack}>
+              사막전 관리
             </Button>
             {eventId && (
               <>
-                <Button variant="outline" asChild>
-                  <Link href={`/surveys?eventId=${eventId}`}>사전조사</Link>
+                <Button variant="outline" onClick={() => router.push('/surveys')}>
+                  사전조사
                 </Button>
-                <Button variant="outline" asChild>
-                  <Link href={`/desert-results?eventId=${eventId}`}>사막전 결과</Link>
+                <Button variant="outline" onClick={() => router.push('/desert-results')}>
+                  사막전 결과
                 </Button>
               </>
             )}

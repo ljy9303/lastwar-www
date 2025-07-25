@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -23,12 +23,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from "lucide-react"
+import { useRequiredEvent } from "@/contexts/current-event-context"
 
 export default function DesertResultsPage() {
-  const searchParams = useSearchParams()
   const router = useRouter()
-  const eventId = searchParams.get("eventId")
-  const desertSeq = eventId ? Number.parseInt(eventId) : null
+  const { eventId, eventTitle, goBack } = useRequiredEvent()
+  const desertSeq = eventId || null
 
   const [results, setResults] = useState<DesertRosterResult[]>([])
   const [filteredResults, setFilteredResults] = useState<DesertRosterResult[]>([])
@@ -482,36 +482,22 @@ export default function DesertResultsPage() {
     setFilteredResults(filtered)
   }, [results, searchTerm, activeTab, showOnlyParticipated, sortBy, sortOrder])
 
-  if (!desertSeq) {
-    return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6">사막전 결과</h1>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-center">사막전을 선택해주세요.</p>
-            <Button asChild className="mt-4 mx-auto block">
-              <Link href="/events">사막전 목록으로 이동</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  // useRequiredEvent 훅에서 이미 eventId 체크를 처리하므로 제거
 
   return (
     <div className="container mx-auto">
       <div className="flex items-center gap-2 mb-6">
-        <h1 className="text-3xl font-bold">{selectedEvent ? selectedEvent.title : '사막전 결과'}</h1>
+        <h1 className="text-3xl font-bold">{eventTitle || '사막전 결과'}</h1>
         <div className="ml-auto">
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/events">사막전 관리</Link>
+            <Button variant="outline" onClick={goBack}>
+              사막전 관리
             </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/surveys?eventId=${eventId}`}>사전조사</Link>
+            <Button variant="outline" onClick={() => router.push('/surveys')}>
+              사전조사
             </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/squads?eventId=${eventId}`}>스쿼드 관리</Link>
+            <Button variant="outline" onClick={() => router.push('/squads')}>
+              스쿼드 관리
             </Button>
           </div>
         </div>

@@ -7,6 +7,7 @@ import AuthLayout from "@/components/AuthLayout"
 import { Toaster } from "@/components/ui/toaster"
 import { FloatingChatButton } from "@/components/chat/floating-chat-button"
 import { ChatCacheProvider } from "@/contexts/chat-cache-context"
+import { CurrentEventProvider } from "@/contexts/current-event-context"
 
 interface ClientProvidersProps {
   children: React.ReactNode
@@ -20,12 +21,14 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
         refetchOnWindowFocus={true}
         refetchWhenOffline={false}
       >
-        <ChatCacheProvider>
-          <AuthLayout>
-            {children}
-            <FloatingChatButton />
-          </AuthLayout>
-        </ChatCacheProvider>
+        <CurrentEventProvider>
+          <ChatCacheProvider>
+            <AuthLayout>
+              {children}
+              <FloatingChatButton />
+            </AuthLayout>
+          </ChatCacheProvider>
+        </CurrentEventProvider>
       </SessionProvider>
       <Toaster />
     </ThemeProvider>

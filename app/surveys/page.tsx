@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -22,6 +22,7 @@ import { useMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { DesertEventType } from "@/types/desert"
+import { useRequiredEvent } from "@/contexts/current-event-context"
 
 // 전투력 포맷팅 함수 (1 = 1백만)
 const formatPower = (power: number): string => {
@@ -61,10 +62,9 @@ const getPreferenceOptions = (eventType?: string) => {
 }
 
 export default function SurveysPage() {
-  const searchParams = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()
-  const eventId = searchParams.get("eventId")
+  const { eventId, eventTitle, goBack } = useRequiredEvent()
 
   const [rosters, setRosters] = useState<Roster[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -97,12 +97,7 @@ export default function SurveysPage() {
   const [selectedTeamType, setSelectedTeamType] = useState<string | null>(null)
   const [isTeamMembersDialogOpen, setIsTeamMembersDialogOpen] = useState(false)
 
-  // 이벤트 ID가 없으면 이벤트 목록 페이지로 리다이렉트
-  useEffect(() => {
-    if (!eventId) {
-      router.push("/events")
-    }
-  }, [eventId, router])
+  // useRequiredEvent 훅에서 이미 처리하므로 제거
 
   // 이벤트 정보와 사전조사 데이터 로드
   useEffect(() => {
@@ -329,18 +324,7 @@ export default function SurveysPage() {
     }
   }
 
-  if (!eventId) {
-    return (
-      <div className="container mx-auto">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            사전조사를 조회할 이벤트 ID가 필요합니다. 이벤트 관리 페이지로 이동합니다.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
+  // useRequiredEvent 훅에서 이미 eventId 체크를 처리하므로 제거
 
   if (isLoading) {
     return (
@@ -356,15 +340,15 @@ export default function SurveysPage() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
         <div className="flex items-center gap-2">
           <h1 className="text-xl sm:text-3xl font-bold truncate">
-            {selectedEvent ? selectedEvent.title : '사전조사 관리'}
+            {eventTitle || '사전조사 관리'}
           </h1>
         </div>
         <div className="flex items-center gap-2 ml-auto">
-          <Button variant="outline" asChild>
-            <Link href="/events">사막전 관리</Link>
+          <Button variant="outline" onClick={goBack}>
+            사막전 관리
           </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/squads?eventId=${eventId}`}>스쿼드 관리</Link>
+          <Button variant="outline" onClick={() => router.push('/squads')}>
+            스쿼드 관리
           </Button>
         </div>
       </div>
