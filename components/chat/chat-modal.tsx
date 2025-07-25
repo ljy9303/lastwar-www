@@ -29,19 +29,19 @@ const ChatModal = memo(function ChatModal({ isOpen, onClose, onMessageUpdate }: 
             onClick={onClose}
           />
 
-          {/* 채팅 모달 - 부드러운 애니메이션 */}
+          {/* 채팅 모달 - 플로팅 버튼 공간 확보 */}
           <div
             className={`fixed z-[10001] gpu-accelerated chat-modal transition-all duration-300 ease-out ${
               isMinimized 
-                ? 'bottom-4 right-4 translate-x-0 translate-y-0' 
-                : 'bottom-4 xs:bottom-4 xs:left-auto xs:right-4 sm:right-6 left-2 right-2 xs:left-auto xs:right-4'
+                ? 'bottom-24 right-4 translate-x-0 translate-y-0' 
+                : 'bottom-4 xs:bottom-24 xs:left-auto xs:right-4 sm:right-6 left-2 right-2 xs:left-auto xs:right-4'
             }`}
           >
             <Card 
               className={`shadow-2xl border-0 overflow-hidden ${
                 isMinimized 
                   ? "w-48 h-14 rounded-2xl" 
-                  : "w-full h-[80vh] h-[80dvh] xs:w-[380px] xs:h-[520px] sm:w-[400px] sm:h-[560px] md:w-[440px] md:h-[640px] xs:max-w-none xs:rounded-2xl rounded-t-2xl xs:rounded-b-2xl"
+                  : "w-full h-[calc(100vh-4rem)] xs:w-[380px] xs:h-[546px] sm:w-[400px] sm:h-[588px] md:w-[440px] md:h-[672px] xs:max-w-none xs:rounded-2xl rounded-t-2xl xs:rounded-b-2xl"
               }`}
             >
               {/* 채팅 내용 - 모달 오픈 상태 전달 */}
