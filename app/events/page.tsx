@@ -39,7 +39,6 @@ import { cn } from "@/lib/utils"
 import { getDeserts, createDesert } from "@/app/actions/event-actions"
 import { useToast } from "@/hooks/use-toast"
 import { Pagination } from "@/components/ui/pagination"
-import { AdvancedPagination } from "@/components/ui/advanced-pagination"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Desert, DesertResponse, DesertSearchParams } from "@/app/actions/event-actions"
@@ -685,21 +684,16 @@ export default function EventsPage() {
             </Table>
           </div>
 
-          {/* 고급 페이지네이션 */}
-          {desertResponse && (
+          {/* 페이지네이션 */}
+          {desertResponse && desertResponse.totalPages > 1 && (
             <div className="mt-6">
-              <AdvancedPagination
+              <Pagination
                 currentPage={desertResponse.number}
                 totalPages={desertResponse.totalPages}
                 onPageChange={handlePageChange}
-                showSizeChanger={true}
-                pageSize={desertResponse.size}
-                pageSizeOptions={[10, 25, 50, 100]}
-                onPageSizeChange={handlePageSizeChange}
-                showQuickJumper={true}
                 showTotal={true}
                 totalElements={desertResponse.totalElements}
-                showFirstLast={true}
+                pageSize={desertResponse.size}
               />
             </div>
           )}
