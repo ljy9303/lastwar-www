@@ -3,7 +3,7 @@
  * 백엔드 ENUM 값을 한글 라벨과 스타일로 매핑
  */
 
-export type UserLabelType = 'MASTER' | 'VIP' | 'PREMIUM' | 'MODERATOR' | 'SUPPORTERS'
+export type UserLabelType = 'MASTER' | 'SPONSOR' | 'PREMIUM' | 'MODERATOR' | 'SUPPORTERS'
 
 export interface LabelStyle {
   displayName: string
@@ -22,8 +22,8 @@ const LABEL_STYLES: Record<UserLabelType, LabelStyle> = {
     textColor: 'text-red-800 dark:text-red-300',
     borderColor: 'border-red-200 dark:border-red-700'
   },
-  VIP: {
-    displayName: 'VIP',
+  SPONSOR: {
+    displayName: '후원',
     bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
     textColor: 'text-yellow-800 dark:text-yellow-300',
     borderColor: 'border-yellow-200 dark:border-yellow-700'
@@ -89,7 +89,7 @@ const LABEL_PRIORITY: Record<UserLabelType, number> = {
   MASTER: 1,
   MODERATOR: 2, 
   SUPPORTERS: 3,
-  VIP: 4,
+  SPONSOR: 4,
   PREMIUM: 5
 }
 
