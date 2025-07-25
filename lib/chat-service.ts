@@ -72,7 +72,6 @@ export class ChatService {
         throw new Error('채팅 서비스는 로그인이 필요합니다. 로그인 후 이용해주세요.')
       }
       
-      console.log('[CHAT-API] 히스토리 조회 요청:', request)
       
       const requestBody = {
         roomType: request.roomType,
@@ -81,7 +80,6 @@ export class ChatService {
         size: request.size || 20
       }
       
-      console.log('[CHAT-API] 요청 바디:', requestBody)
       
       // fetchFromAPI를 사용하여 자동으로 인증 헤더와 에러 처리
       const data = await fetchFromAPI<ChatHistoryResponse>('/chat/history', {
@@ -92,7 +90,6 @@ export class ChatService {
         body: JSON.stringify(requestBody)
       })
 
-      console.log('[CHAT-API] 백엔드 응답 데이터:', data)
       
       // 응답 데이터 구조 검증
       if (!data || typeof data !== 'object') {
@@ -102,7 +99,6 @@ export class ChatService {
 
       // messages 배열이 없거나 배열이 아닌 경우 빈 배열로 초기화
       const messages = Array.isArray(data.messages) ? data.messages : []
-      console.log('[CHAT-API] 메시지 개수:', messages.length)
       
       // 시간순 정렬 (오래된 것부터)
       const sortedMessages = messages.sort((a, b) => 
@@ -116,7 +112,6 @@ export class ChatService {
         totalCount: data.totalCount
       }
       
-      console.log('[CHAT-API] 최종 응답:', result)
       return result
     } catch (error) {
       console.error('[CHAT-API] 채팅 히스토리 조회 오류:', error)
@@ -151,7 +146,6 @@ export class ChatService {
         throw new Error('메시지 전송은 로그인이 필요합니다. 로그인 후 이용해주세요.')
       }
       
-      console.log('[CHAT-API] 메시지 전송 요청:', request)
       
       const data = await fetchFromAPI<SendMessageResponse>('/chat/send', {
         method: 'POST',
@@ -161,7 +155,6 @@ export class ChatService {
         body: JSON.stringify(request)
       })
       
-      console.log('[CHAT-API] 메시지 전송 성공:', data)
       return data
     } catch (error) {
       console.error('[CHAT-API] 메시지 전송 오류:', error)
@@ -192,13 +185,11 @@ export class ChatService {
         throw new Error('채팅방 입장은 로그인이 필요합니다. 로그인 후 이용해주세요.')
       }
       
-      console.log(`[CHAT-API] 채팅방 입장 요청: ${roomType}`)
       
       await fetchFromAPI(`/chat/join/${roomType.toLowerCase()}`, {
         method: 'POST'
       })
       
-      console.log(`[CHAT-API] 채팅방 입장 성공: ${roomType}`)
     } catch (error) {
       console.error(`[CHAT-API] 채팅방 입장 오류 (${roomType}):`, error)
       
@@ -228,13 +219,11 @@ export class ChatService {
         throw new Error('채팅방 퇴장은 로그인이 필요합니다. 로그인 후 이용해주세요.')
       }
       
-      console.log(`[CHAT-API] 채팅방 퇴장 요청: ${roomType}`)
       
       await fetchFromAPI(`/chat/leave/${roomType.toLowerCase()}`, {
         method: 'POST'
       })
       
-      console.log(`[CHAT-API] 채팅방 퇴장 성공: ${roomType}`)
     } catch (error) {
       console.error(`[CHAT-API] 채팅방 퇴장 오류 (${roomType}):`, error)
       

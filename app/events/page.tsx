@@ -219,11 +219,6 @@ export default function EventsPage() {
 
   // 필터 적용
   const applyFilters = () => {
-    // 필터 적용 로그 (userLogger 대신 console.log 사용)
-    console.log('필터 적용:', {
-      fromDate: tempFilters.fromDate,
-      toDate: tempFilters.toDate 
-    })
     const newParams = {
       ...searchParams,
       page: 0,

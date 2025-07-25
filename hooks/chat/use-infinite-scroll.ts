@@ -18,7 +18,6 @@ import {
   type ScrollPosition,
   type LoadingState
 } from '@/lib/infinite-scroll-utils'
-import { useVirtualScroll } from './use-virtual-scroll'
 
 interface UseInfiniteScrollProps<T> {
   /** 스크롤 컨테이너 ref */
@@ -122,12 +121,14 @@ export function useInfiniteScroll<T extends Record<string, any>>({
     threshold: finalConfig.virtualizeThreshold
   }
   
-  // 가상 스크롤 훅 사용
-  const virtualScroll = useVirtualScroll(
-    messages,
-    scrollPosition?.scrollTop || 0,
-    virtualScrollOptions
-  )
+  // 가상 스크롤 미사용으로 기본값 설정
+  const virtualScroll = {
+    visibleItems: messages,
+    startIndex: 0,
+    endIndex: messages.length,
+    totalHeight: 0,
+    offsetY: 0
+  }
   
   /**
    * 현재 스크롤 위치 업데이트

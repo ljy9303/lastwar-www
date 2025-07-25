@@ -252,10 +252,6 @@ export default function SquadsPage() {
         }
 
         setSquadMembers(sortedSquadData)
-        console.log('스쿼드 데이터 로드 완료:', {
-          eventId, 
-          totalMembers: Object.values(sortedSquadData).reduce((sum, members) => sum + members.length, 0) 
-        })
       } catch (error) {
         console.error("데이터 로드 실패:", error)
         toast({

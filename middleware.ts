@@ -10,8 +10,6 @@ export async function middleware(request: NextRequest) {
   const jwtToken = request.cookies.get('LASTWAR_JWT')?.value
   const hasAuth = token || jwtToken
   
-  console.log(`[Middleware] ${pathname} - NextAuth: ${token ? 'exists' : 'none'}, JWT: ${jwtToken ? 'exists' : 'none'}`)
-
   // 로그인 페이지 접근 시 이미 로그인되어 있으면 홈으로 리다이렉트
   if (pathname.startsWith('/login') || pathname.startsWith('/test-login')) {
     if (hasAuth) {
@@ -46,7 +44,6 @@ export async function middleware(request: NextRequest) {
   
   // 홈페이지는 임시로 보호 해제 (테스트용)
   if (pathname === '/') {
-    console.log(`[Middleware] 홈페이지 접근 허용 - hasAuth: ${hasAuth}`)
     return NextResponse.next()
   }
 
