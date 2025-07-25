@@ -115,10 +115,6 @@ export default function SurveysPage() {
         const rostersData = await getRosters(Number(eventId))
         setRosters(rostersData)
         
-        console.log('데이터 로드 완료:', {
-          eventId,
-          rostersCount: rostersData.length 
-        })
       } catch (error) {
         console.error("데이터 로드 실패:", error)
         toast({

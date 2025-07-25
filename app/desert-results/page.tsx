@@ -69,7 +69,6 @@ export default function DesertResultsPage() {
 
         // API 응답이 null이거나 빈 응답인 경우 처리
         if (!historyData || Object.keys(historyData).length === 0) {
-          console.log("사막전 결과 히스토리가 없습니다.")
           setDesertHistory(null)
           // 데이터가 없으면 폼 초기화
           setDesertResultForm({
@@ -117,7 +116,6 @@ export default function DesertResultsPage() {
             (error.message.includes("Unexpected end of JSON input") || 
              error.message.includes("JSON 파싱 오류") ||
              error.message.includes("Failed to execute 'json'"))) {
-          console.log("사막전 결과 히스토리가 비어있거나 유효하지 않습니다.")
           setDesertHistory(null)
         }
 
