@@ -21,7 +21,6 @@ export interface AccountInfo {
   kakaoId: string
   email: string
   nickname: string
-  name?: string // 본명 (후원 시 사용)
   profileImageUrl?: string
   role: string
   status: string
