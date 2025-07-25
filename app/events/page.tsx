@@ -46,6 +46,7 @@ import { useMobile } from "@/hooks/use-mobile"
 import { DesertEditDialog } from "@/components/desert/desert-edit-dialog"
 import type { Desert as DesertType } from "@/types/desert"
 import { DesertEventType } from "@/types/desert"
+import { useCurrentEvent } from "@/contexts/current-event-context"
 
 // 이번주 금요일 날짜 계산 함수
 function getThisFriday() {
@@ -64,6 +65,7 @@ export default function EventsPage() {
   const { toast } = useToast()
   const router = useRouter()
   const urlSearchParams = useSearchParams()
+  const { navigateToEventPage } = useCurrentEvent()
   
   const [desertResponse, setDesertResponse] = useState<DesertResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -631,23 +633,17 @@ export default function EventsPage() {
                               <Edit className="h-4 w-4 mr-2" />
                               수정
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/surveys?eventId=${desert.desertSeq}`}>
-                                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                                사전조사
-                              </Link>
+                            <DropdownMenuItem onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/surveys')}>
+                              <FileSpreadsheet className="h-4 w-4 mr-2" />
+                              사전조사
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/squads?eventId=${desert.desertSeq}`}>
-                                <UserSquare className="h-4 w-4 mr-2" />
-                                스쿼드
-                              </Link>
+                            <DropdownMenuItem onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/squads')}>
+                              <UserSquare className="h-4 w-4 mr-2" />
+                              스쿼드
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/desert-results?eventId=${desert.desertSeq}`}>
-                                <ClipboardList className="h-4 w-4 mr-2" />
-                                사막전 결과
-                              </Link>
+                            <DropdownMenuItem onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/desert-results')}>
+                              <ClipboardList className="h-4 w-4 mr-2" />
+                              사막전 결과
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -657,23 +653,17 @@ export default function EventsPage() {
                             <Edit className="h-4 w-4 mr-1" />
                             수정
                           </Button>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/surveys?eventId=${desert.desertSeq}`}>
-                              <FileSpreadsheet className="h-4 w-4 mr-1" />
-                              사전조사
-                            </Link>
+                          <Button variant="ghost" size="sm" onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/surveys')}>
+                            <FileSpreadsheet className="h-4 w-4 mr-1" />
+                            사전조사
                           </Button>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/squads?eventId=${desert.desertSeq}`}>
-                              <UserSquare className="h-4 w-4 mr-1" />
-                              스쿼드
-                            </Link>
+                          <Button variant="ghost" size="sm" onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/squads')}>
+                            <UserSquare className="h-4 w-4 mr-1" />
+                            스쿼드
                           </Button>
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/desert-results?eventId=${desert.desertSeq}`}>
-                              <ClipboardList className="h-4 w-4 mr-1" />
-                              사막전 결과
-                            </Link>
+                          <Button variant="ghost" size="sm" onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/desert-results')}>
+                            <ClipboardList className="h-4 w-4 mr-1" />
+                            사막전 결과
                           </Button>
                         </div>
                       )}
