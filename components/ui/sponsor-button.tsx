@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Heart, QrCode, Copy, Check, ExternalLink, Smartphone, Monitor } from "lucide-react"
+import { Coffee, QrCode, Copy, Check, ExternalLink, Smartphone, Monitor } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
@@ -83,31 +83,31 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
         <Button
           variant="outline"
           size={collapsed ? "icon" : "sm"}
-          className={`${collapsed ? "w-full" : "w-full justify-start gap-2"} bg-gradient-to-r from-pink-50 to-red-50 border-pink-200 hover:from-pink-100 hover:to-red-100 text-pink-700 hover:text-pink-800 transition-all duration-200`}
-          title={collapsed ? "후원하기" : undefined}
+          className={`${collapsed ? "w-full" : "w-full justify-start gap-2"} bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 hover:from-amber-100 hover:to-orange-100 text-amber-700 hover:text-amber-800 transition-all duration-200 shadow-sm hover:shadow-md`}
+          title={collapsed ? "Buy me a coffee" : undefined}
         >
-          <Heart className="h-4 w-4 text-pink-500" />
-          {!collapsed && <span className="font-medium">후원하기</span>}
+          <Coffee className="h-4 w-4 text-amber-600" />
+          {!collapsed && <span className="font-medium">Buy me a coffee ☕</span>}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-pink-500" />
-            후원하기
+            <Coffee className="h-5 w-5 text-amber-600" />
+            Buy me a coffee ☕
           </DialogTitle>
           <DialogDescription>
-            더 나은 콘텐츠 제작에 보탬이 되어주시는 여러분의 따뜻한 마음에 감사드립니다. 💙
+            커피 한 잔의 후원으로 더 나은 콘텐츠 제작에 힘을 보태주세요! 여러분의 따뜻한 마음에 감사드립니다. ☕💝
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           {/* 카카오페이 후원 */}
-          <div className="p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+          <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <QrCode className="h-4 w-4 text-yellow-600" />
-                카카오페이로 후원하기
+                <Coffee className="h-4 w-4 text-amber-600" />
+                카카오페이로 커피 사주기 ☕
               </h3>
             </div>
             
@@ -155,11 +155,11 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
               onClick={handleKakaoPayClick}
               className={`w-full font-semibold flex items-center justify-center gap-2 ${
                 isMobileDevice 
-                  ? "bg-yellow-400 hover:bg-yellow-500 text-gray-900" 
+                  ? "bg-amber-400 hover:bg-amber-500 text-amber-900" 
                   : "bg-gray-200 hover:bg-gray-300 text-gray-700 cursor-help"
               }`}
             >
-              💛 {isMobileDevice ? "카카오페이로 후원하기" : "QR 코드를 스캔해주세요"}
+              ☕ {isMobileDevice ? "커피 한 잔 사주기" : "QR 코드를 스캔해주세요"}
               {isMobileDevice ? (
                 <ExternalLink className="h-4 w-4" />
               ) : (
@@ -170,7 +170,10 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
 
           {/* 계좌 후원 */}
           <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-            <h3 className="font-semibold text-gray-900 mb-3">계좌로 후원하기</h3>
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Coffee className="h-4 w-4 text-blue-600" />
+              계좌로 커피 사주기
+            </h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">은행명:</span>
@@ -206,9 +209,15 @@ export default function SponsorButton({ collapsed = false }: SponsorButtonProps)
           </div>
 
           {/* 감사 메시지 */}
-          <div className="text-center p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              여러분의 후원으로 더 나은 콘텐츠 제작에 힘쓰겠습니다. 🙏
+          <div className="text-center p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+            <div className="flex justify-center mb-2">
+              <Coffee className="h-6 w-6 text-amber-600" />
+            </div>
+            <p className="text-sm text-gray-700 font-medium">
+              커피 한 잔의 따뜻함으로 더 나은 콘텐츠를 만들어가겠습니다 ☕
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Thank you for your support! 🙏
             </p>
           </div>
         </div>
