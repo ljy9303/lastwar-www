@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User, Edit3, Loader2, BookOpen } from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User, Edit3, Loader2, BookOpen, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,7 @@ import { authAPI, authUtils } from "@/lib/auth-api"
 import { toast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
 import SponsorButton from "@/components/ui/sponsor-button"
+import { useIsAdmin } from "@/lib/auth-utils"
 
 const logger = createLogger('Sidebar')
 
@@ -55,9 +56,22 @@ export default function Sidebar() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [pendingCount, setPendingCount] = useState(3)
   const { data: session, update: updateSession } = useSession()
+  const isAdmin = useIsAdmin()
   
   // NextAuth 세션 정보만 사용 (serverInfo, allianceTag 포함)
   const user = session?.user
+  
+  // Admin 전용 네비게이션 아이템 (동적으로 추가)
+  const adminNavItems = isAdmin ? [
+    {
+      title: "시스템 관리",
+      href: "/admin",
+      icon: Shield,
+    },
+  ] : []
+  
+  // 전체 네비게이션 아이템
+  const allNavItems = [...navItems, ...adminNavItems]
   
   const [windowWidth, setWindowWidth] = useState(0)
   
@@ -248,7 +262,7 @@ export default function Sidebar() {
           </Button>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
+          {allNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -339,7 +353,7 @@ export default function Sidebar() {
               </Button>
             </div>
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-              {navItems.map((item) => (
+              {allNavItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

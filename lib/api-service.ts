@@ -250,6 +250,141 @@ export async function refreshDashboardStats() {
   })
 }
 
+// === User Action Rollback API Functions ===
+
+export interface RollbackCountRequest {
+  serverAllianceId: number
+  startTime: string
+  endTime: string
+}
+
+export interface RollbackTimeRangeRequest extends RollbackCountRequest {
+  reason?: string
+}
+
+export interface SingleRollbackRequest {
+  actionLogId: number
+  reason?: string
+}
+
+export interface RollbackResponse {
+  success: boolean
+  message: string
+  revertedCount?: number
+  actionLogId?: number
+  serverAllianceId?: number
+  startTime?: string
+  endTime?: string
+  reason?: string
+}
+
+export interface RecentActionsResponse {
+  serverAllianceId: number
+  startTime: string
+  endTime: string
+  revertibleCount: number
+}
+
+export interface UserActionLog {
+  id: number
+  userSeq: number
+  userName: string
+  targetTable: string
+  targetId: number
+  actionType: string
+  businessAction: string
+  description: string
+  oldValues: Record<string, any> | null
+  newValues: Record<string, any> | null
+  changedFields: string[]
+  userAgent: string
+  serverAllianceId: number
+  createdAt: string
+  isReverted: boolean
+  revertedBy: number | null
+  revertedAt: string | null
+  revertReason: string | null
+  revertBatchId: string | null
+}
+
+/**
+ * 단일 액션 롤백
+ */
+export async function revertSingleAction(actionLogId: number, reason: string = '관리자 롤백'): Promise<RollbackResponse> {
+  return fetchFromAPI(`/admin/rollback/single/${actionLogId}?reason=${encodeURIComponent(reason)}`, {
+    method: 'POST'
+  })
+}
+
+/**
+ * 서버별 시간 범위 롤백
+ */
+export async function revertByServerAndTimeRange(request: RollbackTimeRangeRequest): Promise<RollbackResponse> {
+  const params = new URLSearchParams({
+    serverAllianceId: request.serverAllianceId.toString(),
+    startTime: request.startTime,
+    endTime: request.endTime,
+    reason: request.reason || '서버별 시간 범위 롤백'
+  })
+  
+  return fetchFromAPI(`/admin/rollback/server-time-range?${params.toString()}`, {
+    method: 'POST'
+  })
+}
+
+/**
+ * 되돌리기 가능한 액션 수 조회
+ */
+export async function countRevertibleActions(request: RollbackCountRequest): Promise<{ revertibleCount: number }> {
+  const params = new URLSearchParams({
+    serverAllianceId: request.serverAllianceId.toString(),
+    startTime: request.startTime,
+    endTime: request.endTime
+  })
+  
+  return fetchFromAPI(`/admin/rollback/count?${params.toString()}`)
+}
+
+/**
+ * 현재 서버의 최근 액션들 조회
+ */
+export async function getRecentActions(): Promise<RecentActionsResponse> {
+  return fetchFromAPI('/admin/rollback/recent-actions')
+}
+
+/**
+ * 롤백된 액션들 조회 (배치 ID별)
+ */
+export async function getRevertedActionsByBatch(batchId: string): Promise<UserActionLog[]> {
+  return fetchFromAPI(`/admin/rollback/batch/${batchId}`)
+}
+
+/**
+ * 모든 서버 연맹 목록 조회 (관리자용)
+ */
+export async function getServerAlliances(): Promise<Array<{
+  serverAllianceId: number, 
+  serverInfo: number,
+  allianceTag: string,
+  actionCount: number, 
+  lastActionTime: string
+}>> {
+  return fetchFromAPI('/admin/rollback/server-alliances')
+}
+
+/**
+ * 특정 서버의 최근 액션 로그들 조회 (관리자용)
+ */
+export async function getActionLogs(serverAllianceId: number, page: number = 0, size: number = 20): Promise<UserActionLog[]> {
+  const params = new URLSearchParams({
+    serverAllianceId: serverAllianceId.toString(),
+    page: page.toString(),
+    size: size.toString()
+  })
+  
+  return fetchFromAPI(`/admin/rollback/actions?${params.toString()}`)
+}
+
 // User Grade Statistics API functions
 export async function getUserGradeStatistics() {
   return fetchFromAPI('/user/grades/statistics')

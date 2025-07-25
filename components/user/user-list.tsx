@@ -4,32 +4,16 @@ import { useState } from "react"
 import type { User } from "@/types/user"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Pencil, Trash, ChevronUp, ChevronDown, Eye } from "lucide-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { deleteUser } from "@/app/actions/user-actions"
-import { useToast } from "@/hooks/use-toast"
+import { Pencil, ChevronUp, ChevronDown, Eye } from "lucide-react"
 import UserDetailModal from "./user-detail-modal"
 import { EmptyState } from "@/components/ui/empty-state"
 
 interface UserListProps {
   users: User[]
   onEdit?: (user: User) => void
-  onDeleted?: () => void
 }
 
-export function UserList({ users, onEdit, onDeleted }: UserListProps) {
-  const { toast } = useToast()
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+export function UserList({ users, onEdit }: UserListProps) {
   const [selectedUserSeq, setSelectedUserSeq] = useState<number | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
@@ -89,31 +73,6 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
     return 0
   })
 
-  const handleDelete = async () => {
-    if (!userToDelete) return
-
-    setIsDeleting(true)
-    try {
-      await deleteUser(userToDelete.userSeq)
-      toast({
-        title: "유저 삭제 성공",
-        description: `${userToDelete.name} 유저가 삭제되었습니다.`,
-      })
-      if (onDeleted) {
-        onDeleted()
-      }
-    } catch (error) {
-      console.error("유저 삭제 실패:", error)
-      toast({
-        title: "오류 발생",
-        description: "유저 삭제 중 오류가 발생했습니다.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsDeleting(false)
-      setUserToDelete(null)
-    }
-  }
 
   const handleRowClick = (userSeq: number) => {
     setSelectedUserSeq(userSeq)
@@ -275,17 +234,6 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setUserToDelete(user)
-                        }}
-                        title="삭제"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -302,27 +250,6 @@ export function UserList({ users, onEdit, onDeleted }: UserListProps) {
           </TableBody>
         </Table>
       </div>
-
-      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>유저 삭제</AlertDialogTitle>
-            <AlertDialogDescription>
-              {userToDelete?.name} 유저를 정말로 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? "삭제 중..." : "삭제"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <UserDetailModal
         isOpen={isDetailModalOpen}

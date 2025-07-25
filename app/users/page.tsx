@@ -679,7 +679,7 @@ export default function UsersPage() {
               {isLoading ? (
                 <div className="text-center py-8">로딩 중...</div>
               ) : (
-                <UserList users={users} onEdit={handleEdit} onDeleted={() => loadUsers(searchParams)} />
+                <UserList users={users} onEdit={handleEdit} />
               )}
             </CardContent>
           </Card>
