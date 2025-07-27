@@ -24,9 +24,9 @@ const LABEL_STYLES: Record<UserLabelType, LabelStyle> = {
   },
   SPONSOR: {
     displayName: '후원',
-    bgColor: 'bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 dark:from-amber-500 dark:via-yellow-500 dark:to-amber-700',
-    textColor: 'text-amber-900 dark:text-amber-100 font-bold drop-shadow-sm',
-    borderColor: 'border-amber-500 dark:border-amber-400 ring-1 ring-amber-400/50 shadow-lg shadow-amber-500/30'
+    bgColor: 'sponsor-shimmer sponsor-sparkle',
+    textColor: 'text-white dark:text-amber-100 font-bold drop-shadow-sm',
+    borderColor: 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-400/60 shadow-xl shadow-amber-500/40'
   },
   PREMIUM: {
     displayName: '프리미엄',
