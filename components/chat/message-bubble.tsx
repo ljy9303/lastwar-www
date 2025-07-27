@@ -363,32 +363,84 @@ const MessageBubble = memo(function MessageBubble({
   if (message.isMyMessage) {
     return (
       <div className="flex justify-end gpu-accelerated message-bubble animate-in slide-in-from-right-2 duration-200">
-        <div className="flex items-end gap-1.5 xs:gap-2 max-w-[85%] xs:max-w-[90%] sm:max-w-[85%] md:max-w-[80%]">
-          {/* 시간 및 액션 - 선택 모드일 때는 항상 표시, 일반 모드일 때는 마지막에만 표시 */}
-          {(isSelectable || isLastInGroup) && (
-            <div className="flex items-center gap-1 mb-1">
-              {/* 시간은 마지막 그룹에만 표시 */}
-              {isLastInGroup && (
-                <span className="text-xs text-gray-500 whitespace-nowrap">
-                  {formatChatTime(message.createdAt)}
+        <div className="flex items-start gap-1.5 xs:gap-2 max-w-[85%] xs:max-w-[90%] sm:max-w-[85%] md:max-w-[80%]">
+          {/* 메시지 컨테이너 */}
+          <div className="flex-1 min-w-0">
+            {/* 사용자 정보 (연속 메시지의 첫번째에만 표시) */}
+            {isFirstInGroup && (
+              <div className="flex items-center justify-end gap-1 xs:gap-2 mb-1 overflow-hidden">
+                {message.userLabel && (() => {
+                  const labelDisplayName = getLabelDisplayName(message.userLabel)
+                  const labelStyle = getLabelStyle(message.userLabel)
+                  
+                  if (!labelDisplayName || !labelStyle) return null
+                  
+                  return (
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs h-3 xs:h-4 px-1 hidden xs:inline-flex ${labelStyle.bgColor} ${labelStyle.textColor} ${labelStyle.borderColor}`}
+                    >
+                      {labelDisplayName}
+                    </Badge>
+                  )
+                })()}
+                {message.userTag && (
+                  <Badge variant="outline" className="text-xs h-3 xs:h-4 px-1 hidden xs:inline-flex">
+                    {message.userTag}
+                  </Badge>
+                )}
+                <span className="text-xs xs:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                  {message.roomType === "GLOBAL" && message.serverTag && message.allianceName ? (
+                    <>
+                      <span className="text-xs text-gray-500 hidden xs:inline">#{message.serverTag}</span>
+                      <span className="text-xs text-blue-600 dark:text-blue-400 mx-1 hidden xs:inline">[{message.allianceName}]</span>
+                      <span>{message.userName}</span>
+                    </>
+                  ) : (
+                    message.userName
+                  )}
                 </span>
-              )}
-              {renderAdminControls()}
-            </div>
-          )}
-
-          {/* 메시지 버블 */}
-          <div className="bg-blue-500 text-white px-2.5 xs:px-3 py-1.5 xs:py-2 rounded-2xl rounded-br-md shadow-sm will-change-transform max-w-[200px] xs:max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl overflow-hidden">
-            {message.hiddenByAdmin ? (
-              <p className="text-xs xs:text-sm italic text-blue-100">
-                <span className="hidden xs:inline">관리자가 해당 메시지를 가렸습니다.</span>
-                <span className="xs:hidden">메시지가 가려짐</span>
-              </p>
-            ) : (
-              <p className="text-xs xs:text-sm whitespace-pre-wrap force-break-word max-w-full min-w-0 break-all">
-                {message.content}
-              </p>
+              </div>
             )}
+
+            {/* 메시지 버블과 시간 */}
+            <div className="flex items-end gap-1.5 xs:gap-2 justify-end">
+              {/* 시간 및 액션 - 선택 모드일 때는 항상 표시, 일반 모드일 때는 마지막에만 표시 */}
+              {(isSelectable || isLastInGroup) && (
+                <div className="flex items-center gap-1 mb-1">
+                  {/* 시간은 마지막 그룹에만 표시 */}
+                  {isLastInGroup && (
+                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                      {formatChatTime(message.createdAt)}
+                    </span>
+                  )}
+                  {renderAdminControls()}
+                </div>
+              )}
+
+              {/* 메시지 버블 */}
+              <div className="bg-blue-500 text-white px-2.5 xs:px-3 py-1.5 xs:py-2 rounded-2xl rounded-br-md shadow-sm will-change-transform max-w-[200px] xs:max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl overflow-hidden">
+                {message.hiddenByAdmin ? (
+                  <p className="text-xs xs:text-sm italic text-blue-100">
+                    <span className="hidden xs:inline">관리자가 해당 메시지를 가렸습니다.</span>
+                    <span className="xs:hidden">메시지가 가려짐</span>
+                  </p>
+                ) : (
+                  <p className="text-xs xs:text-sm whitespace-pre-wrap force-break-word max-w-full min-w-0 break-all">
+                    {message.content}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 사용자 아바타 (연속 메시지의 첫번째에만 표시) */}
+          <div className={`w-7 h-7 xs:w-8 xs:h-8 rounded-full flex items-center justify-center text-white text-xs font-bold mt-1 flex-shrink-0 ${
+            isFirstInGroup 
+              ? 'bg-gradient-to-br from-green-400 to-blue-500' 
+              : 'bg-transparent' // 연속 메시지에서는 투명하게
+          }`}>
+            {isFirstInGroup && message.userName.charAt(0)}
           </div>
         </div>
       </div>
