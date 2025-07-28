@@ -35,20 +35,6 @@ const formatDate = (dateString: string): string => {
   return `${year}년 ${month}월 ${day}일`
 }
 
-// 가입/탈퇴 기간 텍스트 생성 함수
-const getPeriodText = (): string => {
-  const today = new Date()
-  const weekAgo = new Date(today)
-  weekAgo.setDate(today.getDate() - 6) // 7일간 (오늘 포함)
-  
-  const formatPeriodDate = (date: Date): string => {
-    const month = date.getMonth() + 1
-    const day = date.getDate()
-    return `${month}/${day}`
-  }
-  
-  return `최근 7일간: ${formatPeriodDate(weekAgo)} ~ ${formatPeriodDate(today)}`
-}
 
 // 유저 통계 타입 정의
 interface LevelDistribution {
@@ -214,15 +200,9 @@ export default function HomePage() {
                   <Users className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">{stats.totalUsers}명</div>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  <div className="flex justify-between">
-                    <span className="text-green-600">가입: +{stats.newUsersToday}명</span>
-                    <span className="text-red-600">탈퇴: -{stats.withdrawalsToday}명</span>
-                  </div>
-                  <div className="text-center text-xs text-gray-500 mt-0.5">
-                    ({getPeriodText()})
-                  </div>
-                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  최근 7일간 <span className="text-green-600 font-medium">가입 {stats.newUsersToday}명</span>, <span className="text-red-600 font-medium">탈퇴 {stats.withdrawalsToday}명</span>
+                </p>
               </>
             )}
           </CardContent>
