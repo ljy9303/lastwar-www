@@ -18,33 +18,33 @@ export interface LabelStyle {
 const LABEL_STYLES: Record<UserLabelType, LabelStyle> = {
   MASTER: {
     displayName: '관리자',
-    bgColor: 'bg-red-100 dark:bg-red-900/20',
-    textColor: 'text-red-800 dark:text-red-300',
-    borderColor: 'border-red-200 dark:border-red-700'
+    bgColor: 'label-master',
+    textColor: '',
+    borderColor: ''
   },
   SPONSOR: {
     displayName: '후원',
-    bgColor: 'sponsor-shimmer sponsor-sparkle',
-    textColor: 'text-white dark:text-amber-100 font-bold drop-shadow-sm',
-    borderColor: 'border-amber-500 dark:border-amber-400 ring-2 ring-amber-400/60 shadow-xl shadow-amber-500/40'
+    bgColor: 'label-sponsor',
+    textColor: '',
+    borderColor: ''
   },
   PREMIUM: {
     displayName: '프리미엄',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-    textColor: 'text-purple-800 dark:text-purple-300',
-    borderColor: 'border-purple-200 dark:border-purple-700'
+    bgColor: 'label-premium',
+    textColor: '',
+    borderColor: ''
   },
   MODERATOR: {
     displayName: '운영자',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/20',
-    textColor: 'text-blue-800 dark:text-blue-300',
-    borderColor: 'border-blue-200 dark:border-blue-700'
+    bgColor: 'label-moderator',
+    textColor: '',
+    borderColor: ''
   },
   SUPPORTERS: {
     displayName: '서포터즈',
-    bgColor: 'bg-green-100 dark:bg-green-900/20',
-    textColor: 'text-green-800 dark:text-green-300',
-    borderColor: 'border-green-200 dark:border-green-700'
+    bgColor: 'label-supporters',
+    textColor: '',
+    borderColor: ''
   }
 }
 

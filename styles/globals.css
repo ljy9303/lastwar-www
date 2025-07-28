@@ -150,7 +150,7 @@ body {
     background-color: rgb(107 114 128);
   }
   
-  /* 후원 라벨 반짝이는 애니메이션 */
+  /* 라벨 반짝이는 애니메이션 */
   @keyframes shimmer {
     0% {
       background-position: -200% 0;
@@ -160,46 +160,160 @@ body {
     }
   }
   
-  @keyframes sparkle {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.8;
-      transform: scale(1.05);
-    }
+  /* MASTER 라벨 - 빨간색 그라디언트 */
+  .label-master {
+    background: linear-gradient(
+      90deg,
+      #dc2626 0%,
+      #ef4444 20%,
+      #fff 50%,
+      #ef4444 80%,
+      #dc2626 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.5s ease-in-out infinite;
+    color: white;
+    font-weight: 700;
+    border: 2px solid #dc2626;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
   }
   
-  .sponsor-shimmer {
-    background-image: linear-gradient(
+  .dark .label-master {
+    background: linear-gradient(
       90deg,
-      rgb(251 191 36) 0%,
-      rgb(245 158 11) 25%,
-      rgb(255 255 255) 50%,
-      rgb(245 158 11) 75%,
-      rgb(251 191 36) 100%
+      #991b1b 0%,
+      #dc2626 20%,
+      #fff 50%,
+      #dc2626 80%,
+      #991b1b 100%
+    );
+    border-color: #ef4444;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  }
+  
+  /* SPONSOR 라벨 - 금색 그라디언트 */
+  .label-sponsor {
+    background: linear-gradient(
+      90deg,
+      #f59e0b 0%,
+      #fbbf24 20%,
+      #fff 50%,
+      #fbbf24 80%,
+      #f59e0b 100%
     );
     background-size: 200% 100%;
     animation: shimmer 2s ease-in-out infinite;
-    position: relative;
-    overflow: hidden;
+    color: #92400e;
+    font-weight: 700;
+    border: 2px solid #f59e0b;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
   }
   
-  .sponsor-sparkle {
-    animation: sparkle 1.5s ease-in-out infinite;
-  }
-  
-  /* 다크모드용 shimmer */
-  .dark .sponsor-shimmer {
-    background-image: linear-gradient(
+  .dark .label-sponsor {
+    background: linear-gradient(
       90deg,
-      rgb(217 119 6) 0%,
-      rgb(180 83 9) 25%,
-      rgb(255 255 255) 50%,
-      rgb(180 83 9) 75%,
-      rgb(217 119 6) 100%
+      #d97706 0%,
+      #f59e0b 20%,
+      #fff 50%,
+      #f59e0b 80%,
+      #d97706 100%
     );
+    color: #fef3c7;
+    border-color: #fbbf24;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+  
+  /* PREMIUM 라벨 - 보라색 그라디언트 */
+  .label-premium {
+    background: linear-gradient(
+      90deg,
+      #7c3aed 0%,
+      #8b5cf6 20%,
+      #fff 50%,
+      #8b5cf6 80%,
+      #7c3aed 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.2s ease-in-out infinite;
+    color: white;
+    font-weight: 700;
+    border: 2px solid #7c3aed;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+  }
+  
+  .dark .label-premium {
+    background: linear-gradient(
+      90deg,
+      #5b21b6 0%,
+      #7c3aed 20%,
+      #fff 50%,
+      #7c3aed 80%,
+      #5b21b6 100%
+    );
+    border-color: #8b5cf6;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+  
+  /* MODERATOR 라벨 - 파란색 그라디언트 */
+  .label-moderator {
+    background: linear-gradient(
+      90deg,
+      #2563eb 0%,
+      #3b82f6 20%,
+      #fff 50%,
+      #3b82f6 80%,
+      #2563eb 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.3s ease-in-out infinite;
+    color: white;
+    font-weight: 700;
+    border: 2px solid #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  }
+  
+  .dark .label-moderator {
+    background: linear-gradient(
+      90deg,
+      #1d4ed8 0%,
+      #2563eb 20%,
+      #fff 50%,
+      #2563eb 80%,
+      #1d4ed8 100%
+    );
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+  
+  /* SUPPORTERS 라벨 - 초록색 그라디언트 */
+  .label-supporters {
+    background: linear-gradient(
+      90deg,
+      #059669 0%,
+      #10b981 20%,
+      #fff 50%,
+      #10b981 80%,
+      #059669 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.4s ease-in-out infinite;
+    color: white;
+    font-weight: 700;
+    border: 2px solid #059669;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+  }
+  
+  .dark .label-supporters {
+    background: linear-gradient(
+      90deg,
+      #047857 0%,
+      #059669 20%,
+      #fff 50%,
+      #059669 80%,
+      #047857 100%
+    );
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
   }
 }
 
