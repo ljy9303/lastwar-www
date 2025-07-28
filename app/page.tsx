@@ -201,7 +201,7 @@ export default function HomePage() {
                   <div className="text-2xl font-bold">{stats.totalUsers}명</div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  최근 7일간 <span className="text-green-600 font-medium">가입 {stats.newUsersToday}명</span>, <span className="text-red-600 font-medium">탈퇴 {stats.withdrawalsToday}명</span>
+                  최근 7일간 <span className="text-green-600 font-medium">가입 +{stats.newUsersToday}명</span>, <span className="text-red-600 font-medium">탈퇴 -{stats.withdrawalsToday}명</span>
                 </p>
               </>
             )}
