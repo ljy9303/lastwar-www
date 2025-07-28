@@ -214,12 +214,12 @@ export default function HomePage() {
                   <Users className="h-5 w-5 text-muted-foreground mr-2" />
                   <div className="text-2xl font-bold">{stats.totalUsers}명</div>
                 </div>
-                <div className="flex flex-col gap-1 text-xs text-muted-foreground mt-2">
+                <div className="text-xs text-muted-foreground mt-2">
                   <div className="flex justify-between">
                     <span className="text-green-600">가입: +{stats.newUsersToday}명</span>
                     <span className="text-red-600">탈퇴: -{stats.withdrawalsToday}명</span>
                   </div>
-                  <div className="text-center text-xs text-gray-500">
+                  <div className="text-center text-xs text-gray-500 mt-0.5">
                     ({getPeriodText()})
                   </div>
                 </div>
