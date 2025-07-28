@@ -376,12 +376,11 @@ const MessageBubble = memo(function MessageBubble({
                   if (!labelDisplayName || !labelStyle) return null
                   
                   return (
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs h-3 xs:h-4 px-1 hidden xs:inline-flex ${labelStyle.bgColor} ${labelStyle.textColor} ${labelStyle.borderColor}`}
+                    <div 
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold hidden xs:inline-flex ${labelStyle.bgColor}`}
                     >
                       {labelDisplayName}
-                    </Badge>
+                    </div>
                   )
                 })()}
                 {message.userTag && (
@@ -493,12 +492,11 @@ const MessageBubble = memo(function MessageBubble({
                 if (!labelDisplayName || !labelStyle) return null
                 
                 return (
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs h-3 xs:h-4 px-1 hidden xs:inline-flex ${labelStyle.bgColor} ${labelStyle.textColor} ${labelStyle.borderColor}`}
+                  <div 
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold hidden xs:inline-flex ${labelStyle.bgColor}`}
                   >
                     {labelDisplayName}
-                  </Badge>
+                  </div>
                 )
               })()}
             </div>

@@ -26,6 +26,7 @@ import type {
   ServerAlliance, 
   UserLabel 
 } from "@/types/account"
+import { getLabelDisplayName, getLabelStyle } from "@/lib/user-label-utils"
 
 export default function AccountsManagePage() {
   const { toast } = useToast()
@@ -236,16 +237,6 @@ export default function AccountsManagePage() {
     return new Date(dateString).toLocaleString('ko-KR')
   }
 
-  const getLabelBadgeVariant = (label?: UserLabel) => {
-    switch (label) {
-      case 'MASTER': return 'destructive'
-      case 'SPONSOR': return 'default'
-      case 'PREMIUM': return 'secondary'
-      case 'MODERATOR': return 'outline'
-      case 'SUPPORTERS': return 'outline'
-      default: return 'outline'
-    }
-  }
 
   return (
     <div className="container mx-auto p-6">
@@ -385,11 +376,16 @@ export default function AccountsManagePage() {
                         </TableCell>
                         <TableCell>{account.email || "-"}</TableCell>
                         <TableCell>
-                          {account.label ? (
-                            <Badge variant={getLabelBadgeVariant(account.label)}>
-                              {account.labelDisplayName}
-                            </Badge>
-                          ) : (
+                          {account.label ? (() => {
+                            const labelStyle = getLabelStyle(account.label)
+                            return labelStyle ? (
+                              <div className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${labelStyle.bgColor}`}>
+                                {account.labelDisplayName}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">{account.labelDisplayName}</span>
+                            )
+                          })() : (
                             <span className="text-muted-foreground">없음</span>
                           )}
                         </TableCell>
@@ -496,11 +492,16 @@ export default function AccountsManagePage() {
               <div>
                 <Label>현재 라벨</Label>
                 <div className="text-sm">
-                  {selectedAccount.label ? (
-                    <Badge variant={getLabelBadgeVariant(selectedAccount.label)}>
-                      {selectedAccount.labelDisplayName}
-                    </Badge>
-                  ) : (
+                  {selectedAccount.label ? (() => {
+                    const labelStyle = getLabelStyle(selectedAccount.label)
+                    return labelStyle ? (
+                      <div className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${labelStyle.bgColor}`}>
+                        {selectedAccount.labelDisplayName}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">{selectedAccount.labelDisplayName}</span>
+                    )
+                  })() : (
                     <span className="text-muted-foreground">없음</span>
                   )}
                 </div>
