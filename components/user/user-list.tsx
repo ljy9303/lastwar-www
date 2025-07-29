@@ -68,6 +68,15 @@ export function UserList({ users, onEdit }: UserListProps) {
     const aValue = a[sortField]
     const bValue = b[sortField]
 
+    // 날짜 필드인 경우 Date 객체로 변환하여 비교
+    if (sortField === "updatedAt" || sortField === "createdAt") {
+      const aDate = new Date(aValue as string)
+      const bDate = new Date(bValue as string)
+      if (aDate < bDate) return sortDirection === "asc" ? -1 : 1
+      if (aDate > bDate) return sortDirection === "asc" ? 1 : -1
+      return 0
+    }
+
     if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
     if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
     return 0
@@ -179,6 +188,21 @@ export function UserList({ users, onEdit }: UserListProps) {
                     ))}
                 </Button>
               </TableHead>
+              <TableHead className="hidden md:table-cell">
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSort("updatedAt")}
+                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                >
+                  최근수정
+                  {sortField === "updatedAt" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="ml-1 h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="ml-1 h-4 w-4" />
+                    ))}
+                </Button>
+              </TableHead>
               <TableHead className="text-right">관리</TableHead>
             </TableRow>
           </TableHeader>
@@ -211,6 +235,15 @@ export function UserList({ users, onEdit }: UserListProps) {
                       {user.leave ? "탈퇴" : "활동중"}
                     </span>
                   </TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                    {new Date(user.updatedAt).toLocaleDateString('ko-KR', {
+                      year: '2-digit',
+                      month: '2-digit', 
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button 
@@ -240,7 +273,7 @@ export function UserList({ users, onEdit }: UserListProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   <div className="flex flex-col items-center">
                     <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
                   </div>
