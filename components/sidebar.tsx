@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User, Edit3, Loader2, BookOpen, Shield, MessageSquare } from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User, Edit3, Loader2, Shield, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
@@ -36,11 +36,6 @@ const navItems = [
     title: "사막전 관리",
     href: "/events",
     icon: UserSquare,
-  },
-  {
-    title: "공략 공유",
-    href: "/strategy",
-    icon: BookOpen,
   },
   {
     title: "게시판",

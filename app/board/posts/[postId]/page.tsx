@@ -3,14 +3,14 @@
 import React from 'react';
 import { useParams } from 'next/navigation';
 import { BoardPostDetail } from '@/components/board/board-post-detail';
+import { useCurrentUser } from '@/lib/auth-utils';
 
 export default function PostDetailPage() {
   const params = useParams();
   const postId = parseInt(params.postId as string);
-
-  // TODO: 현재 사용자 ID를 가져오는 로직 추가
-  // 실제로는 인증 컨텍스트나 세션에서 가져와야 함
-  const currentUserId = undefined; // 임시로 undefined
+  
+  // 현재 사용자 정보 가져오기
+  const { userSeq: currentUserId } = useCurrentUser();
 
   if (isNaN(postId)) {
     return (
@@ -24,9 +24,11 @@ export default function PostDetailPage() {
   }
 
   return (
-    <BoardPostDetail 
-      postId={postId}
-      currentUserId={currentUserId}
-    />
+    <div className="container mx-auto">
+      <BoardPostDetail 
+        postId={postId}
+        currentUserId={currentUserId}
+      />
+    </div>
   );
 }

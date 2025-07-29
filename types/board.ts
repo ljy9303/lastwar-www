@@ -45,6 +45,11 @@ export interface BoardPost {
   authorName: string;
   authorProfileImageUrl?: string;
   authorUserLabel?: string;
+  
+  // 서버/연맹 정보
+  serverNumber?: number;
+  allianceTag?: string;
+  
   title: string;
   content?: string;
   contentPreview?: string;
@@ -55,28 +60,12 @@ export interface BoardPost {
   isPinned: boolean;
   isLiked: boolean;
   postStatus: string;
-  attachments?: BoardPostAttachment[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface BoardPostResponse extends BoardPost {}
 
-export interface BoardPostAttachment {
-  attachmentId: number;
-  postId: number;
-  imageUrl: string;
-  imageKey: string;
-  originalFilename: string;
-  fileSize: number;
-  formattedFileSize: string;
-  mimeType: string;
-  isThumbnail: boolean;
-  sortOrder: number;
-  createdAt: string;
-}
-
-export interface BoardPostAttachmentResponse extends BoardPostAttachment {}
 
 // 댓글 관련 타입
 export interface BoardComment {
@@ -91,6 +80,8 @@ export interface BoardComment {
   likeCount: number;
   isLiked: boolean;
   commentStatus: string;
+  serverNumber?: number;
+  allianceTag?: string;
   replies?: BoardComment[];
   createdAt: string;
   updatedAt: string;
@@ -104,19 +95,9 @@ export interface BoardPostRequest {
   title: string;
   content: string;
   thumbnailUrl?: string;
-  attachments: AttachmentRequest[];
   contentImages: ContentImageRequest[];
 }
 
-export interface AttachmentRequest {
-  imageUrl: string;
-  imageKey: string;
-  originalFilename: string;
-  fileSize: number;
-  mimeType: string;
-  isThumbnail: boolean;
-  sortOrder: number;
-}
 
 export interface ContentImageRequest {
   imageUrl: string;
@@ -160,6 +141,7 @@ export interface BoardFilters {
 // 좋아요 응답 타입
 export interface LikeResponse {
   isLiked: boolean;
+  likeCount: number;
   message: string;
 }
 

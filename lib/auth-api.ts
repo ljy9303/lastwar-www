@@ -226,9 +226,29 @@ export const authAPI = {
         } else {
           throw new Error('NextAuth 세션 생성 실패: ' + signInResult?.error)
         }
+      } else if (data.status === 'signup_required') {
+        // 회원가입이 필요한 경우
+        return {
+          status: 'signup_required',
+          user: {
+            userId: data.user.userId,
+            kakaoId: data.user.kakaoId || '',
+            email: data.user.email,
+            nickname: data.user.nickname,
+            profileImageUrl: data.user.profileImageUrl,
+            role: data.user.role || 'USER',
+            status: 'ACTIVE',
+            label: data.user.label,
+            serverInfo: data.user.serverInfo,
+            allianceTag: data.user.allianceTag,
+            serverAllianceId: data.user.serverAllianceId,
+            registrationComplete: false
+          },
+          message: '회원가입이 필요합니다'
+        }
       }
       
-      throw new Error('알 수 없는 응답 상태: ' + data.status)
+      throw new Error('알 수 없은 응답 상태: ' + data.status)
       
     } catch (error) {
       console.error('[authAPI] 테스트 로그인 실패:', error)

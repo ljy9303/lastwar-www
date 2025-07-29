@@ -14,6 +14,7 @@ import {
   LikeResponse,
   FileUploadResponse
 } from '@/types/board';
+import { getSession } from 'next-auth/react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -21,24 +22,33 @@ class BoardApiService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = `${API_BASE_URL}/api/board`;
+    this.baseUrl = `${API_BASE_URL}/board`;
   }
 
-  // JWT 토큰을 포함한 헤더 생성
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('accessToken');
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
+  // JWT 토큰을 포함한 헤더 생성 (NextAuth 방식)
+  private async getAuthHeaders(): Promise<HeadersInit> {
+    const session = await getSession();
+    const authHeaders: Record<string, string> = {
+      'Content-Type': 'application/json'
     };
+    
+    if (session?.accessToken) {
+      authHeaders.Authorization = `Bearer ${session.accessToken}`;
+    }
+    
+    return authHeaders;
   }
 
-  // 파일 업로드용 헤더 (Content-Type 제외)
-  private getAuthHeadersForFile(): HeadersInit {
-    const token = localStorage.getItem('accessToken');
-    return {
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    };
+  // 파일 업로드용 헤더 (Content-Type 제외, NextAuth 방식)
+  private async getAuthHeadersForFile(): Promise<HeadersInit> {
+    const session = await getSession();
+    const authHeaders: Record<string, string> = {};
+    
+    if (session?.accessToken) {
+      authHeaders.Authorization = `Bearer ${session.accessToken}`;
+    }
+    
+    return authHeaders;
   }
 
   // 에러 처리 헬퍼
@@ -55,7 +65,7 @@ class BoardApiService {
   // 전체 카테고리 목록 조회 (계층구조)
   async getCategories(): Promise<BoardCategory[]> {
     const response = await fetch(`${this.baseUrl}/categories`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardCategory[]>(response);
   }
@@ -63,7 +73,7 @@ class BoardApiService {
   // 최상위 카테고리 조회
   async getRootCategories(): Promise<BoardCategory[]> {
     const response = await fetch(`${this.baseUrl}/categories/root`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardCategory[]>(response);
   }
@@ -71,7 +81,7 @@ class BoardApiService {
   // 특정 카테고리 상세 조회
   async getCategoryById(categoryId: number): Promise<BoardCategory> {
     const response = await fetch(`${this.baseUrl}/categories/${categoryId}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardCategory>(response);
   }
@@ -79,7 +89,7 @@ class BoardApiService {
   // 하위 카테고리 조회
   async getSubCategories(categoryId: number): Promise<BoardCategory[]> {
     const response = await fetch(`${this.baseUrl}/categories/${categoryId}/subcategories`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardCategory[]>(response);
   }
@@ -87,7 +97,7 @@ class BoardApiService {
   // 카테고리 검색
   async searchCategories(keyword: string): Promise<BoardCategory[]> {
     const response = await fetch(`${this.baseUrl}/categories/search?keyword=${encodeURIComponent(keyword)}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardCategory[]>(response);
   }
@@ -112,7 +122,7 @@ class BoardApiService {
     }
 
     const response = await fetch(`${this.baseUrl}/posts?${params}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<PagedResponse<BoardPost>>(response);
   }
@@ -120,7 +130,7 @@ class BoardApiService {
   // 게시글 상세 조회
   async getPostDetail(postId: number): Promise<BoardPost> {
     const response = await fetch(`${this.baseUrl}/posts/${postId}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardPost>(response);
   }
@@ -129,7 +139,7 @@ class BoardApiService {
   async createPost(request: BoardPostRequest): Promise<BoardPost> {
     const response = await fetch(`${this.baseUrl}/posts`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
     return this.handleResponse<BoardPost>(response);
@@ -139,7 +149,7 @@ class BoardApiService {
   async updatePost(postId: number, request: BoardPostRequest): Promise<BoardPost> {
     const response = await fetch(`${this.baseUrl}/posts/${postId}`, {
       method: 'PUT',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
     return this.handleResponse<BoardPost>(response);
@@ -149,7 +159,7 @@ class BoardApiService {
   async deletePost(postId: number): Promise<void> {
     const response = await fetch(`${this.baseUrl}/posts/${postId}`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     
     if (!response.ok) {
@@ -162,7 +172,7 @@ class BoardApiService {
   async togglePostLike(postId: number): Promise<LikeResponse> {
     const response = await fetch(`${this.baseUrl}/posts/${postId}/like`, {
       method: 'POST',
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<LikeResponse>(response);
   }
@@ -182,7 +192,7 @@ class BoardApiService {
     }
 
     const response = await fetch(`${this.baseUrl}/posts/search?${params}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<PagedResponse<BoardPost>>(response);
   }
@@ -195,7 +205,7 @@ class BoardApiService {
     });
 
     const response = await fetch(`${this.baseUrl}/posts/popular?${params}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardPost[]>(response);
   }
@@ -203,7 +213,7 @@ class BoardApiService {
   // 고정 게시글 조회
   async getPinnedPosts(): Promise<BoardPost[]> {
     const response = await fetch(`${this.baseUrl}/posts/pinned`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardPost[]>(response);
   }
@@ -211,7 +221,7 @@ class BoardApiService {
   // 최신 게시글 조회
   async getRecentPosts(limit: number = 10): Promise<BoardPost[]> {
     const response = await fetch(`${this.baseUrl}/posts/recent?limit=${limit}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardPost[]>(response);
   }
@@ -224,7 +234,7 @@ class BoardApiService {
     });
 
     const response = await fetch(`${this.baseUrl}/posts/my-posts?${params}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<PagedResponse<BoardPost>>(response);
   }
@@ -237,7 +247,7 @@ class BoardApiService {
     });
 
     const response = await fetch(`${this.baseUrl}/posts/liked-posts?${params}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<PagedResponse<BoardPost>>(response);
   }
@@ -252,7 +262,7 @@ class BoardApiService {
     });
 
     const response = await fetch(`${this.baseUrl}/comments/post/${postId}?${params}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<PagedResponse<BoardComment>>(response);
   }
@@ -260,7 +270,7 @@ class BoardApiService {
   // 게시글의 모든 댓글 조회 (계층구조)
   async getAllCommentsByPost(postId: number): Promise<BoardComment[]> {
     const response = await fetch(`${this.baseUrl}/comments/post/${postId}/all`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardComment[]>(response);
   }
@@ -269,7 +279,7 @@ class BoardApiService {
   async createComment(request: BoardCommentRequest): Promise<BoardComment> {
     const response = await fetch(`${this.baseUrl}/comments`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
     return this.handleResponse<BoardComment>(response);
@@ -279,7 +289,7 @@ class BoardApiService {
   async updateComment(commentId: number, request: BoardCommentRequest): Promise<BoardComment> {
     const response = await fetch(`${this.baseUrl}/comments/${commentId}`, {
       method: 'PUT',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(request)
     });
     return this.handleResponse<BoardComment>(response);
@@ -289,7 +299,7 @@ class BoardApiService {
   async deleteComment(commentId: number): Promise<void> {
     const response = await fetch(`${this.baseUrl}/comments/${commentId}`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     
     if (!response.ok) {
@@ -298,11 +308,21 @@ class BoardApiService {
     }
   }
 
+  // 댓글 원복
+  async restoreComment(commentId: number, content: string): Promise<BoardComment> {
+    const response = await fetch(`${this.baseUrl}/comments/${commentId}/restore`, {
+      method: 'POST',
+      headers: await this.getAuthHeaders(),
+      body: JSON.stringify({ content })
+    });
+    return this.handleResponse<BoardComment>(response);
+  }
+
   // 댓글 좋아요/취소
   async toggleCommentLike(commentId: number): Promise<LikeResponse> {
     const response = await fetch(`${this.baseUrl}/comments/${commentId}/like`, {
       method: 'POST',
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<LikeResponse>(response);
   }
@@ -315,7 +335,7 @@ class BoardApiService {
     });
 
     const response = await fetch(`${this.baseUrl}/comments/user/${userId}?${params}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<PagedResponse<BoardComment>>(response);
   }
@@ -328,7 +348,7 @@ class BoardApiService {
     });
 
     const response = await fetch(`${this.baseUrl}/comments/my-comments?${params}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<PagedResponse<BoardComment>>(response);
   }
@@ -336,7 +356,7 @@ class BoardApiService {
   // 최근 댓글 조회
   async getRecentComments(limit: number = 10): Promise<BoardComment[]> {
     const response = await fetch(`${this.baseUrl}/comments/recent?limit=${limit}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardComment[]>(response);
   }
@@ -344,7 +364,7 @@ class BoardApiService {
   // 댓글 상세 조회
   async getCommentDetail(commentId: number): Promise<BoardComment> {
     const response = await fetch(`${this.baseUrl}/comments/${commentId}`, {
-      headers: this.getAuthHeaders()
+      headers: await this.getAuthHeaders()
     });
     return this.handleResponse<BoardComment>(response);
   }
@@ -358,7 +378,7 @@ class BoardApiService {
 
     const response = await fetch(`${this.baseUrl}/upload/image`, {
       method: 'POST',
-      headers: this.getAuthHeadersForFile(),
+      headers: await this.getAuthHeadersForFile(),
       body: formData
     });
     return this.handleResponse<FileUploadResponse>(response);
@@ -371,7 +391,7 @@ class BoardApiService {
 
     const response = await fetch(`${this.baseUrl}/upload/attachment`, {
       method: 'POST',
-      headers: this.getAuthHeadersForFile(),
+      headers: await this.getAuthHeadersForFile(),
       body: formData
     });
     return this.handleResponse<FileUploadResponse>(response);

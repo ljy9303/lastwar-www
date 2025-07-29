@@ -201,3 +201,414 @@ body {
 [data-radix-dropdown-menu-content] {
   z-index: 10002 !important;
 }
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  outline: none;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ProseMirror p {
+  margin: 0.5em 0;
+}
+
+.ProseMirror h1 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.ProseMirror h2 {
+  font-size: 1.3em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.ProseMirror h3 {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.ProseMirror ul, .ProseMirror ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+  list-style: none;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin: 0.2em 0;
+  display: list-item;
+  list-style-position: outside;
+}
+
+.ProseMirror ul li {
+  list-style-type: disc;
+}
+
+.ProseMirror ol li {
+  list-style-type: decimal;
+}
+
+/* 중첩된 리스트 스타일 */
+.ProseMirror ul ul li {
+  list-style-type: circle;
+}
+
+.ProseMirror ul ul ul li {
+  list-style-type: square;
+}
+
+/* TipTap 리스트 클래스 스타일 */
+.ProseMirror .tiptap-bullet-list {
+  list-style-type: disc;
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.ProseMirror .tiptap-ordered-list {
+  list-style-type: decimal;
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.ProseMirror .tiptap-list-item {
+  display: list-item;
+  list-style-position: outside;
+  margin: 0.2em 0;
+}
+
+/* 리스트 항목이 비어있을 때 최소 높이 보장 */
+.ProseMirror .tiptap-list-item:empty {
+  min-height: 1.2em;
+}
+
+/* 리스트 내부 요소들 */
+.ProseMirror .tiptap-bullet-list .tiptap-list-item {
+  list-style-type: disc;
+}
+
+.ProseMirror .tiptap-ordered-list .tiptap-list-item {
+  list-style-type: decimal;
+}
+
+/* 텍스트 스타일 지원 */
+.ProseMirror [style*="font-size"] {
+  line-height: 1.4;
+}
+
+/* 다양한 텍스트 크기에 대한 스타일 */
+.ProseMirror span[style*="font-size: 10px"] {
+  font-size: 10px !important;
+}
+
+.ProseMirror span[style*="font-size: 12px"] {
+  font-size: 12px !important;
+}
+
+.ProseMirror span[style*="font-size: 14px"] {
+  font-size: 14px !important;
+}
+
+.ProseMirror span[style*="font-size: 16px"] {
+  font-size: 16px !important;
+}
+
+.ProseMirror span[style*="font-size: 18px"] {
+  font-size: 18px !important;
+}
+
+.ProseMirror span[style*="font-size: 20px"] {
+  font-size: 20px !important;
+}
+
+.ProseMirror span[style*="font-size: 24px"] {
+  font-size: 24px !important;
+}
+
+.ProseMirror span[style*="font-size: 28px"] {
+  font-size: 28px !important;
+}
+
+.ProseMirror span[style*="font-size: 32px"] {
+  font-size: 32px !important;
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 0.5em 0;
+  display: block;
+}
+
+/* 커스텀 이미지 컴포넌트 스타일 */
+.ProseMirror .resizable-image-wrapper {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.ProseMirror .resizable-image-wrapper img {
+  max-width: 100%;
+  height: auto;
+}
+
+.ProseMirror strong {
+  font-weight: bold;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+/* 리사이즈 가능한 이미지 스타일 */
+.resizable-image-wrapper {
+  display: inline-block;
+  margin: 0.5em 0;
+}
+
+.resizable-image-wrapper img {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.resizable-image-wrapper:hover {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.resizable-image-wrapper.selected {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* 리사이즈 핸들 스타일 */
+.resize-handle {
+  position: absolute;
+  background: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  cursor: se-resize;
+  z-index: 10;
+}
+
+.resize-handle:hover {
+  background: #2563eb;
+  transform: scale(1.2);
+}
+
+/* 리사이즈 중 스냅 효과 */
+.resizing-snap-effect {
+  transition: width 0.1s ease-out, height 0.1s ease-out;
+}
+
+/* 스냅 가이드라인 (선택사항) */
+.snap-guideline {
+  position: absolute;
+  background: #3b82f6;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.snap-guideline-vertical {
+  width: 2px;
+  height: 100%;
+  top: 0;
+}
+
+.snap-guideline-horizontal {
+  height: 2px;
+  width: 100%;
+  left: 0;
+}
+
+/* TipTap content styles for post details */
+.tiptap-content {
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap; /* 개행 문자 처리 */
+}
+
+.tiptap-content p {
+  margin: 0.5em 0;
+  white-space: pre-wrap; /* 문단 내 개행 처리 */
+}
+
+/* 빈 문단 처리 */
+.tiptap-content p:empty {
+  min-height: 1.2em;
+  margin: 0.5em 0;
+}
+
+/* br 태그 개행 처리 */
+.tiptap-content br {
+  display: block;
+  margin: 0.5em 0;
+  content: "";
+}
+
+/* 연속된 br 태그 처리 */
+.tiptap-content br + br {
+  margin-top: 0;
+}
+
+/* TipTap HardBreak 처리 */
+.tiptap-content .tiptap-hard-break {
+  display: block;
+  height: 1em;
+  margin: 0;
+}
+
+.tiptap-content h1 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.tiptap-content h2 {
+  font-size: 1.3em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.tiptap-content h3 {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.tiptap-content h4 {
+  font-size: 1.05em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.tiptap-content h5 {
+  font-size: 1em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.tiptap-content h6 {
+  font-size: 0.95em;
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.tiptap-content ul, .tiptap-content ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.tiptap-content ul {
+  list-style-type: disc;
+}
+
+.tiptap-content ol {
+  list-style-type: decimal;
+}
+
+.tiptap-content li {
+  margin: 0.2em 0;
+  display: list-item;
+  list-style-position: outside;
+}
+
+.tiptap-content ul li {
+  list-style-type: disc;
+}
+
+.tiptap-content ol li {
+  list-style-type: decimal;
+}
+
+/* 중첩된 리스트 스타일 */
+.tiptap-content ul ul li {
+  list-style-type: circle;
+}
+
+.tiptap-content ul ul ul li {
+  list-style-type: square;
+}
+
+/* TipTap 리스트 클래스 스타일 */
+.tiptap-content .tiptap-bullet-list {
+  list-style-type: disc;
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.tiptap-content .tiptap-ordered-list {
+  list-style-type: decimal;
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.tiptap-content .tiptap-list-item {
+  display: list-item;
+  list-style-position: outside;
+  margin: 0.2em 0;
+}
+
+.tiptap-content .tiptap-bullet-list .tiptap-list-item {
+  list-style-type: disc;
+}
+
+.tiptap-content .tiptap-ordered-list .tiptap-list-item {
+  list-style-type: decimal;
+}
+
+.tiptap-content strong {
+  font-weight: bold;
+}
+
+.tiptap-content em {
+  font-style: italic;
+}
+
+.tiptap-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 0.5em 0;
+  display: block;
+}
+
+/* 텍스트 정렬 스타일 */
+.tiptap-content [style*="text-align: left"] {
+  text-align: left;
+}
+
+.tiptap-content [style*="text-align: center"] {
+  text-align: center;
+}
+
+.tiptap-content [style*="text-align: right"] {
+  text-align: right;
+}
+
+.tiptap-content [style*="text-align: justify"] {
+  text-align: justify;
+}
