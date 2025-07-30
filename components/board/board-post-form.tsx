@@ -45,6 +45,7 @@ interface BoardPostFormProps {
     content: string;
     categoryId: number;
     thumbnailUrl?: string;
+    contentImages?: ContentImageRequest[];  // 기존 이미지 정보
   };
 }
 
@@ -61,7 +62,7 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
     categoryId: initialData?.categoryId || 0
   });
 
-  const [contentImages, setContentImages] = useState<ContentImageRequest[]>([]);
+  const [contentImages, setContentImages] = useState<ContentImageRequest[]>(initialData?.contentImages || []);
   
   // 임시 이미지 파일 저장 (blob URL과 실제 File 객체 매핑)
   const [tempImageFiles, setTempImageFiles] = useState<Map<string, File>>(new Map());
