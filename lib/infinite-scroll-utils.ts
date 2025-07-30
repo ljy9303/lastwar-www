@@ -155,8 +155,8 @@ export const smoothScrollTo = (
 /**
  * 메시지 배열 메모리 최적화
  */
-export interface OptimizeMessagesOptions {
-  messages: any[]
+export interface OptimizeMessagesOptions<T = any> {
+  messages: T[]
   maxMessages: number
   currentScrollPosition: ScrollPosition
   keepFromTop: number
@@ -169,9 +169,9 @@ export const optimizeMessageArray = <T extends { id: any }>({
   currentScrollPosition,
   keepFromTop = 50,
   keepFromBottom = 50
-}: OptimizeMessagesOptions): T[] => {
+}: OptimizeMessagesOptions<T>): T[] => {
   if (messages.length <= maxMessages) {
-    return messages as T[]
+    return messages
   }
   
   // 최신 메시지는 항상 보존해야 하는 개수 (최소 50개, 최대 전체의 20%)
@@ -180,7 +180,7 @@ export const optimizeMessageArray = <T extends { id: any }>({
   
   // 사용자가 하단에 있으면 최신 메시지 우선 보존
   if (currentScrollPosition.isNearBottom) {
-    return messages.slice(-maxMessages) as T[]
+    return messages.slice(-maxMessages)
   }
   
   // 사용자가 상단에 있더라도 최신 메시지는 보존
@@ -188,7 +188,7 @@ export const optimizeMessageArray = <T extends { id: any }>({
     // 오래된 메시지 + 항상 보존할 최신 메시지
     const oldMessages = messages.slice(0, availableForOlder)
     const latestMessages = messages.slice(-alwaysKeepLatest)
-    return [...oldMessages, ...latestMessages] as T[]
+    return [...oldMessages, ...latestMessages]
   }
   
   // 중간에 있으면 현재 위치 기준으로 양쪽 보존 + 최신 메시지 보존
@@ -200,7 +200,7 @@ export const optimizeMessageArray = <T extends { id: any }>({
   const middleMessages = messages.slice(start, end)
   const latestMessages = messages.slice(-alwaysKeepLatest)
   
-  return [...middleMessages, ...latestMessages] as T[]
+  return [...middleMessages, ...latestMessages]
 }
 
 /**

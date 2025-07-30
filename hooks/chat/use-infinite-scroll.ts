@@ -91,7 +91,7 @@ export function useInfiniteScroll<T extends Record<string, any>>({
   const [scrollPosition, setScrollPosition] = useState<ScrollPosition | null>(null)
   const loadingStateManager = useRef(createLoadingStateManager())
   const messageBuffer = useRef(createMessageBuffer<T>())
-  const [, forceUpdate] = useState(0) // 강제 리렌더링용
+  const [, forceUpdate] = useState<number>(0) // 강제 리렌더링용
   
   // 메모리 한계 알림 상태
   const [memoryLimitNewMessage, setMemoryLimitNewMessage] = useState<{
