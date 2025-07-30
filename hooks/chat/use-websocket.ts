@@ -114,9 +114,61 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
           setIsConnecting(false)
           reconnectAttempts.current = 0
           
-          // 채팅방 구독 (roomType이 있는 경우에만)
+          // 채팅방 구독 (roomType이 있는 경우에만) - 인라인으로 구현하여 의존성 순환 방지
           if (roomType) {
-            subscribeToRoom(roomType)
+            try {
+              // 기존 구독 해제
+              if (subscriptionRef.current) {
+                subscriptionRef.current.unsubscribe()
+              }
+
+              // 멀티테넌트 격리를 위한 serverAllianceId 추출
+              const serverAllianceId = session?.user?.serverAllianceId
+              if (!serverAllianceId) {
+                console.error("❌ serverAllianceId가 없어 WebSocket 구독할 수 없습니다.")
+                setLastError("인증 정보가 부족합니다.")
+                return
+              }
+
+              // 채팅방 구독 경로 설정
+              let topicPath: string;
+              if (roomType === 'GLOBAL') {
+                // GLOBAL 채팅은 모든 서버 사용자 대상
+                topicPath = `/topic/chat/global`;
+              } else {
+                // 다른 채팅방은 서버연맹별 격리
+                topicPath = `/topic/chat/${serverAllianceId}/${roomType.toLowerCase()}`;
+              }
+              console.log('🔔 채팅방 구독 경로:', topicPath)
+              
+              const subscription = stompClientRef.current!.subscribe(
+                topicPath,
+                (message: IMessage) => {
+                  console.log('📩 WebSocket 메시지 수신:', message.body)
+                  try {
+                    const realtimeEvent: RealtimeEvent = JSON.parse(message.body)
+                    handleIncomingEvent(realtimeEvent)
+                  } catch (error) {
+                    console.error("메시지 파싱 오류:", error, message.body)
+                  }
+                }
+              )
+
+              subscriptionRef.current = subscription
+              console.log(`채팅방 구독 완료: ${roomType}`)
+
+              // 입장 알림
+              stompClientRef.current!.publish({
+                destination: '/app/chat.join',
+                body: JSON.stringify({
+                  roomType: roomType
+                })
+              })
+
+            } catch (error) {
+              console.error("채팅방 구독 실패:", error)
+              setLastError("채팅방 구독에 실패했습니다.")
+            }
           }
         },
         onStompError: (frame: Frame) => {
@@ -416,10 +468,60 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
   // 채팅방 변경 시 재구독 (최적화)
   useEffect(() => {
     // 연결된 상태이고 roomType이 변경된 경우에만 재구독
-    if (isConnected && roomType) {
-      subscribeToRoom(roomType)
+    if (isConnected && roomType && stompClientRef.current?.connected) {
+      try {
+        // 기존 구독 해제
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe()
+        }
+
+        // 멀티테넌트 격리를 위한 serverAllianceId 추출
+        const serverAllianceId = session?.user?.serverAllianceId
+        if (!serverAllianceId) {
+          console.error("❌ serverAllianceId가 없어 WebSocket 구독할 수 없습니다.")
+          return
+        }
+
+        // 채팅방 구독 경로 설정
+        let topicPath: string;
+        if (roomType === 'GLOBAL') {
+          // GLOBAL 채팅은 모든 서버 사용자 대상
+          topicPath = `/topic/chat/global`;
+        } else {
+          // 다른 채팅방은 서버연맹별 격리
+          topicPath = `/topic/chat/${serverAllianceId}/${roomType.toLowerCase()}`;
+        }
+        console.log('🔔 채팅방 재구독 경로:', topicPath)
+        
+        const subscription = stompClientRef.current.subscribe(
+          topicPath,
+          (message: IMessage) => {
+            console.log('📩 WebSocket 메시지 수신:', message.body)
+            try {
+              const realtimeEvent: RealtimeEvent = JSON.parse(message.body)
+              handleIncomingEvent(realtimeEvent)
+            } catch (error) {
+              console.error("메시지 파싱 오류:", error, message.body)
+            }
+          }
+        )
+
+        subscriptionRef.current = subscription
+        console.log(`채팅방 재구독 완료: ${roomType}`)
+
+        // 입장 알림
+        stompClientRef.current.publish({
+          destination: '/app/chat.join',
+          body: JSON.stringify({
+            roomType: roomType
+          })
+        })
+
+      } catch (error) {
+        console.error("채팅방 재구독 실패:", error)
+      }
     }
-  }, [roomType, isConnected]) // subscribeToRoom 의존성 제거로 무한 루프 방지
+  }, [roomType, isConnected, session?.user?.serverAllianceId]) // subscribeToRoom 제거하고 필요한 로직만 인라인으로 구현
 
   return {
     isConnected,

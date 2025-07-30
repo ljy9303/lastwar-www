@@ -361,7 +361,7 @@ export function useInfiniteScroll<T extends Record<string, any>>({
     
     if (position?.isNearBottom || !isUserScrolling.current) {
       // 하단에 있거나 사용자가 스크롤하지 않으면 자동 스크롤
-      setTimeout(() => scrollToBottom(), 50)
+      queueMicrotask(() => scrollToBottom())
     } else {
       // 중간/상단에 있으면서 메모리 한계에 도달한 경우
       if (isAtMemoryLimit && position?.isNearTop) {

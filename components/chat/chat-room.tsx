@@ -343,7 +343,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         // 실시간 메시지를 캐시에도 추가
         addToCacheRealtimeMessage(roomType, correctedMessage)
         
-        // 플로팅 버튼에 최신 메시지 ID 알림
+        // 플로팅 버튼에 최신 메시지 ID 알림 (debounce 적용)
         if (onMessageUpdate && roomType === 'GLOBAL') {
           queueMicrotask(() => {
             onMessageUpdate(correctedMessage.messageId)
@@ -353,7 +353,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     })
 
     return removeListener
-  }, [roomType, addMessageListener, session, scrollPosition, scrollToBottom, onMessageUpdate])
+  }, [roomType, session?.user?.id, session?.user?.name]) // 무한 루프 방지를 위해 필수 의존성만 포함
 
   // 실시간 메시지 상태 업데이트 리스너 등록
   useEffect(() => {
@@ -374,7 +374,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     })
 
     return removeListener
-  }, [addMessageUpdateListener])
+  }, []) // 의존성 배열 비움으로 무한 루프 방지
 
   // 기존 함수 제거됨 - 슬랙 스타일 loadInitialMessages로 대체
 
