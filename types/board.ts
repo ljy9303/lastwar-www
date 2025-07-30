@@ -62,6 +62,7 @@ export interface BoardPost {
   postStatus: string;
   createdAt: string;
   updatedAt: string;
+  contentImages?: ContentImageRequest[];  // 게시글 이미지 목록 (수정 시 사용)
 }
 
 export interface BoardPostResponse extends BoardPost {}

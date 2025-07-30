@@ -48,7 +48,8 @@ export default function EditPostPage() {
       title: post.title,
       content: post.content || '',
       categoryId: post.categoryId,
-      thumbnailUrl: post.thumbnailUrl
+      thumbnailUrl: post.thumbnailUrl,
+      contentImages: post.contentImages || []  // 기존 이미지 정보 포함
     };
   };
 
