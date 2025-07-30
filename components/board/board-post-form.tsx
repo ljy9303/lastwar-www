@@ -62,7 +62,11 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
     categoryId: initialData?.categoryId || 0
   });
 
-  const [contentImages, setContentImages] = useState<ContentImageRequest[]>(initialData?.contentImages || []);
+  // 기존 이미지 (수정 모드에서 S3에 이미 업로드된 이미지)
+  const [existingImages, setExistingImages] = useState<ContentImageRequest[]>(initialData?.contentImages || []);
+  
+  // 새로 추가된 이미지 (blob URL로 임시 저장, 저장 시 S3에 업로드)
+  const [newImages, setNewImages] = useState<ContentImageRequest[]>([]);
   
   // 임시 이미지 파일 저장 (blob URL과 실제 File 객체 매핑)
   const [tempImageFiles, setTempImageFiles] = useState<Map<string, File>>(new Map());
@@ -171,11 +175,12 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
           URL.revokeObjectURL(blobUrl);
         } catch (err) {
           console.error('이미지 업로드 실패:', blobUrl, err);
-          throw new Error('이미지 업로드에 실패했습니다.');
+          throw new Error(`이미지 업로드에 실패했습니다: ${file.name}`);
         }
       }
     }
     
+    log.debug('이미지 업로드 완료:', { uploadedCount: uploadedImages.length, existingCount: existingImages.length });
     return { newContent, uploadedImages };
   };
 
@@ -204,7 +209,7 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
         categoryId: formData.categoryId,
         title: formData.title.trim(),
         content: newContent,
-        contentImages: [...contentImages, ...uploadedImages]
+        contentImages: [...existingImages, ...uploadedImages]  // 기존 이미지 + 새로 업로드된 이미지
       };
 
       if (postId) {
@@ -604,8 +609,10 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
                   />
                 </div>
                 
-                <div className="text-sm text-gray-500 text-right">
-                  {formData.content.replace(/<[^>]*>/g, '').length}자 | 이미지를 붙여넣기(Ctrl+V)하면 자동 삽입됩니다
+                <div className="text-sm text-gray-500 text-right space-y-1">
+                  <div>{formData.content.replace(/<[^>]*>/g, '').length}자</div>
+                  <div>기존 이미지: {existingImages.length}개 | 새 이미지: {tempImageFiles.size}개</div>
+                  <div className="text-xs">이미지 붙여넣기(Ctrl+V)나 위 버튼으로 이미지 추가 가능</div>
                 </div>
               </div>
 
