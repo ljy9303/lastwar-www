@@ -54,14 +54,23 @@ const FloatingChatButton = memo(function FloatingChatButton() {
     })
 
     return removeListener
-  }, [addMessageListener, isOpen, shouldConnectWebSocket])
+  }, [isOpen, shouldConnectWebSocket]) // addMessageListener 의존성 제거로 무한 루프 방지
 
   // 로그인/회원가입 페이지에서는 플로팅 버튼 숨기기
   const hiddenPaths = ['/login', '/test-login', '/signup', '/auth/kakao/callback']
   const shouldHide = hiddenPaths.some(path => pathname?.startsWith(path)) || !shouldConnectWebSocket
 
-  // 최신 메시지 확인
-  const checkLatestMessage = async () => {
+  // 미열람 상태 확인 (useCallback으로 최적화)
+  const checkUnreadStatus = useCallback((messageId: number) => {
+    const lastReadId = getLastReadMessageId('GLOBAL')
+    const hasNewUnread = lastReadId === null || messageId > lastReadId
+    
+    console.log('📊 미열람 체크:', { messageId, lastReadId, hasNewUnread })
+    setHasUnread(hasNewUnread)
+  }, [])
+
+  // 최신 메시지 확인 (useCallback으로 최적화)
+  const checkLatestMessage = useCallback(async () => {
     // 인증되지 않은 사용자는 API 호출하지 않음
     if (!session?.user || !session?.accessToken) {
       console.log('[CHAT] 인증되지 않은 사용자 - 최신 메시지 확인 건너뜀')
@@ -82,16 +91,7 @@ const FloatingChatButton = memo(function FloatingChatButton() {
     } catch (error) {
       console.warn('최신 메시지 확인 실패:', error)
     }
-  }
-
-  // 미열람 상태 확인
-  const checkUnreadStatus = (messageId: number) => {
-    const lastReadId = getLastReadMessageId('GLOBAL')
-    const hasNewUnread = lastReadId === null || messageId > lastReadId
-    
-    console.log('📊 미열람 체크:', { messageId, lastReadId, hasNewUnread })
-    setHasUnread(hasNewUnread)
-  }
+  }, [session?.user, session?.accessToken, checkUnreadStatus])
 
   // 메시지 업데이트 콜백 (Hook 순서 안정화)
   const handleMessageUpdate = useCallback((messageId: number) => {

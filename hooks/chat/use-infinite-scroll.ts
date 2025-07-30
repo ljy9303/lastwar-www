@@ -91,7 +91,7 @@ export function useInfiniteScroll<T extends Record<string, any>>({
   const [scrollPosition, setScrollPosition] = useState<ScrollPosition | null>(null)
   const loadingStateManager = useRef(createLoadingStateManager())
   const messageBuffer = useRef(createMessageBuffer<T>())
-  const [, forceUpdate] = useState({}) // 강제 리렌더링용
+  const [, forceUpdate] = useState<number>(0) // 강제 리렌더링용
   
   // 메모리 한계 알림 상태
   const [memoryLimitNewMessage, setMemoryLimitNewMessage] = useState<{
@@ -123,11 +123,10 @@ export function useInfiniteScroll<T extends Record<string, any>>({
   
   // 가상 스크롤 미사용으로 기본값 설정
   const virtualScroll = {
-    visibleItems: messages,
-    startIndex: 0,
-    endIndex: messages.length,
+    shouldVirtualize: false,
+    virtualItems: [],
     totalHeight: 0,
-    offsetY: 0
+    getVisibleRange: () => ({ start: 0, end: messages.length })
   }
   
   /**
@@ -324,13 +323,13 @@ export function useInfiniteScroll<T extends Record<string, any>>({
     flushAndScroll: () => {
       // 실제 메시지는 이미 추가되었으므로 버퍼만 비우고 스크롤
       messageBuffer.current.clear()
-      forceUpdate({})
+      forceUpdate(prev => prev + 1)
       // 하단으로 스크롤
       setTimeout(() => scrollToBottom(), 100)
     },
     clear: () => {
       messageBuffer.current.clear()
-      forceUpdate({})
+      forceUpdate(prev => prev + 1)
     }
   }
   
@@ -361,7 +360,7 @@ export function useInfiniteScroll<T extends Record<string, any>>({
     
     if (position?.isNearBottom || !isUserScrolling.current) {
       // 하단에 있거나 사용자가 스크롤하지 않으면 자동 스크롤
-      setTimeout(() => scrollToBottom(), 50)
+      queueMicrotask(() => scrollToBottom())
     } else {
       // 중간/상단에 있으면서 메모리 한계에 도달한 경우
       if (isAtMemoryLimit && position?.isNearTop) {
@@ -378,7 +377,7 @@ export function useInfiniteScroll<T extends Record<string, any>>({
       } else {
         // 일반적인 버퍼링 처리
         messageBuffer.current.add(message)
-        forceUpdate({})
+        forceUpdate(prev => prev + 1)
       }
     }
   }, [updateScrollPosition, setMessages, scrollToBottom, finalConfig, messages.length])
