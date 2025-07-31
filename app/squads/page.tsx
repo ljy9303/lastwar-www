@@ -635,7 +635,7 @@ export default function SquadsPage() {
           members.forEach((user) => {
             allChanges[user.userSeq] = {
               desertType: team, // 현재 속해 있는 팀으로 desert_type 설정
-              position: user.position || -1,
+              position: pendingChanges[user.userSeq]?.position ?? user.position ?? -1, // pendingChanges에서 우선 가져오기
             }
           })
         }
