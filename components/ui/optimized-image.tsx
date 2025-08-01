@@ -170,6 +170,9 @@ export const OptimizedImage = React.forwardRef<HTMLDivElement, OptimizedImagePro
           )}
           onLoad={handleImageLoad}
           onError={handleImageError}
+          // 성능 최적화 속성
+          decoding="async"
+          fetchPriority={loadPriority === 'high' ? 'high' : loadPriority === 'low' ? 'low' : 'auto'}
           {...props}
         />
 

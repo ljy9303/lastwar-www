@@ -1,27 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useCallback, memo } from "react"
 import type { User } from "@/types/user"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Pencil, ChevronUp, ChevronDown, Eye } from "lucide-react"
+import { ChevronUp, ChevronDown } from "lucide-react"
 import UserDetailModal from "./user-detail-modal"
 import { EmptyState } from "@/components/ui/empty-state"
 import { MobileUserTable } from "@/components/ui/mobile-user-table"
+import { OptimizedUserRow } from "./optimized-user-row"
 import { useMobile } from "@/hooks/use-mobile"
+import { useComponentPerformance } from "@/hooks/use-performance"
 
 interface UserListProps {
   users: User[]
   onEdit?: (user: User) => void
 }
 
-export function UserList({ users, onEdit }: UserListProps) {
+export const UserList = memo(function UserList({ users, onEdit }: UserListProps) {
   const [selectedUserSeq, setSelectedUserSeq] = useState<number | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const isMobile = useMobile()
+  
+  // 성능 모니터링
+  const { measureRender } = useComponentPerformance('UserList')
 
-  // 전투력 포맷팅 함수 (1 = 1백만)
-  const formatPower = (power: number): string => {
+  // 전투력 포맷팅 함수 메모이제이션 (1 = 1백만)
+  const formatPower = useCallback((power: number): string => {
     if (power === 0) return "0"
     if (power < 1) {
       return `${(power * 100).toFixed(0)}만`
@@ -33,69 +38,85 @@ export function UserList({ users, onEdit }: UserListProps) {
       return `${power.toFixed(0)}M`
     }
     return `${power.toFixed(1)}M`
-  }
+  }, [])
 
   // 백엔드 기본 정렬과 일치: 연맹활동중 -> 등급 -> 전투력 순
   const [sortField, setSortField] = useState<keyof User | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
-  const handleSort = (field: keyof User) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      setSortField(field)
-      setSortDirection("asc")
-    }
-  }
-
-  const sortedUsers = [...users].sort((a, b) => {
-    // 프론트엔드에서 정렬이 선택되지 않은 경우, 백엔드 기본 정렬 유지
-    if (!sortField) {
-      // 백엔드와 동일한 정렬: leave(asc) -> userGrade(desc) -> power(desc)
-      
-      // 1. 연맹활동중 우선 (leave = false가 먼저)
-      if (a.leave !== b.leave) {
-        return a.leave ? 1 : -1
+  const handleSort = useCallback((field: keyof User) => {
+    setSortField(prevField => {
+      if (prevField === field) {
+        setSortDirection(prevDirection => prevDirection === "asc" ? "desc" : "asc")
+        return field
+      } else {
+        setSortDirection("asc")
+        return field
       }
-      
-      // 2. 등급 내림차순 (R5, R4, R3... 순)
-      if (a.userGrade !== b.userGrade) {
-        return b.userGrade.localeCompare(a.userGrade)
+    })
+  }, [])
+
+  // 정렬된 유저 목록 메모이제이션
+  const sortedUsers = useMemo(() => {
+    const measure = measureRender()
+    const startSort = measure.start()
+    
+    const sorted = [...users].sort((a, b) => {
+      // 프론트엔드에서 정렬이 선택되지 않은 경우, 백엔드 기본 정렬 유지  
+      if (!sortField) {
+        // 백엔드와 동일한 정렬: leave(asc) -> userGrade(desc) -> power(desc)
+        
+        // 1. 연맹활동중 우선 (leave = false가 먼저)
+        if (a.leave !== b.leave) {
+          return a.leave ? 1 : -1
+        }
+        
+        // 2. 등급 내림차순 (R5, R4, R3... 순)
+        if (a.userGrade !== b.userGrade) {
+          return b.userGrade.localeCompare(a.userGrade)
+        }
+        
+        // 3. 전투력 내림차순 (높은순)
+        return b.power - a.power
       }
-      
-      // 3. 전투력 내림차순 (높은순)
-      return b.power - a.power
-    }
 
-    // 사용자가 특정 필드로 정렬을 선택한 경우
-    const aValue = a[sortField]
-    const bValue = b[sortField]
+      // 사용자가 특정 필드로 정렬을 선택한 경우
+      const aValue = a[sortField]
+      const bValue = b[sortField]
 
-    // 날짜 필드인 경우 Date 객체로 변환하여 비교
-    if (sortField === "updatedAt" || sortField === "createdAt") {
-      const aDate = new Date(aValue as string)
-      const bDate = new Date(bValue as string)
-      if (aDate < bDate) return sortDirection === "asc" ? -1 : 1
-      if (aDate > bDate) return sortDirection === "asc" ? 1 : -1
+      // 날짜 필드인 경우 Date 객체로 변환하여 비교
+      if (sortField === "updatedAt" || sortField === "createdAt") {
+        const aDate = new Date(aValue as string)
+        const bDate = new Date(bValue as string)
+        if (aDate < bDate) return sortDirection === "asc" ? -1 : 1
+        if (aDate > bDate) return sortDirection === "asc" ? 1 : -1
+        return 0
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
       return 0
-    }
+    })
+    
+    startSort.end()
+    return sorted
+  }, [users, sortField, sortDirection, measureRender])
 
-    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
-    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
-    return 0
-  })
-
-
-  const handleRowClick = (userSeq: number) => {
+  const handleRowClick = useCallback((userSeq: number) => {
     setSelectedUserSeq(userSeq)
     setIsDetailModalOpen(true)
-  }
+  }, [])
 
-  const handleDetailClick = (e: React.MouseEvent, userSeq: number) => {
+  const handleDetailClick = useCallback((e: React.MouseEvent, userSeq: number) => {
     e.stopPropagation()
     setSelectedUserSeq(userSeq)
     setIsDetailModalOpen(true)
-  }
+  }, [])
+
+  const handleCloseModal = useCallback(() => {
+    setIsDetailModalOpen(false)
+    setSelectedUserSeq(null)
+  }, [])
 
   // 빈 상태 처리
   if (users.length === 0) {
@@ -217,67 +238,14 @@ export function UserList({ users, onEdit }: UserListProps) {
           <TableBody>
             {sortedUsers.length > 0 ? (
               sortedUsers.map((user) => (
-                <TableRow 
-                  key={user.userSeq} 
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleRowClick(user.userSeq)}
-                >
-                  <TableCell>
-                    <div>
-                      <div>{user.name}</div>
-                      <div className="sm:hidden text-xs text-muted-foreground">
-                        Lv.{user.level} | {formatPower(user.power)} | {user.userGrade} |{" "}
-                        {user.leave ? "탈퇴" : "활동중"}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{formatPower(user.power)}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{user.userGrade}</TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.leave 
-                        ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" 
-                        : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                    }`}>
-                      {user.leave ? "탈퇴" : "활동중"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                    {new Date(user.updatedAt).toLocaleDateString('ko-KR', {
-                      year: '2-digit',
-                      month: '2-digit', 
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={(e) => handleDetailClick(e, user.userSeq)}
-                        title="상세정보"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {onEdit && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onEdit(user)
-                          }}
-                          title="수정"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <OptimizedUserRow
+                  key={user.userSeq}
+                  user={user}
+                  onRowClick={handleRowClick}
+                  onDetailClick={handleDetailClick}
+                  onEdit={onEdit}
+                  formatPower={formatPower}
+                />
               ))
             ) : (
               <TableRow>
@@ -294,12 +262,9 @@ export function UserList({ users, onEdit }: UserListProps) {
 
       <UserDetailModal
         isOpen={isDetailModalOpen}
-        onClose={() => {
-          setIsDetailModalOpen(false)
-          setSelectedUserSeq(null)
-        }}
+        onClose={handleCloseModal}
         userSeq={selectedUserSeq}
       />
     </>
   )
-}
+})
