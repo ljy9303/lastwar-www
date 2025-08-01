@@ -43,8 +43,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    // 성능 최적화 플래그들
-    optimizeCss: true,
+    // CSS 최적화 비활성화 (critters 모듈 충돌 방지)
+    optimizeCss: false,
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-icons',
@@ -52,52 +52,19 @@ const nextConfig = {
       'date-fns',
     ],
   },
-  // Webpack 최적화
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // 프로덕션에서 소스맵 제거 (번들 크기 감소)
-    if (!dev && !isServer) {
-      config.devtool = false
+  // 개발 모드에서는 webpack 최적화 비활성화
+  webpack: (config, { dev }) => {
+    // 개발 모드에서는 기본 설정 유지
+    if (dev) {
+      return config
     }
     
-    // 모듈 연결 최적화
+    // 프로덕션에서만 최적화 적용
+    config.devtool = false
     config.optimization.concatenateModules = true
-    
-    // 사용하지 않는 코드 제거 강화
     config.optimization.usedExports = true
     config.optimization.sideEffects = false
     
-    // 번들 분할 최적화
-    config.optimization.splitChunks = {
-      chunks: 'all',
-      cacheGroups: {
-        default: {
-          minChunks: 2,
-          priority: -20,
-          reuseExistingChunk: true,
-        },
-        vendor: {
-          test: /[\\/]node_modules[\\/]/,
-          name: 'vendors',
-          priority: -10,
-          chunks: 'all',
-        },
-        // UI 라이브러리 별도 청크
-        ui: {
-          test: /[\\/]node_modules[\\/](@radix-ui|@headlessui|framer-motion)[\\/]/,
-          name: 'ui-libs',
-          priority: 10,
-          chunks: 'all',
-        },
-        // 유틸리티 라이브러리 별도 청크
-        utils: {
-          test: /[\\/]node_modules[\\/](date-fns|lodash|ramda|clsx)[\\/]/,
-          name: 'utils',
-          priority: 5,
-          chunks: 'all',
-        },
-      },
-    }
-
     return config
   },
   // 컴파일러 최적화
