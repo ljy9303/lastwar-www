@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "project": "LastWar Frontend",
+    "timestamp": "2025-08-01T08:45:27.146Z",
+    "nodeVersion": "v22.16.0",
+    "platform": "linux"
+  },
+  "buildAnalysis": {
+    "timestamp": "2025-08-01T08:45:27.146Z",
+    "buildSize": {
+      "total": "852.07MB",
+      "server": "2.17MB",
+      "static": "4.45MB",
+      "client": "4.14MB"
+    },
+    "optimizations": [],
+    "recommendations": []
+  },
+  "dependencyAnalysis": {
+    "totalDependencies": 73,
+    "totalDevDependencies": 8,
+    "heavyPackages": [
+      "framer-motion",
+      "@tiptap/extension-bullet-list",
+      "@tiptap/extension-font-size",
+      "@tiptap/extension-image",
+      "@tiptap/extension-list-item",
+      "@tiptap/extension-ordered-list",
+      "@tiptap/extension-placeholder",
+      "@tiptap/extension-text-align",
+      "@tiptap/extension-text-style",
+      "@tiptap/react",
+      "@tiptap/starter-kit",
+      "recharts",
+      "canvas-confetti",
+      "@uiw/react-md-editor"
+    ],
+    "suggestions": [
+      "무거운 패키지들에 대해 동적 import 적용 고려",
+      "사용하지 않는 기능들 Tree shaking 확인",
+      "의존성 수가 많습니다. 불필요한 패키지 제거 검토"
+    ]
+  },
+  "optimizationStatus": {
+    "imageOptimization": true,
+    "bundleAnalyzer": true,
+    "webpackOptimization": true,
+    "compressionEnabled": true,
+    "cssOptimization": true
+  },
+  "coreWebVitalsRecommendations": [
+    {
+      "metric": "LCP (Largest Contentful Paint)",
+      "target": "< 2.5초",
+      "optimizations": [
+        "🖼️ 이미지 최적화: WebP/AVIF 포맷 사용",
+        "📦 Critical CSS 인라인 삽입",
+        "🚀 프리로딩: 중요 리소스 우선 로드",
+        "⚡ 서버 응답 시간 최적화"
+      ]
+    },
+    {
+      "metric": "FID (First Input Delay)",
+      "target": "< 100ms",
+      "optimizations": [
+        "⚡ JavaScript 번들 크기 최소화",
+        "🔄 코드 스플리팅 적용",
+        "🧠 메인 스레드 블로킹 최소화",
+        "📱 인터랙션 최적화"
+      ]
+    },
+    {
+      "metric": "CLS (Cumulative Layout Shift)",
+      "target": "< 0.1",
+      "optimizations": [
+        "📐 이미지/동영상 크기 명시",
+        "🎨 폰트 로딩 최적화",
+        "💀 Skeleton UI 사용",
+        "🔒 레이아웃 안정화"
+      ]
+    }
+  ],
+  "mobileOptimizationTips": [
+    {
+      "category": "네트워크 최적화",
+      "tips": [
+        "📱 모바일 우선 이미지 크기 설정",
+        "🗜️ Gzip/Brotli 압축 활성화",
+        "🚀 HTTP/2 Push 활용",
+        "📡 Service Worker 캐싱 전략"
+      ]
+    },
+    {
+      "category": "사용자 경험",
+      "tips": [
+        "⚡ Progressive Loading 구현",
+        "🔄 Optimistic Updates 적용",
+        "📱 터치 친화적 인터페이스",
+        "🎯 접근성 표준 준수"
+      ]
+    },
+    {
+      "category": "성능 모니터링",
+      "tips": [
+        "📊 Real User Monitoring (RUM)",
+        "⚠️ 성능 알림 설정",
+        "📈 지속적인 성능 추적",
+        "🔍 A/B 테스트 도구 활용"
+      ]
+    }
+  ]
+}

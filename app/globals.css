@@ -23,6 +23,44 @@
     transform: translateZ(0); /* 하드웨어 가속으로 렌더링 최적화 */
   }
   
+  /* 모바일 터치 최적화 - 모든 버튼 최소 터치 영역 보장 */
+  button, 
+  [role="button"],
+  .button-like {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* 작은 아이콘 버튼들 터치 영역 확대 */
+  button[class*="size-icon"],
+  button[class*="icon"] {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    padding: 10px !important;
+  }
+  
+  /* 드롭다운 메뉴 아이템 터치 최적화 */
+  [role="menuitem"],
+  [data-radix-collection-item] {
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+    cursor: pointer;
+  }
+  
+  /* 테이블 행 터치 최적화 */
+  [role="row"] {
+    min-height: 60px !important;
+  }
+  
+  /* 버튼 사이 최소 간격 보장 */
+  button + button,
+  [role="button"] + [role="button"] {
+    margin-left: 8px !important;
+  }
+}
+  
   /* 가상 키보드 대응 */
   .mobile-chat-container {
     /* 키보드 출현 시 viewport 변화 대응 */
@@ -45,7 +83,6 @@
     -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
     overscroll-behavior: none; /* 과도한 스크롤 방지 */
   }
-}
 
 /* 키보드 출현 시 레이아웃 조정 */
 @supports (-webkit-touch-callout: none) {
@@ -99,6 +136,105 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* 터치 최적화 유틸리티 클래스 */
+  .touch-optimized {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .touch-button {
+    @apply touch-optimized;
+    transition: transform 0.1s ease, background-color 0.2s ease;
+  }
+  
+  .touch-button:active {
+    transform: scale(0.95);
+  }
+  
+  .touch-area-large {
+    min-height: 48px;
+    min-width: 48px;
+  }
+  
+  .touch-feedback {
+    transition: all 0.1s ease;
+  }
+  
+  .touch-feedback:active {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  
+  /* 게시판 모바일 최적화 */
+  .board-card-mobile {
+    @apply touch-feedback;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .board-card-mobile:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .board-card-mobile:active {
+    transform: scale(0.98);
+  }
+  
+  /* 게시글 상세 페이지 모바일 최적화 */
+  .post-content-mobile {
+    line-height: 1.7;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  
+  .post-content-mobile img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 16px 0;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  
+  .post-content-mobile img:active {
+    transform: scale(0.98);
+  }
+  
+  /* 모바일 페이지네이션 최적화 */
+  .pagination-mobile {
+    padding: 16px 0;
+  }
+  
+  .pagination-mobile button {
+    @apply touch-optimized;
+  }
+  
+  /* 모바일 검색 필드 최적화 */
+  .search-field-mobile {
+    @apply mobile-input;
+    padding: 12px 16px;
+    border-radius: 12px;
+  }
+  
+  /* 모바일 카테고리 태그 최적화 */
+  .category-tag-mobile {
+    @apply touch-optimized;
+    padding: 8px 16px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  
+  /* 스와이프 힌트 애니메이션 */
+  @keyframes swipe-hint {
+    0%, 100% { transform: translateX(0); opacity: 0.3; }
+    50% { transform: translateX(4px); opacity: 0.6; }
+  }
+  
+  .swipe-hint {
+    animation: swipe-hint 2s ease-in-out infinite;
+  }
 }
 
 @layer base {
@@ -114,7 +250,7 @@ body {
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted-foreground: 0 0% 15.1%; /* 접근성 개선: 45.1% → 15.1% (대비율 4.5:1+ 달성) */
     --accent: 0 0% 96.1%;
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
@@ -149,7 +285,7 @@ body {
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted-foreground: 0 0% 83.9%; /* 접근성 개선: 63.9% → 83.9% (다크모드 대비율 4.5:1+ 달성) */
     --accent: 0 0% 14.9%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;

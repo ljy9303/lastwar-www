@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { TouchButton } from "@/components/ui/touch-button"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, Pencil, Loader2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Search, Pencil, Loader2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Save, UserSquare } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getRosters, updateRoster, saveRosters, type Roster } from "@/app/actions/roster-actions"
@@ -332,22 +334,77 @@ export default function SurveysPage() {
   }
 
   return (
-    <div className="container mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl sm:text-3xl font-bold truncate">
+    <div className="container mx-auto pb-20 sm:pb-6">
+      {/* 타이틀 영역 - 모바일 최적화 */}
+      {isMobileDevice ? (
+        // 모바일 레이아웃: 세로 스택
+        <div className="space-y-4 mb-6">
+          {/* 카테고리 + 액션 버튼 */}
+          <div className="flex items-center justify-between">
+            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 text-xs px-2 py-0.5">
+              사막전 관리
+            </Badge>
+            <div className="flex gap-2">
+              <TouchButton
+                variant="outline"
+                size="sm"
+                onClick={goBack}
+                ariaLabel="사막전 관리로 돌아가기"
+                className="h-8 px-3 text-xs"
+              >
+                사막전 관리
+              </TouchButton>
+              <TouchButton
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/squads')}
+                ariaLabel="스쿼드 관리로 이동"
+                className="h-8 px-3 text-xs"
+              >
+                스쿼드 관리
+              </TouchButton>
+            </div>
+          </div>
+          
+          {/* 타이틀 */}
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">
             {eventTitle || '사전조사 관리'}
           </h1>
+          
+          {/* 메타 정보 */}
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span>총 {rosters.length}명 참가</span>
+            {selectedEvent && (
+              <span>{selectedEvent.eventType === DesertEventType.A_TEAM_ONLY ? 'A조만 사용' : 'A+B조 사용'}</span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <Button variant="outline" onClick={goBack}>
-            사막전 관리
-          </Button>
-          <Button variant="outline" onClick={() => router.push('/squads')}>
-            스쿼드 관리
-          </Button>
+      ) : (
+        // 데스크톱 레이아웃: 기존 방식 개선
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl lg:text-3xl font-bold truncate">
+              {eventTitle || '사전조사 관리'}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <TouchButton 
+              variant="outline" 
+              onClick={goBack}
+              ariaLabel="사막전 관리로 돌아가기"
+            >
+              사막전 관리
+            </TouchButton>
+            <TouchButton 
+              variant="outline" 
+              onClick={() => router.push('/squads')}
+              ariaLabel="스쿼드 관리로 이동"
+            >
+              스쿼드 관리
+            </TouchButton>
+          </div>
         </div>
-      </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -359,25 +416,25 @@ export default function SurveysPage() {
             <div className="flex flex-wrap gap-2">
               <div className="relative flex-1 sm:flex-auto">
                 {Object.keys(pendingChanges).length > 0 && (
-                  <Button onClick={saveChanges} disabled={isSaving} size="sm" className="w-full group">
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        저장 중...
-                      </>
-                    ) : (
-                      <>
-                        변경사항 저장
-                        <Badge
-                          className="absolute -top-2 -right-2 bg-primary text-primary-foreground transition-all group-hover:scale-110"
-                          variant="outline"
-                        >
-                          {Object.keys(pendingChanges).length}
-                        </Badge>
-                        <span className="sr-only">{Object.keys(pendingChanges).length}개의 변경사항</span>
-                      </>
-                    )}
-                  </Button>
+                  <TouchButton 
+                  onClick={saveChanges} 
+                  disabled={isSaving} 
+                  size="sm" 
+                  className="w-full group"
+                  loading={isSaving}
+                  loadingText="저장 중..."
+                  touchSize={isMobileDevice ? "large" : "default"}
+                  ariaLabel="사전조사 변경사항 저장"
+                >
+                    변경사항 저장
+                    <Badge
+                      className="absolute -top-2 -right-2 bg-primary text-primary-foreground transition-all group-hover:scale-110"
+                      variant="outline"
+                    >
+                      {Object.keys(pendingChanges).length}
+                    </Badge>
+                    <span className="sr-only">{Object.keys(pendingChanges).length}개의 변경사항</span>
+                  </TouchButton>
                 )}
               </div>
             </div>
@@ -631,9 +688,15 @@ export default function SurveysPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(roster)}>
+                          <TouchButton 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => openEditDialog(roster)}
+                            ariaLabel={`${roster.userName} 정보 수정`}
+                            touchSize={isMobileDevice ? "large" : "default"}
+                          >
                             <Pencil className="h-4 w-4" />
-                          </Button>
+                          </TouchButton>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -724,6 +787,38 @@ export default function SurveysPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 모바일 FAB - 빠른 네비게이션 */}
+      {isMobileDevice && (
+        <FloatingActionButton
+          subActions={[
+            {
+              id: "back",
+              icon: <ArrowUp className="h-4 w-4" />,
+              label: "사막전 관리",
+              onClick: goBack,
+            },
+            {
+              id: "squads",
+              icon: <UserSquare className="h-4 w-4" />,
+              label: "스쿼드 관리",
+              onClick: () => router.push('/squads'),
+            },
+            ...(Object.keys(pendingChanges).length > 0 ? [{
+              id: "save",
+              icon: <Save className="h-4 w-4" />,
+              label: "변경사항 저장",
+              onClick: saveChanges,
+              variant: "primary" as const,
+            }] : []),
+          ]}
+          position="bottom-right"
+          expandDirection="up"
+          mobileOnly={true}
+          hideOnScroll={false}
+          hapticFeedback={true}
+        />
+      )}
     </div>
   )
 }

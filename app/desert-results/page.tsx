@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { TouchButton } from "@/components/ui/touch-button"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
@@ -24,11 +26,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2 } from "lucide-react"
 import { useRequiredEvent } from "@/contexts/current-event-context"
+import { useMobile } from "@/hooks/use-mobile"
 
 export default function DesertResultsPage() {
   const router = useRouter()
   const { eventId, eventTitle, goBack } = useRequiredEvent()
   const desertSeq = eventId || null
+  const isMobile = useMobile()
 
   const [results, setResults] = useState<DesertRosterResult[]>([])
   const [filteredResults, setFilteredResults] = useState<DesertRosterResult[]>([])

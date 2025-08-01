@@ -4,10 +4,19 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "dev": "next dev",
     "dev:local": "NODE_ENV=development next dev",
+    "dev:performance": "NODE_ENV=development NEXT_PUBLIC_PERFORMANCE_MODE=true next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "analyze": "ANALYZE=true npm run build",
+    "performance": "npm run build && npm run start",
+    "audit:performance": "npx lighthouse http://localhost:3000 --output=json --output-path=./performance-audit.json",
+    "performance:report": "node scripts/performance-report.js",
+    "test:accessibility": "node scripts/accessibility-audit.js",
+    "lighthouse:a11y": "node scripts/lighthouse-a11y.js",
+    "a11y:all": "npm run test:accessibility && npm run lighthouse:a11y"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -80,10 +89,12 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
+    "web-vitals": "^5.1.0",
     "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.4.5",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

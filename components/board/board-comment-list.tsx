@@ -3,7 +3,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { TouchButton } from '@/components/ui/touch-button';
 import { Textarea } from '@/components/ui/textarea';
+import { useMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,6 +81,7 @@ function CommentItem({
   onCancelReply,
   onCancelEdit
 }: CommentItemProps) {
+  const isMobile = useMobile();
   const isAuthor = currentUserId === comment.userId;
   const isPostAuthor = postAuthorId === comment.userId; // 게시글 작성자 여부
   const isDeleted = comment.commentStatus === 'DELETED';
@@ -85,13 +89,17 @@ function CommentItem({
   // UI 상태 가져오기 (없으면 실제 데이터 기준)
   const uiState = commentLikeUIStates[comment.commentId] || { isLiked: comment.isLiked, pendingChange: 0 };
 
-  // 대댓글인 경우 들여쓰기 적용
-  const marginLeft = isReply ? 48 : 0; // 대댓글은 48px 들여쓰기
+  // 대댓글인 경우 들여쓰기 적용 (모바일에서는 줄임)
+  const marginLeft = isReply ? (isMobile ? 24 : 48) : 0;
   const showBorder = isReply;
 
   return (
     <div 
-      className={`px-6 py-5 transition-colors hover:bg-gray-50 ${showBorder ? 'border-l-2 border-gray-200 bg-gray-50' : ''}`}
+      className={cn(
+        "transition-colors hover:bg-gray-50",
+        isMobile ? "px-4 py-4" : "px-6 py-5",
+        showBorder && "border-l-2 border-gray-200 bg-gray-50"
+      )}
       style={{ marginLeft: `${marginLeft}px` }}
     >
       <div className="flex gap-4">
@@ -253,6 +261,7 @@ export function BoardCommentList({
 }: BoardCommentListProps) {
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isMobile = useMobile();
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [editingComment, setEditingComment] = useState<BoardComment | null>(null);
@@ -504,23 +513,35 @@ export function BoardCommentList({
       <CardContent className="p-0">
         {/* 새 댓글 작성 */}
         {currentUserId && (
-          <div className="p-6 border-b bg-gray-50">
+          <div className={cn(
+            "border-b bg-gray-50",
+            isMobile ? "p-4" : "p-6"
+          )}>
             <div className="space-y-4">
               <Textarea
-                placeholder="댓글을 작성해주세요..."
+                placeholder={isMobile ? "댓글 작성..." : "댓글을 작성해주세요..."}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="min-h-[100px] bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={cn(
+                  "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                  isMobile ? "min-h-[80px] mobile-input" : "min-h-[100px]"
+                )}
               />
               <div className="flex justify-end">
-                <Button 
+                <TouchButton 
                   onClick={handleSubmitComment}
                   disabled={!newComment.trim() || isSubmitting}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  loading={isSubmitting}
+                  className={cn(
+                    "bg-blue-600 hover:bg-blue-700 text-white font-medium",
+                    isMobile ? "px-4 py-2 text-sm" : "px-6 py-2"
+                  )}
+                  ariaLabel="댓글 작성"
+                  hapticFeedback
                 >
                   <Send className="h-4 w-4 mr-2" />
-                  댓글 작성
-                </Button>
+                  {isMobile ? "작성" : "댓글 작성"}
+                </TouchButton>
               </div>
             </div>
           </div>

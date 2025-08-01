@@ -5,7 +5,9 @@ import { ChevronFirst, ChevronLast } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { TouchButton } from "@/components/ui/touch-button"
 import { Label } from "@/components/ui/label"
+import { useMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import {
   Pagination,
@@ -34,7 +36,11 @@ interface AdvancedPaginationProps {
   // Display options
   showTotal?: boolean;
   totalElements?: number;
+  totalCount?: number; // 추가된 필드
   showFirstLast?: boolean;
+  
+  // Mobile options
+  compactMode?: boolean;
   
   // Styling
   className?: string;
@@ -48,6 +54,8 @@ export function AdvancedPagination({
   pageSize = 10,
   pageSizeOptions = [10, 25, 50, 100],
   onPageSizeChange,
+  totalCount,
+  compactMode,
   showQuickJumper = true,
   showTotal = true,
   totalElements = 0,
@@ -55,9 +63,13 @@ export function AdvancedPagination({
   className
 }: AdvancedPaginationProps) {
   const [jumpPage, setJumpPage] = React.useState("");
+  const isMobile = useMobile();
   
   // Convert 0-based API to 1-based UI
   const currentPageDisplay = currentPage + 1;
+  
+  // 효과적인 컴팩트 모드 결정
+  const effectiveCompactMode = compactMode || isMobile;
   
   const generatePageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -158,6 +170,73 @@ export function AdvancedPagination({
     return null;
   }
 
+  // 모바일 컴팩트 모드
+  if (effectiveCompactMode) {
+    const totalItems = totalCount || totalElements || 0;
+    
+    return (
+      <div className={cn("flex flex-col gap-3 w-full", className)}>
+        {/* 모바일 페이지 네비게이션 */}
+        <div className="flex items-center justify-between">
+          <TouchButton
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageClick(currentPageDisplay - 1)}
+            disabled={currentPageDisplay <= 1}
+            ariaLabel="이전 페이지"
+            className="min-w-[60px]"
+          >
+            이전
+          </TouchButton>
+          
+          <div className="text-sm text-gray-600 px-3 text-center">
+            <div className="font-medium">{currentPageDisplay} / {totalPages}</div>
+            {totalItems > 0 && (
+              <div className="text-xs text-gray-500">
+                총 {totalItems.toLocaleString()}개
+              </div>
+            )}
+          </div>
+          
+          <TouchButton
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageClick(currentPageDisplay + 1)}
+            disabled={currentPageDisplay >= totalPages}
+            ariaLabel="다음 페이지"
+            className="min-w-[60px]"
+          >
+            다음
+          </TouchButton>
+        </div>
+        
+        {/* 모바일 페이지 크기 변경 */}
+        {showSizeChanger && onPageSizeChange && (
+          <div className="flex items-center justify-center gap-2 text-sm">
+            <Label htmlFor="page-size-mobile" className="text-xs text-gray-600">
+              페이지 크기:
+            </Label>
+            <Select 
+              value={pageSize.toString()} 
+              onValueChange={handlePageSizeChange}
+            >
+              <SelectTrigger id="page-size-mobile" className="w-20 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map(size => (
+                  <SelectItem key={size} value={size.toString()} className="text-xs">
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div 
       className={cn("flex flex-col gap-4", className)}
@@ -205,17 +284,17 @@ export function AdvancedPagination({
               {/* First page button */}
               {showFirstLast && (
                 <PaginationItem>
-                  <Button
+                  <TouchButton
                     variant="ghost"
                     size="icon"
                     onClick={() => handlePageClick(1)}
                     disabled={currentPageDisplay === 1}
                     className="h-9 w-9"
-                    aria-label="첫 페이지로 이동"
-                    title="첫 페이지로 이동 (Home 키)"
+                    ariaLabel="첫 페이지로 이동"
+                    hapticFeedback
                   >
                     <ChevronFirst className="h-4 w-4" />
-                  </Button>
+                  </TouchButton>
                 </PaginationItem>
               )}
 
@@ -276,17 +355,17 @@ export function AdvancedPagination({
               {/* Last page button */}
               {showFirstLast && (
                 <PaginationItem>
-                  <Button
+                  <TouchButton
                     variant="ghost"
                     size="icon"
                     onClick={() => handlePageClick(totalPages)}
                     disabled={currentPageDisplay === totalPages}
                     className="h-9 w-9"
-                    aria-label="마지막 페이지로 이동"
-                    title="마지막 페이지로 이동 (End 키)"
+                    ariaLabel="마지막 페이지로 이동"
+                    hapticFeedback
                   >
                     <ChevronLast className="h-4 w-4" />
-                  </Button>
+                  </TouchButton>
                 </PaginationItem>
               )}
             </PaginationContent>
@@ -311,14 +390,16 @@ export function AdvancedPagination({
                 placeholder={currentPageDisplay.toString()}
                 className="w-16 text-center"
               />
-              <Button
+              <TouchButton
                 variant="outline"
                 size="sm"
                 onClick={handleJumpToPage}
                 disabled={!jumpPage || parseInt(jumpPage) === currentPageDisplay}
+                ariaLabel="지정한 페이지로 이동"
+                hapticFeedback
               >
-                Go
-              </Button>
+                이동
+              </TouchButton>
             </div>
           </div>
         )}
