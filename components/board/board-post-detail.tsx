@@ -233,7 +233,7 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
 
   if (isLoading || !post) {
     return (
-      <div className="px-4">
+      <div className={cn("px-4", isMobile && "px-3")}>
         <div>
           {/* 뒤로 가기 버튼 스켈레톤 */}
           <Skeleton className="h-10 w-24 mb-6" />
@@ -418,20 +418,33 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
 
 
           {/* 좋아요 버튼 */}
-          <div className="flex justify-center mt-8 pt-6 border-t border-gray-200">
-            <Button
+          <div className={cn(
+            "flex justify-center border-t border-gray-200",
+            isMobile ? "mt-6 pt-4" : "mt-8 pt-6"
+          )}>
+            <TouchButton
               variant={likeUIState.isLiked ? "default" : "outline"}
-              size="lg"
+              size={isMobile ? "default" : "lg"}
               onClick={handleLikeToggle}
               disabled={likeUIState.isProcessing}
-              className={`px-8 py-3 text-base font-medium transition-all ${likeUIState.isLiked 
-                ? "bg-red-500 hover:bg-red-600 shadow-md" 
-                : "hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-              } ${likeUIState.isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+              loading={likeUIState.isProcessing}
+              className={cn(
+                "font-medium transition-all",
+                isMobile ? "px-6 py-2 text-sm" : "px-8 py-3 text-base",
+                likeUIState.isLiked 
+                  ? "bg-red-500 hover:bg-red-600 shadow-md" 
+                  : "hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+              )}
+              ariaLabel={`게시글 좋아요 ${likeUIState.isLiked ? '취소' : '추가'}`}
+              hapticFeedback
             >
-              <Heart className={`h-5 w-5 mr-2 ${likeUIState.isLiked ? 'fill-current' : ''}`} />
+              <Heart className={cn(
+                "mr-2",
+                isMobile ? "h-4 w-4" : "h-5 w-5",
+                likeUIState.isLiked && "fill-current"
+              )} />
               좋아요 {post.likeCount + likeUIState.pendingChange}
-            </Button>
+            </TouchButton>
           </div>
         </CardContent>
       </Card>

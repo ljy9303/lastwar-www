@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Pencil, ChevronUp, ChevronDown, Eye } from "lucide-react"
 import UserDetailModal from "./user-detail-modal"
 import { EmptyState } from "@/components/ui/empty-state"
+import { MobileUserTable } from "@/components/ui/mobile-user-table"
+import { useMobile } from "@/hooks/use-mobile"
 
 interface UserListProps {
   users: User[]
@@ -16,6 +18,7 @@ interface UserListProps {
 export function UserList({ users, onEdit }: UserListProps) {
   const [selectedUserSeq, setSelectedUserSeq] = useState<number | null>(null)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const isMobile = useMobile()
 
   // 전투력 포맷팅 함수 (1 = 1백만)
   const formatPower = (power: number): string => {
@@ -105,6 +108,11 @@ export function UserList({ users, onEdit }: UserListProps) {
         }}
       />
     )
+  }
+
+  // 모바일에서는 MobileUserTable 사용
+  if (isMobile) {
+    return <MobileUserTable users={users} onEdit={onEdit} />
   }
 
   return (

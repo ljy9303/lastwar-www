@@ -237,96 +237,116 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
     }
   }, [isLoading, posts]);
 
-  // 게시글 카드 컴포넌트 (그리드용 세로형)
+  // 게시글 카드 컴포넌트 (반응형 최적화)
   const PostCard = ({ post, isPinned = false }: { post: BoardPost; isPinned?: boolean }) => {
     // UI 상태 가져오기 (없으면 실제 데이터 기준)
     const uiState = likeUIStates[post.postId] || { isLiked: post.isLiked, pendingChange: 0 };
     
     return (
     <Card 
-      className="hover:shadow-md transition-shadow cursor-pointer h-full"
+      className="group hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer h-full border-0 shadow-sm bg-white dark:bg-gray-900"
       onClick={() => {
         saveScrollPosition();
         router.push(`/board/posts/${post.postId}`);
       }}
     >
-      <CardContent className="p-4 flex flex-col h-full">
-        {/* 1. 카테고리와 핀 정보 */}
-        <div className="flex items-center gap-2 mb-3">
-          {isPinned && <Pin className="h-4 w-4 text-orange-500" />}
-          {post.categoryName && (
-            <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-              {post.categoryName}
-            </Badge>
-          )}
-        </div>
-        
-        {/* 2. 썸네일 또는 텍스트 미리보기 */}
-        <div className="mb-3">
+      <CardContent className="p-0 flex flex-col h-full">
+        {/* 1. 썸네일 또는 텍스트 미리보기 - 반응형 종횡비 */}
+        <div className="relative overflow-hidden rounded-t-lg">
           {post.thumbnailUrl ? (
-            <img 
-              src={post.thumbnailUrl} 
-              alt="썸네일"
-              className="w-full h-32 object-cover rounded-md"
-            />
+            <div className="aspect-[16/9] sm:aspect-[4/3] md:aspect-[16/9] relative">
+              <img 
+                src={post.thumbnailUrl} 
+                alt="썸네일"
+                loading="lazy"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              {/* 오버레이 그라데이션 */}
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors duration-200" />
+            </div>
           ) : (
-            <div className="w-full h-32 bg-gray-50 rounded-md flex items-center justify-center p-4">
-              <p className="text-gray-600 text-sm line-clamp-4 text-center">
+            <div className="aspect-[16/9] sm:aspect-[4/3] md:aspect-[16/9] bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center p-4 sm:p-6">
+              <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base line-clamp-3 sm:line-clamp-4 text-center leading-relaxed">
                 {post.contentPreview || '내용 미리보기가 없습니다.'}
               </p>
             </div>
           )}
-        </div>
-        
-        {/* 3. 제목 */}
-        <h3 className="font-semibold text-lg mb-3 line-clamp-2 min-h-[3.5rem] text-gray-900">
-          {post.title}
-        </h3>
-        
-        {/* 작성자 정보 */}
-        <div className="mb-3">
-          <div className="flex items-center gap-1 text-sm text-gray-700">
-            <User className="h-3 w-3" />
-            {post.serverNumber && post.allianceTag && (
-              <span className="inline-block px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded border mr-1">
-                {post.serverNumber}서버 [{post.allianceTag}]
-              </span>
+          {/* 카테고리와 핀 정보 - 절대 위치 */}
+          <div className="absolute top-3 left-3 flex items-center gap-2">
+            {isPinned && (
+              <div className="bg-orange-500 text-white p-1.5 rounded-full shadow-lg">
+                <Pin className="h-3 w-3" />
+              </div>
             )}
-            <span className="font-medium">{post.authorName}</span>
+            {post.categoryName && (
+              <Badge variant="secondary" className="text-xs font-medium bg-white/90 backdrop-blur-sm text-blue-700 border-0 shadow-sm px-2 py-1">
+                {post.categoryName}
+              </Badge>
+            )}
           </div>
         </div>
         
-        {/* 하단: 메타데이터 */}
-        <div className="flex items-center justify-between text-sm text-gray-500 mt-auto pt-3 border-t">
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {formatDistanceToNow(new Date(post.createdAt), { 
-              addSuffix: true, 
-              locale: ko 
-            })}
-          </span>
+        {/* 2. 콘텐츠 영역 */}
+        <div className="p-4 sm:p-5 flex flex-col flex-1">
+          {/* 제목 - 반응형 텍스트 크기 */}
+          <h3 className="font-bold text-base sm:text-lg lg:text-xl mb-2 sm:mb-3 line-clamp-2 text-gray-900 dark:text-gray-100 leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+            {post.title}
+          </h3>
           
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
-              {post.viewCount}
+          {/* 작성자 정보 - 모바일 최적화 */}
+          <div className="mb-3 sm:mb-4">
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+              {post.serverNumber && post.allianceTag && (
+                <span className="inline-flex items-center px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800 mr-1 flex-shrink-0">
+                  {post.serverNumber}서버 [{post.allianceTag}]
+                </span>
+              )}
+              <span className="font-medium truncate">{post.authorName}</span>
+            </div>
+          </div>
+          
+          {/* 하단: 메타데이터 - 터치 친화적 */}
+          <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-auto pt-3 border-t border-gray-100 dark:border-gray-800">
+            <span className="flex items-center gap-1 flex-shrink-0">
+              <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden sm:inline">
+                {formatDistanceToNow(new Date(post.createdAt), { 
+                  addSuffix: true, 
+                  locale: ko 
+                })}
+              </span>
+              <span className="sm:hidden">
+                {formatDistanceToNow(new Date(post.createdAt), { 
+                  addSuffix: true, 
+                  locale: ko 
+                }).replace('약 ', '')}
+              </span>
             </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // 카드 클릭 이벤트 방지
-                handleLikeToggle(post.postId);
-              }}
-              className={`flex items-center gap-1 hover:text-red-500 transition-colors ${
-                uiState.isLiked ? 'text-red-500' : ''
-              }`}
-            >
-              <Heart className={`h-3 w-3 ${uiState.isLiked ? 'fill-current' : ''}`} />
-              {post.likeCount + uiState.pendingChange}
-            </button>
-            <span className="flex items-center gap-1">
-              <MessageCircle className="h-3 w-3" />
-              {post.commentCount}
-            </span>
+            
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="flex items-center gap-1">
+                <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="font-medium">{post.viewCount > 999 ? `${Math.floor(post.viewCount / 1000)}k` : post.viewCount}</span>
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLikeToggle(post.postId);
+                }}
+                className={`flex items-center gap-1 hover:text-red-500 transition-colors duration-200 min-h-[44px] sm:min-h-[auto] -m-2 p-2 sm:m-0 sm:p-0 ${
+                  uiState.isLiked ? 'text-red-500' : ''
+                }`}
+                aria-label={`좋아요 ${uiState.isLiked ? '취소' : '추가'}`}
+              >
+                <Heart className={`h-3 w-3 sm:h-3.5 sm:w-3.5 transition-all duration-200 ${uiState.isLiked ? 'fill-current scale-110' : 'hover:scale-110'}`} />
+                <span className="font-medium">{(post.likeCount + uiState.pendingChange) > 999 ? `${Math.floor((post.likeCount + uiState.pendingChange) / 1000)}k` : (post.likeCount + uiState.pendingChange)}</span>
+              </button>
+              <span className="flex items-center gap-1">
+                <MessageCircle className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="font-medium">{post.commentCount > 999 ? `${Math.floor(post.commentCount / 1000)}k` : post.commentCount}</span>
+              </span>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -350,42 +370,53 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
   }
 
   return (
-    <div className="px-4" ref={containerRef}>
+    <div className="px-3 sm:px-4 lg:px-6" ref={containerRef}>
       {/* 헤더 */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4 sm:mb-6">
         <div></div>
         {showCreateButton && (
-          <Button onClick={() => router.push('/board/posts/new')}>
+          <Button 
+            onClick={() => router.push('/board/posts/new')}
+            className="min-h-[44px] px-4 sm:px-6 font-medium"
+          >
             <Plus className="h-4 w-4 mr-2" />
-            글 쓰기
+            <span className="hidden xs:inline">글 쓰기</span>
+            <span className="xs:hidden">글쓰기</span>
           </Button>
         )}
       </div>
 
       {/* 검색 영역 */}
-      <Card className="mb-4">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
+      <Card className="mb-4 sm:mb-6">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* 검색 */}
-            <div className="flex-1 flex gap-2">
+            <div className="flex gap-2">
               <Input
                 placeholder="검색어를 입력하세요..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="min-h-[44px] text-base sm:text-sm"
               />
-              <Button onClick={handleSearch} variant="outline">
+              <Button 
+                onClick={handleSearch} 
+                variant="outline" 
+                size="icon"
+                className="min-h-[44px] min-w-[44px] flex-shrink-0"
+                aria-label="검색"
+              >
                 <Search className="h-4 w-4" />
               </Button>
             </div>
 
             {/* 정렬 옵션 */}
-            <div className="flex gap-2">
+            <div className="flex justify-end">
               <Select
                 value={filters.sortBy}
                 onValueChange={(value) => handleFilterChange('sortBy', value)}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-28 sm:w-32 min-h-[44px] text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -401,9 +432,9 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
       </Card>
 
       {/* 카테고리 탭 */}
-      <Card className="mb-6">
-        <CardContent className="p-2">
-          <div className="flex flex-wrap gap-2">
+      <Card className="mb-4 sm:mb-6">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <Button
               variant={!filters.categoryId ? "default" : "outline"}
               size="sm"
@@ -411,7 +442,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
                 handleFilterChange('categoryId', undefined);
                 onCategorySelect?.(undefined);
               }}
-              className="rounded-full"
+              className="rounded-full min-h-[36px] sm:min-h-[32px] px-3 sm:px-4 text-sm font-medium"
             >
               전체
             </Button>
@@ -424,7 +455,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
                   handleFilterChange('categoryId', category.categoryId);
                   onCategorySelect?.(category.categoryId);
                 }}
-                className="rounded-full"
+                className="rounded-full min-h-[36px] sm:min-h-[32px] px-3 sm:px-4 text-sm font-medium"
               >
                 {category.categoryName}
               </Button>
@@ -440,7 +471,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
             <Pin className="h-5 w-5 text-orange-500" />
             고정 게시글
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             {pinnedPosts.map(post => (
               <PostCard key={post.postId} post={post} isPinned />
             ))}
@@ -450,21 +481,37 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
 
       {/* 게시글 목록 */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-5 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="w-full h-32 rounded-md" />
-                  <div className="flex justify-between text-sm">
-                    <Skeleton className="h-4 w-16" />
-                    <div className="flex gap-4">
-                      <Skeleton className="h-4 w-12" />
-                      <Skeleton className="h-4 w-12" />
-                      <Skeleton className="h-4 w-12" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i} className="h-full border-0 shadow-sm">
+              <CardContent className="p-0">
+                <div className="space-y-0">
+                  {/* 썸네일 스켈레톤 */}
+                  <Skeleton className="w-full aspect-[16/9] sm:aspect-[4/3] md:aspect-[16/9] rounded-t-lg rounded-b-none" />
+                  
+                  {/* 콘텐츠 영역 */}
+                  <div className="p-4 sm:p-5 space-y-3">
+                    {/* 제목 */}
+                    <div className="space-y-2">
+                      <Skeleton className="h-5 sm:h-6 w-full" />
+                      <Skeleton className="h-5 sm:h-6 w-3/4" />
+                    </div>
+                    
+                    {/* 작성자 정보 */}
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-3 w-3 rounded-full" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    
+                    {/* 메타데이터 */}
+                    <div className="flex justify-between items-center pt-3 border-t">
+                      <Skeleton className="h-3 w-16" />
+                      <div className="flex gap-3">
+                        <Skeleton className="h-3 w-8" />
+                        <Skeleton className="h-3 w-8" />
+                        <Skeleton className="h-3 w-8" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -486,7 +533,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
             {posts.content.map(post => (
               <PostCard key={post.postId} post={post} />
             ))}
