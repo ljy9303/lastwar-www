@@ -5,6 +5,7 @@ import { DialogTrigger } from "@/components/ui/dialog"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { TouchButton } from "@/components/ui/touch-button"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -42,6 +43,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Pagination } from "@/components/ui/pagination"
 import { TableSkeleton } from "@/components/ui/table-skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import type { Desert, DesertResponse, DesertSearchParams } from "@/app/actions/event-actions"
 import { useMobile } from "@/hooks/use-mobile"
 import { DesertEditDialog } from "@/components/desert/desert-edit-dialog"
@@ -400,8 +402,45 @@ export default function EventsPage() {
   // 이 라인은 위에서 메모이즈된 버전으로 대체됨
 
   return (
-    <div className="container mx-auto">
-      <h1 className="text-3xl font-bold mb-6">사막전 관리</h1>
+    <div className="container mx-auto pb-20 sm:pb-6">
+      {/* 타이틀 영역 - 모바일 최적화 */}
+      {isMobile ? (
+        // 모바일 레이아웃: 세로 스택
+        <div className="space-y-4 mb-6">
+          {/* 카테고리 + 액션 버튼 */}
+          <div className="flex items-center justify-between">
+            <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-orange-200 text-xs px-2 py-0.5">
+              사막전 관리
+            </Badge>
+            <TouchButton
+              variant="default"
+              size="sm"
+              onClick={() => setIsCreateEventDialogOpen(true)}
+              ariaLabel="새로운 사막전 생성"
+              className="h-8 px-3 text-xs font-medium"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              새 사막전
+            </TouchButton>
+          </div>
+          
+          {/* 타이틀 */}
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">
+            사막전 관리
+          </h1>
+          
+          {/* 메타 정보 */}
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span>총 {deserts.length}개 이벤트</span>
+            {desertResponse && (
+              <span>{desertResponse.totalPages > 0 ? `페이지 ${desertResponse.number + 1}/${desertResponse.totalPages}` : '목록 없음'}</span>
+            )}
+          </div>
+        </div>
+      ) : (
+        // 데스크톱 레이아웃: 기존 방식 개선
+        <h1 className="text-2xl lg:text-3xl font-bold mb-6">사막전 관리</h1>
+      )}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="relative w-full flex flex-col sm:flex-row gap-2">
@@ -452,7 +491,10 @@ export default function EventsPage() {
         <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
           <DialogTrigger asChild>
             <TouchButton 
-              className="w-full sm:w-auto font-medium"
+              className={cn(
+                "font-medium",
+                isMobile ? "hidden" : "w-full sm:w-auto"
+              )}
               touchSize="large"
               ariaLabel="새로운 사막전 생성"
             >
@@ -692,46 +734,47 @@ export default function EventsPage() {
                               <MoreHorizontal className="h-5 w-5" />
                             </TouchButton>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="min-w-[160px]">
+                          <DropdownMenuContent align="end" className="min-w-[180px]">
                             <DropdownMenuItem 
                               onClick={() => handleEditDesert(desert)}
-                              className="min-h-[44px] px-3 py-2 cursor-pointer"
+                              className="min-h-[56px] px-4 py-3 cursor-pointer touch-manipulation active:bg-accent/80"
                             >
-                              <Edit className="h-4 w-4 mr-2" />
-                              수정
+                              <Edit className="h-5 w-5 mr-3" />
+                              <span className="text-base">수정</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/surveys')}
-                              className="min-h-[44px] px-3 py-2 cursor-pointer"
+                              className="min-h-[56px] px-4 py-3 cursor-pointer touch-manipulation active:bg-accent/80"
                             >
-                              <FileSpreadsheet className="h-4 w-4 mr-2" />
-                              사전조사
+                              <FileSpreadsheet className="h-5 w-5 mr-3" />
+                              <span className="text-base">사전조사</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/squads')}
-                              className="min-h-[44px] px-3 py-2 cursor-pointer"
+                              className="min-h-[56px] px-4 py-3 cursor-pointer touch-manipulation active:bg-accent/80"
                             >
-                              <UserSquare className="h-4 w-4 mr-2" />
-                              스쿼드
+                              <UserSquare className="h-5 w-5 mr-3" />
+                              <span className="text-base">스쿼드</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/desert-results')}
-                              className="min-h-[44px] px-3 py-2 cursor-pointer"
+                              className="min-h-[56px] px-4 py-3 cursor-pointer touch-manipulation active:bg-accent/80"
                             >
-                              <ClipboardList className="h-4 w-4 mr-2" />
-                              사막전 결과
+                              <ClipboardList className="h-5 w-5 mr-3" />
+                              <span className="text-base">사막전 결과</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : (
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-wrap justify-end gap-1">
                           <TouchButton 
                             variant="ghost" 
                             size="sm" 
                             onClick={() => handleEditDesert(desert)}
                             ariaLabel={`${desert.title} 사막전 수정`}
+                            className="text-xs px-2 py-1"
                           >
-                            <Edit className="h-4 w-4 mr-1" />
+                            <Edit className="h-3 w-3 mr-1" />
                             수정
                           </TouchButton>
                           <TouchButton 
@@ -739,8 +782,9 @@ export default function EventsPage() {
                             size="sm" 
                             onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/surveys')}
                             ariaLabel={`${desert.title} 사전조사 페이지로 이동`}
+                            className="text-xs px-2 py-1"
                           >
-                            <FileSpreadsheet className="h-4 w-4 mr-1" />
+                            <FileSpreadsheet className="h-3 w-3 mr-1" />
                             사전조사
                           </TouchButton>
                           <TouchButton 
@@ -748,8 +792,9 @@ export default function EventsPage() {
                             size="sm" 
                             onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/squads')}
                             ariaLabel={`${desert.title} 스쿼드 페이지로 이동`}
+                            className="text-xs px-2 py-1"
                           >
-                            <UserSquare className="h-4 w-4 mr-1" />
+                            <UserSquare className="h-3 w-3 mr-1" />
                             스쿼드
                           </TouchButton>
                           <TouchButton 
@@ -757,8 +802,9 @@ export default function EventsPage() {
                             size="sm" 
                             onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/desert-results')}
                             ariaLabel={`${desert.title} 사막전 결과 페이지로 이동`}
+                            className="text-xs px-2 py-1"
                           >
-                            <ClipboardList className="h-4 w-4 mr-1" />
+                            <ClipboardList className="h-3 w-3 mr-1" />
                             사막전 결과
                           </TouchButton>
                         </div>
@@ -812,6 +858,21 @@ export default function EventsPage() {
         onClose={handleEditCancel}
         onUpdate={handleDesertUpdate}
       />
+
+      {/* 모바일 FAB */}
+      {isMobile && (
+        <FloatingActionButton
+          icon={<Plus className="h-6 w-6" />}
+          label="새 사막전 생성"
+          variant="default"
+          size="lg"
+          position="bottom-right"
+          mobileOnly={true}
+          hideOnScroll={true}
+          onClick={() => setIsCreateEventDialogOpen(true)}
+          hapticFeedback={true}
+        />
+      )}
     </div>
   )
 }

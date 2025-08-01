@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { TouchButton } from "@/components/ui/touch-button"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +33,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useRequiredEvent } from "@/contexts/current-event-context"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { PositionStatusBoard } from "@/components/squad/position-status-board"
+import { useMobile } from "@/hooks/use-mobile"
 
 // 전투력 포맷팅 함수 (1 = 1백만)
 const formatPower = (power: number): string => {
@@ -182,6 +185,7 @@ export default function SquadsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { eventId, eventTitle, goBack } = useRequiredEvent()
+  const isMobile = useMobile()
 
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -1123,27 +1127,107 @@ export default function SquadsPage() {
   return (
     <TooltipProvider>
       <div className="container mx-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <h1 className="text-3xl font-bold">
-          {eventTitle || '스쿼드 관리'}
-        </h1>
-        <div className="ml-auto">
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={goBack}>
-              사막전 관리
-            </Button>
-            {eventId && (
-              <>
-                <Button variant="outline" onClick={() => router.push('/surveys')}>
-                  사전조사
-                </Button>
-                <Button variant="outline" onClick={() => router.push('/desert-results')}>
-                  사막전 결과
-                </Button>
-              </>
-            )}
+      {/* 타이틀 영역 - 모바일 최적화 */}
+      <div className={cn("mb-6", isMobile && "px-1")}>
+        {isMobile ? (
+          // 모바일 레이아웃: 세로 스택
+          <div className="space-y-4">
+            {/* 카테고리 + 액션 버튼 */}
+            <div className="flex items-center justify-between">
+              <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 text-xs px-2 py-0.5">
+                스쿼드 관리
+              </Badge>
+              <div className="flex gap-2">
+                <TouchButton
+                  variant="outline"
+                  size="sm"
+                  onClick={goBack}
+                  ariaLabel="사막전 관리로 돌아가기"
+                  className="h-8 px-3 text-xs"
+                >
+                  사막전 관리
+                </TouchButton>
+                {eventId && (
+                  <>
+                    <TouchButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push('/surveys')}
+                      ariaLabel="사전조사로 이동"
+                      className="h-8 px-3 text-xs"
+                    >
+                      사전조사
+                    </TouchButton>
+                    <TouchButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push('/desert-results')}
+                      ariaLabel="사막전 결과로 이동"
+                      className="h-8 px-3 text-xs"
+                    >
+                      결과
+                    </TouchButton>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {/* 타이틀 */}
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">
+              {eventTitle || '스쿼드 관리'}
+            </h1>
+            
+            {/* 메타 정보 */}
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <span>A조: {squadMembers.A_TEAM.length}명</span>
+              {selectedEvent?.eventType !== DesertEventType.A_TEAM_ONLY && (
+                <span>B조: {squadMembers.B_TEAM.length}명</span>
+              )}
+              <span>총 {
+                (squadMembers.A_TEAM?.length || 0) + 
+                (squadMembers.B_TEAM?.length || 0) + 
+                (squadMembers.A_RESERVE?.length || 0) + 
+                (squadMembers.B_RESERVE?.length || 0)
+              }명</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          // 데스크톱 레이아웃: 기존 방식 개선
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl lg:text-3xl font-bold">
+              {eventTitle || '스쿼드 관리'}
+            </h1>
+            <div className="ml-auto">
+              <div className="flex gap-2">
+                <TouchButton 
+                  variant="outline" 
+                  onClick={goBack}
+                  ariaLabel="사막전 관리로 돌아가기"
+                >
+                  사막전 관리
+                </TouchButton>
+                {eventId && (
+                  <>
+                    <TouchButton 
+                      variant="outline" 
+                      onClick={() => router.push('/surveys')}
+                      ariaLabel="사전조사로 이동"
+                    >
+                      사전조사
+                    </TouchButton>
+                    <TouchButton 
+                      variant="outline" 
+                      onClick={() => router.push('/desert-results')}
+                      ariaLabel="사막전 결과로 이동"
+                    >
+                      사막전 결과
+                    </TouchButton>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       {!eventId && (
