@@ -63,9 +63,13 @@ export function AdvancedPagination({
   className
 }: AdvancedPaginationProps) {
   const [jumpPage, setJumpPage] = React.useState("");
+  const isMobile = useMobile();
   
   // Convert 0-based API to 1-based UI
   const currentPageDisplay = currentPage + 1;
+  
+  // 효과적인 컴팩트 모드 결정
+  const effectiveCompactMode = compactMode || isMobile;
   
   const generatePageNumbers = () => {
     const pages: (number | string)[] = [];
