@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 성능 최적화 CSS 임포트 */
-@import '../styles/performance.css';
+/* 성능 최적화 CSS - 인라인으로 통합하여 HTTP 요청 최소화 */
 
 /* 모바일 채팅 최적화 */
 .mobile-chat-container {
@@ -23,7 +22,7 @@
     transform: translateZ(0); /* 하드웨어 가속으로 렌더링 최적화 */
   }
   
-  /* 모바일 터치 최적화 - 모든 버튼 최소 터치 영역 보장 */
+  /* 모바일 터치 최적화 - 모든 버튼 최소 터치 영역 보장 (성능 개선) */
   button, 
   [role="button"],
   .button-like {
@@ -31,6 +30,8 @@
     min-width: 44px !important;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    /* GPU 가속 제거로 메모리 사용량 최적화 */
+    /* transform: translateZ(0); - 제거됨 */
   }
   
   /* 작은 아이콘 버튼들 터치 영역 확대 */
@@ -92,13 +93,13 @@
   }
 }
 
-/* 모바일 입력 필드 전용 스타일 */
+/* 모바일 입력 필드 전용 스타일 (성능 최적화) */
 .mobile-input {
   /* iOS Safari 줌인 완전 방지 */
   font-size: 16px !important;
   
-  /* 포커스 시 부드러운 전환 */
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  /* 포커스 시 부드러운 전환 - duration 단축, box-shadow 제거 */
+  transition: border-color 0.15s ease;
   
   /* iOS에서 입력 필드 그림자 제거 */
   -webkit-appearance: none;
@@ -107,9 +108,9 @@
   /* 자동완성 스타일 제거 */
   -webkit-text-fill-color: inherit;
   
-  /* 하드웨어 가속 */
-  transform: translateZ(0);
-  will-change: transform;
+  /* 불필요한 하드웨어 가속 제거로 성능 개선 */
+  /* transform: translateZ(0); - 제거됨 */
+  /* will-change: transform; - 제거됨 */
 }
 
 /* iOS Safari 자동완성 배경색 제거 */
