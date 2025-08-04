@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { OptimizedTouchButton } from '@/components/ui/optimized-touch-button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -264,11 +265,29 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
         {/* 2. 썸네일 또는 텍스트 미리보기 */}
         <div className="mb-3">
           {post.thumbnailUrl ? (
-            <img 
-              src={post.thumbnailUrl} 
-              alt="썸네일"
-              className="w-full h-32 object-cover rounded-md"
-            />
+            <div className="relative w-full h-32 rounded-md overflow-hidden bg-gray-100">
+              <img 
+                src={post.thumbnailUrl} 
+                alt={post.title + " 썸네일"}
+                className="w-full h-full object-cover transition-transform hover:scale-105"
+                loading="lazy"
+                onError={(e) => {
+                  // 이미지 로딩 실패 시 대체 컨텐츠 표시
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div class="w-full h-full bg-gray-50 flex items-center justify-center p-4">
+                        <p class="text-gray-600 text-sm line-clamp-4 text-center">
+                          ${post.contentPreview || '이미지를 불러올 수 없습니다.'}
+                        </p>
+                      </div>
+                    `;
+                  }
+                }}
+              />
+            </div>
           ) : (
             <div className="w-full h-32 bg-gray-50 rounded-md flex items-center justify-center p-4">
               <p className="text-gray-600 text-sm line-clamp-4 text-center">
@@ -311,18 +330,20 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
               <Eye className="h-3 w-3" />
               {post.viewCount}
             </span>
-            <button
+            <OptimizedTouchButton
+              variant="ghost"
+              size="mobile-icon"
               onClick={(e) => {
                 e.stopPropagation(); // 카드 클릭 이벤트 방지
                 handleLikeToggle(post.postId);
               }}
-              className={`flex items-center gap-1 hover:text-red-500 transition-colors ${
+              className={`p-1 h-auto min-h-[44px] flex items-center gap-1 hover:text-red-500 transition-colors ${
                 uiState.isLiked ? 'text-red-500' : ''
               }`}
             >
               <Heart className={`h-3 w-3 ${uiState.isLiked ? 'fill-current' : ''}`} />
               {post.likeCount + uiState.pendingChange}
-            </button>
+            </OptimizedTouchButton>
             <span className="flex items-center gap-1">
               <MessageCircle className="h-3 w-3" />
               {post.commentCount}
@@ -355,10 +376,13 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
       <div className="flex justify-between items-center mb-6">
         <div></div>
         {showCreateButton && (
-          <Button onClick={() => router.push('/board/posts/new')}>
+          <OptimizedTouchButton 
+            size="mobile-default" 
+            onClick={() => router.push('/board/posts/new')}
+          >
             <Plus className="h-4 w-4 mr-2" />
             글 쓰기
-          </Button>
+          </OptimizedTouchButton>
         )}
       </div>
 
@@ -374,9 +398,13 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
-              <Button onClick={handleSearch} variant="outline">
+              <OptimizedTouchButton 
+                onClick={handleSearch} 
+                variant="outline"
+                size="mobile-default"
+              >
                 <Search className="h-4 w-4" />
-              </Button>
+              </OptimizedTouchButton>
             </div>
 
             {/* 정렬 옵션 */}
@@ -404,9 +432,9 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
       <Card className="mb-6">
         <CardContent className="p-2">
           <div className="flex flex-wrap gap-2">
-            <Button
+            <OptimizedTouchButton
               variant={!filters.categoryId ? "default" : "outline"}
-              size="sm"
+              size="mobile-sm"
               onClick={() => {
                 handleFilterChange('categoryId', undefined);
                 onCategorySelect?.(undefined);
@@ -414,12 +442,12 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
               className="rounded-full"
             >
               전체
-            </Button>
+            </OptimizedTouchButton>
             {categories.map(category => (
-              <Button
+              <OptimizedTouchButton
                 key={category.categoryId}
                 variant={filters.categoryId === category.categoryId ? "default" : "outline"}
-                size="sm"
+                size="mobile-sm"
                 onClick={() => {
                   handleFilterChange('categoryId', category.categoryId);
                   onCategorySelect?.(category.categoryId);
@@ -427,7 +455,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
                 className="rounded-full"
               >
                 {category.categoryName}
-              </Button>
+              </OptimizedTouchButton>
             ))}
           </div>
         </CardContent>

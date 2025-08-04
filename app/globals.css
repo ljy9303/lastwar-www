@@ -2,8 +2,75 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 성능 최적화 CSS 임포트 */
-@import '../styles/performance.css';
+/* 성능 최적화된 리플 애니메이션 */
+@keyframes ripple-animation {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* 터치 버튼 최적화 클래스 */
+.ripple-effect {
+  animation: ripple-animation 0.6s linear;
+  will-change: transform, opacity;
+}
+
+/* 모바일 터치 최적화 유틸리티 */
+@layer utilities {
+  .touch-optimized {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  .smooth-touch {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* 44px 최소 터치 영역 보장 */
+  .min-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 배터리 절약 애니메이션 */
+  .battery-friendly {
+    animation-duration: 0.3s;
+    animation-fill-mode: both;
+    transform: translateZ(0);
+  }
+}
+
+/* 성능 최적화된 리플 애니메이션 (OptimizedTouchButton용) */
+@keyframes ripple-animation {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.ripple-effect {
+  animation: ripple-animation 0.6s ease-out;
+}
 
 /* 모바일 채팅 최적화 */
 .mobile-chat-container {

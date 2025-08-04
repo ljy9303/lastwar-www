@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { OptimizedTouchButton } from "@/components/ui/optimized-touch-button"
+import { VirtualizedRosterTable } from "@/components/virtualized/virtualized-roster-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
@@ -488,15 +490,15 @@ export default function DesertResultsPage() {
         <h1 className="text-3xl font-bold">{eventTitle || '사막전 결과'}</h1>
         <div className="ml-auto">
           <div className="flex gap-2">
-            <Button variant="outline" onClick={goBack}>
+            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={goBack}>
               사막전 관리
-            </Button>
-            <Button variant="outline" onClick={() => router.push('/surveys')}>
+            </OptimizedTouchButton>
+            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => router.push('/surveys')}>
               사전조사
-            </Button>
-            <Button variant="outline" onClick={() => router.push('/squads')}>
+            </OptimizedTouchButton>
+            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => router.push('/squads')}>
               스쿼드 관리
-            </Button>
+            </OptimizedTouchButton>
           </div>
         </div>
       </div>
@@ -510,25 +512,25 @@ export default function DesertResultsPage() {
                 <CardDescription>사막전 참여자들의 출석 여부를 관리합니다.</CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button
+                <OptimizedTouchButton
                   variant="default"
+                  size="mobile-default"
                   onClick={saveAllChanges}
                   disabled={Object.keys(pendingChanges).length === 0 || isSaving}
-                  className="mr-2"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {isSaving ? "저장 중..." : `저장 (${Object.keys(pendingChanges).length})`}
-                </Button>
+                </OptimizedTouchButton>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
+                      <OptimizedTouchButton
                         variant="outline"
-                        size="icon"
+                        size="mobile-icon"
                         onClick={() => setShowOnlyParticipated(!showOnlyParticipated)}
                       >
                         <Filter className="h-4 w-4" />
-                      </Button>
+                      </OptimizedTouchButton>
                     </TooltipTrigger>
                     <TooltipContent>{showOnlyParticipated ? "모든 인원 표시" : "참여자만 표시"}</TooltipContent>
                   </Tooltip>
@@ -647,7 +649,8 @@ export default function DesertResultsPage() {
                   />
                 </div>
 
-                <Button
+                <OptimizedTouchButton
+                  size="mobile-default"
                   onClick={async () => {
                     if (!desertSeq || desertResultForm.desertResult === null) {
                       toast({
@@ -723,7 +726,7 @@ export default function DesertResultsPage() {
                       {activeTab === "a" ? "A팀" : "B팀"} 결과 저장
                     </>
                   )}
-                </Button>
+                </OptimizedTouchButton>
               </CardContent>
             </Card>
 
@@ -742,24 +745,26 @@ export default function DesertResultsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>
-                      <Button
+                      <OptimizedTouchButton
                         variant="ghost"
+                        size="mobile-sm"
                         className="h-auto p-0 font-medium hover:bg-transparent"
                         onClick={() => handleSort("name")}
                       >
                         닉네임
                         <ArrowUpDown className="ml-1 h-3 w-3" />
-                      </Button>
+                      </OptimizedTouchButton>
                     </TableHead>
                     <TableHead className="hidden sm:table-cell">
-                      <Button
+                      <OptimizedTouchButton
                         variant="ghost"
+                        size="mobile-sm"
                         className="h-auto p-0 font-medium hover:bg-transparent"
                         onClick={() => handleSort("team")}
                       >
                         팀
                         <ArrowUpDown className="ml-1 h-3 w-3" />
-                      </Button>
+                      </OptimizedTouchButton>
                     </TableHead>
                     <TableHead className="w-[100px]">참석여부</TableHead>
                     <TableHead className="hidden md:table-cell">비고</TableHead>
@@ -785,16 +790,16 @@ export default function DesertResultsPage() {
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">{getTeamName(result.desertType)}</TableCell>
                         <TableCell>
-                          <Button
+                          <OptimizedTouchButton
                             variant={result.isPlayed ? "default" : "outline"}
-                            size="sm"
-                            className={`w-20 h-8 transition-all ${
+                            size="mobile-sm"
+                            className={`w-20 h-11 md:h-8 transition-all ${
                               result.isPlayed ? "bg-green-500 hover:bg-green-600" : "text-gray-500 hover:text-gray-700"
                             }`}
                             onClick={() => handleParticipationChange(result.userSeq, !result.isPlayed)}
                           >
                             {result.isPlayed ? "참석" : "불참"}
-                          </Button>
+                          </OptimizedTouchButton>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <Input
