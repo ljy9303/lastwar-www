@@ -75,17 +75,36 @@ export default function KakaoCallbackPage() {
         // NextAuth 세션에서 사용자 정보 조회
         const { getSession } = await import("next-auth/react")
         const session = await getSession()
-        console.log('[Callback] NextAuth 세션:', session)
+        console.log('[Callback] NextAuth 세션 전체:', JSON.stringify(session, null, 2))
         
-        if (!session?.user) {
+        if (!session) {
+          throw new Error('NextAuth 세션이 생성되지 않음')
+        }
+        
+        if (!session.user) {
           throw new Error('NextAuth 세션 생성되었지만 사용자 정보 없음')
         }
+        
+        if (!session.user.id) {
+          throw new Error('NextAuth 세션에 사용자 ID가 없음')
+        }
+        
+        console.log('[Callback] 세션 사용자 정보:', {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+          userId: session.user.userId,
+          serverAllianceId: session.user.serverAllianceId,
+          role: session.user.role,
+          registrationComplete: session.user.registrationComplete,
+          requiresSignup: session.user.requiresSignup
+        })
         
         // LoginResponse 형태로 변환
         const loginResponse = {
           status: session.user.requiresSignup || !session.user.registrationComplete ? 'signup_required' : 'login',
           user: {
-            userId: parseInt(session.user.id),
+            userId: session.user.userId || parseInt(session.user.id),
             kakaoId: session.user.kakaoId || '',
             email: session.user.email || '',
             nickname: session.user.name || '',
@@ -93,7 +112,9 @@ export default function KakaoCallbackPage() {
             role: session.user.role || 'USER',
             status: 'ACTIVE',
             serverAllianceId: session.user.serverAllianceId,
-            registrationComplete: session.user.registrationComplete || false
+            registrationComplete: session.user.registrationComplete || false,
+            serverInfo: session.user.serverInfo,
+            allianceTag: session.user.allianceTag
           },
           message: session.user.requiresSignup ? '회원가입이 필요합니다' : '로그인 성공'
         }

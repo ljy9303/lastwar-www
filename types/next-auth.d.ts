@@ -15,6 +15,9 @@ declare module "next-auth" {
       registrationComplete?: boolean
       serverInfo?: number
       allianceTag?: string
+      userId?: number
+      kakaoId?: string
+      requiresSignup?: boolean
     }
   }
 
@@ -30,6 +33,9 @@ declare module "next-auth" {
     registrationComplete?: boolean
     serverInfo?: number
     allianceTag?: string
+    userId?: number
+    kakaoId?: string
+    requiresSignup?: boolean
   }
 }
 
@@ -42,5 +48,8 @@ declare module "next-auth/jwt" {
     registrationComplete?: boolean
     serverInfo?: number
     allianceTag?: string
+    userId?: number
+    kakaoId?: string
+    requiresSignup?: boolean
   }
 }

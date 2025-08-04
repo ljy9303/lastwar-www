@@ -56,41 +56,48 @@ const authOptions: AuthOptions = {
 
           if (data.status === 'login') {
             console.log('[NextAuth Kakao] 로그인 성공 - 사용자 객체 생성')
+            console.log('[NextAuth Kakao] 백엔드 응답 data.user:', data.user)
+            
             // 기존 회원: JWT 토큰과 함께 로그인 완료 (OAuth 인가코드는 저장하지 않음)
             const userObj = {
               id: data.user.userId.toString(),
-              email: data.user.email,
-              name: data.user.nickname,
+              email: data.user.email || '',
+              name: data.user.nickname || '',
               image: data.user.profileImageUrl,
               accessToken: data.accessToken, // 백엔드에서 발급한 JWT 토큰
               serverAllianceId: data.user.serverAllianceId,
-              role: data.user.role,
-              registrationComplete: data.user.registrationComplete,
+              role: data.user.role || 'USER',
+              registrationComplete: data.user.registrationComplete || false,
               serverInfo: data.user.serverInfo,
               allianceTag: data.user.allianceTag,
               userId: data.user.userId,
-              kakaoId: data.user.kakaoId
+              kakaoId: data.user.kakaoId || '',
+              requiresSignup: false
             }
             console.log('[NextAuth Kakao] 생성된 사용자 객체:', userObj)
             return userObj
           } else if (data.status === 'signup_required') {
             // 신규 회원: 임시 객체 반환하되 registrationComplete = false로 마킹
             console.log('[NextAuth Kakao] 회원가입 필요 - 임시 사용자 객체 반환')
-            return {
+            console.log('[NextAuth Kakao] 회원가입 필요 data.user:', data.user)
+            
+            const signupUserObj = {
               id: data.user.userId.toString(),
-              email: data.user.email,
-              name: data.user.nickname,
+              email: data.user.email || '',
+              name: data.user.nickname || '',
               image: data.user.profileImageUrl,
               accessToken: null, // 회원가입 완료 전까지는 토큰 없음
               serverAllianceId: data.user.serverAllianceId,
-              role: data.user.role,
+              role: data.user.role || 'USER',
               registrationComplete: false, // 회원가입 필요 플래그
               serverInfo: data.user.serverInfo,
               allianceTag: data.user.allianceTag,
               userId: data.user.userId,
-              kakaoId: data.user.kakaoId,
+              kakaoId: data.user.kakaoId || '',
               requiresSignup: true // 추가 플래그
             }
+            console.log('[NextAuth Kakao] 회원가입 필요 사용자 객체:', signupUserObj)
+            return signupUserObj
           } else {
             console.error('[NextAuth Kakao] 알 수 없는 상태:', data.status)
             return null
@@ -139,19 +146,22 @@ const authOptions: AuthOptions = {
 
           if (response.ok && data.status === 'login') {
             console.log('[NextAuth Test] 로그인 성공 - 사용자 객체 생성')
+            console.log('[NextAuth Test] 백엔드 응답 data.user:', data.user)
+            
             const userObj = {
               id: data.user.userId.toString(),
-              email: data.user.email,
-              name: data.user.nickname,
+              email: data.user.email || '',
+              name: data.user.nickname || '',
               image: data.user.profileImageUrl,
               accessToken: data.accessToken, // 백엔드에서 발급한 JWT 토큰만 저장
               serverAllianceId: data.user.serverAllianceId,
-              role: data.user.role,
-              registrationComplete: data.user.registrationComplete,
+              role: data.user.role || 'USER',
+              registrationComplete: data.user.registrationComplete || false,
               serverInfo: data.user.serverInfo,
               allianceTag: data.user.allianceTag,
               userId: data.user.userId,
-              kakaoId: data.user.kakaoId
+              kakaoId: data.user.kakaoId || '',
+              requiresSignup: false
             }
             console.log('[NextAuth Test] 생성된 사용자 객체:', userObj)
             return userObj
@@ -174,31 +184,89 @@ const authOptions: AuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      console.log('[NextAuth JWT] JWT 콜백 호출 - user:', user ? 'user 객체 있음' : 'user 객체 없음')
+      console.log('[NextAuth JWT] 기존 token:', { sub: token.sub, email: token.email })
+      
       if (user) {
+        console.log('[NextAuth JWT] 사용자 로그인 - user 데이터:', {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          userId: user.userId,
+          kakaoId: user.kakaoId,
+          serverAllianceId: user.serverAllianceId,
+          role: user.role,
+          registrationComplete: user.registrationComplete
+        })
+        
+        // NextAuth의 기본 필드 설정
+        token.sub = user.id  // 중요: sub 필드를 명시적으로 설정
+        token.email = user.email
+        token.name = user.name
+        token.picture = user.image
+        
+        // 커스텀 필드들 추가
         token.accessToken = user.accessToken
         token.serverAllianceId = user.serverAllianceId
         token.role = user.role
         token.registrationComplete = user.registrationComplete
         token.serverInfo = user.serverInfo
         token.allianceTag = user.allianceTag
-        token.userId = user.id
+        token.userId = user.userId
         token.kakaoId = user.kakaoId
         token.requiresSignup = user.requiresSignup
+        
+        console.log('[NextAuth JWT] 토큰에 저장된 데이터:', {
+          sub: token.sub,
+          email: token.email,
+          name: token.name,
+          userId: token.userId,
+          serverAllianceId: token.serverAllianceId,
+          role: token.role
+        })
       }
+      
       return token
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken
-      session.user.id = token.sub
-      session.user.userId = token.userId
-      session.user.kakaoId = token.kakaoId
-      session.user.nickname = session.user.name  // name을 nickname으로도 사용
-      session.user.serverAllianceId = token.serverAllianceId
-      session.user.role = token.role
-      session.user.registrationComplete = token.registrationComplete
-      session.user.serverInfo = token.serverInfo
-      session.user.allianceTag = token.allianceTag
-      session.user.requiresSignup = token.requiresSignup
+      console.log('[NextAuth Session] 세션 콜백 호출 - token:', {
+        sub: token.sub,
+        email: token.email,
+        name: token.name,
+        userId: token.userId,
+        serverAllianceId: token.serverAllianceId
+      })
+      
+      // 기본 세션 정보 설정
+      if (token.sub) {
+        session.user.id = token.sub
+        session.user.email = token.email as string
+        session.user.name = token.name as string
+        session.user.nickname = token.name as string  // name을 nickname으로도 사용
+        session.user.image = token.picture as string
+      }
+      
+      // 커스텀 필드들 추가
+      session.accessToken = token.accessToken as string
+      session.user.userId = token.userId as number
+      session.user.kakaoId = token.kakaoId as string
+      session.user.serverAllianceId = token.serverAllianceId as number
+      session.user.role = token.role as string
+      session.user.registrationComplete = token.registrationComplete as boolean
+      session.user.serverInfo = token.serverInfo as number
+      session.user.allianceTag = token.allianceTag as string
+      session.user.requiresSignup = token.requiresSignup as boolean
+      
+      console.log('[NextAuth Session] 최종 세션 데이터:', {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        userId: session.user.userId,
+        serverAllianceId: session.user.serverAllianceId,
+        role: session.user.role,
+        registrationComplete: session.user.registrationComplete
+      })
+      
       return session
     }
   },
