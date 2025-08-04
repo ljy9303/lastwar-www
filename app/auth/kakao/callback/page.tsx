@@ -72,13 +72,32 @@ export default function KakaoCallbackPage() {
           throw new Error('NextAuth 세션 생성 실패: ' + (signInResult?.error || '알 수 없는 오류'))
         }
         
-        // NextAuth 세션에서 사용자 정보 조회
+        // NextAuth 세션에서 사용자 정보 조회 (재시도 로직 포함)
         const { getSession } = await import("next-auth/react")
-        const session = await getSession()
-        console.log('[Callback] NextAuth 세션:', session)
+        
+        let session = null
+        let retryCount = 0
+        const maxRetries = 3
+        
+        while (!session?.user && retryCount < maxRetries) {
+          session = await getSession()
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Callback] NextAuth 세션 시도 ${retryCount + 1}:`, session)
+          }
+          
+          if (!session?.user) {
+            retryCount++
+            if (retryCount < maxRetries) {
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[Callback] 세션 조회 재시도 ${retryCount}/${maxRetries} (500ms 대기)`)
+              }
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
+          }
+        }
         
         if (!session?.user) {
-          throw new Error('NextAuth 세션 생성되었지만 사용자 정보 없음')
+          throw new Error('NextAuth 세션 생성되었지만 사용자 정보 없음 (재시도 완료)')
         }
         
         // LoginResponse 형태로 변환
