@@ -713,6 +713,49 @@ body {
     word-break: keep-all;
     overflow-wrap: break-word;
   }
+  
+  /* 댓글 모바일 최적화 */
+  .comment-content {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+  }
+  
+  /* 댓글 작성자 정보 */
+  .comment-author-info {
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+  
+  /* 댓글 액션 버튼들 */
+  .comment-actions {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  /* 대댓글 들여쓰기 모바일 최적화 */
+  .comment-reply-indent {
+    margin-left: 1rem; /* 16px */
+    border-left-width: 2px;
+    padding-left: 0.75rem; /* 12px */
+  }
+  
+  /* 댓글 입력 영역 모바일 최적화 */
+  .comment-input-area {
+    padding: 1rem;
+  }
+  
+  /* 답글 입력 영역 */
+  .reply-input-area {
+    margin-left: 1rem;
+    padding: 0.75rem;
+  }
+  
+  /* 댓글 수정 폼 */
+  .comment-edit-form {
+    margin-left: 1rem;
+    padding: 0.75rem;
+  }
 }
 
 /* 태블릿 최적화 */

@@ -54,7 +54,7 @@ export default function Sidebar() {
   const [open, setOpen] = useState(false)
   const isMobile = useMobile()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [pendingCount, setPendingCount] = useState(3)
+  const [pendingCount, setPendingCount] = useState(0)
   const { data: session, update: updateSession } = useSession()
   const isAdmin = useIsAdmin()
   
@@ -344,13 +344,10 @@ export default function Sidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[80%] max-w-[300px] p-0">
-            <div className="p-4 border-b flex items-center justify-between">
+            <div className="p-4 border-b">
               <h1 className="text-xl font-bold">
                 {user?.serverInfo && user?.allianceTag ? `${user.serverInfo} ${user.allianceTag}` : "1242 ROKK"}
               </h1>
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
-                <X className="h-5 w-5" />
-              </Button>
             </div>
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
               {allNavItems.map((item) => (

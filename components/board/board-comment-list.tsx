@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { OptimizedTouchButton } from '@/components/ui/optimized-touch-button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,10 +18,12 @@ import {
   Send,
   User
 } from 'lucide-react';
+import { useMobile } from '@/hooks/use-mobile';
 import { boardApi } from '@/lib/board-api';
 import { BoardComment, BoardCommentRequest } from '@/types/board';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface BoardCommentListProps {
   postId: number;
@@ -78,6 +81,7 @@ function CommentItem({
   onCancelReply,
   onCancelEdit
 }: CommentItemProps) {
+  const isMobile = useMobile();
   const isAuthor = currentUserId === comment.userId;
   const isPostAuthor = postAuthorId === comment.userId; // 게시글 작성자 여부
   const isDeleted = comment.commentStatus === 'DELETED';
@@ -85,41 +89,66 @@ function CommentItem({
   // UI 상태 가져오기 (없으면 실제 데이터 기준)
   const uiState = commentLikeUIStates[comment.commentId] || { isLiked: comment.isLiked, pendingChange: 0 };
 
-  // 대댓글인 경우 들여쓰기 적용
-  const marginLeft = isReply ? 48 : 0; // 대댓글은 48px 들여쓰기
+  // 대댓글인 경우 들여쓰기 적용 - 모바일에서는 더 작게
+  const marginLeft = isReply ? (isMobile ? 16 : 48) : 0;
   const showBorder = isReply;
 
   return (
     <div 
-      className={`px-6 py-5 transition-colors hover:bg-gray-50 ${showBorder ? 'border-l-2 border-gray-200 bg-gray-50' : ''}`}
+      className={cn(
+        "transition-colors hover:bg-gray-50",
+        // 모바일 최적화된 패딩
+        isMobile ? "px-4 py-4" : "px-6 py-5",
+        showBorder && "border-l-2 border-gray-200 bg-gray-50"
+      )}
       style={{ marginLeft: `${marginLeft}px` }}
     >
-      <div className="flex gap-4">
-        {/* 프로필 */}
-        <Avatar className="w-10 h-10 shrink-0">
+      <div className={cn("flex gap-3", isMobile && "gap-2")}>
+        {/* 프로필 - 모바일에서 크기 조정 */}
+        <Avatar className={cn("shrink-0", isMobile ? "w-8 h-8" : "w-10 h-10")}>
           <AvatarImage src={comment.authorProfileImageUrl} />
           <AvatarFallback className="bg-blue-100 text-blue-700">
-            <User className="h-5 w-5" />
+            <User className={cn(isMobile ? "h-4 w-4" : "h-5 w-5")} />
           </AvatarFallback>
         </Avatar>
 
         <div className="flex-1 min-w-0">
-          {/* 작성자 정보 */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center gap-2">
+          {/* 작성자 정보 - 모바일에서 세로 배치 고려 */}
+          <div className={cn(
+            "mb-2",
+            isMobile ? "space-y-1" : "flex items-center gap-3"
+          )}>
+            <div className={cn(
+              "flex items-center flex-wrap comment-author-info",
+              isMobile ? "gap-1.5" : "gap-2"
+            )}>
               {comment.serverNumber && comment.allianceTag && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                <Badge variant="outline" className={cn(
+                  "bg-blue-50 text-blue-700",
+                  isMobile ? "text-xs px-1.5 py-0.5" : "text-xs"
+                )}>
                   {comment.serverNumber}서버 [{comment.allianceTag}]
                 </Badge>
               )}
-              <span className="font-semibold text-gray-900">{comment.authorName}</span>
+              <span className={cn(
+                "font-semibold text-gray-900",
+                isMobile ? "text-sm" : "text-base"
+              )}>
+                {comment.authorName}
+              </span>
               {isPostAuthor && (
-                <Badge className="text-xs bg-green-500 text-white">
+                <Badge className={cn(
+                  "bg-green-500 text-white",
+                  isMobile ? "text-xs px-1.5 py-0.5" : "text-xs"
+                )}>
                   작성자
                 </Badge>
               )}
             </div>
-            <span className="text-sm text-gray-500">
+            <span className={cn(
+              "text-gray-500",
+              isMobile ? "text-xs" : "text-sm"
+            )}>
               {formatDistanceToNow(new Date(comment.createdAt), { 
                 addSuffix: true, 
                 locale: ko 
@@ -128,111 +157,186 @@ function CommentItem({
           </div>
 
           {/* 댓글 내용 */}
-          <div className="mb-4">
-            <p className={`whitespace-pre-wrap leading-relaxed ${
+          <div className={cn(
+            "mb-3 comment-content", 
+            isMobile && "mb-2"
+          )}>
+            <p className={cn(
+              "whitespace-pre-wrap leading-relaxed",
+              isMobile ? "text-sm" : "text-base",
               isDeleted ? 'text-gray-500 italic' : 'text-gray-800'
-            }`}>
+            )}>
               {comment.content}
             </p>
           </div>
 
-          {/* 액션 버튼들 - 삭제된 댓글에도 표시 */}
-          <div className="flex items-center gap-6 text-sm">
-            <button
+          {/* 액션 버튼들 - 모바일 최적화된 터치 버튼 */}
+          <div className={cn(
+            "flex items-center text-sm comment-actions",
+            isMobile ? "gap-1 flex-wrap" : "gap-6"
+          )}>
+            <OptimizedTouchButton
+              variant="ghost"
+              size={isMobile ? "mobile-sm" : "sm"}
               onClick={() => onLike(comment.commentId)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
+              className={cn(
+                "transition-all",
                 uiState.isLiked 
                   ? 'text-red-600 bg-red-50 hover:bg-red-100' 
-                  : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-              }`}
+                  : 'text-gray-500 hover:text-red-600 hover:bg-red-50',
+                isMobile ? "px-2 py-1.5 min-w-[60px]" : "px-2 py-1"
+              )}
             >
-              <Heart className={`h-4 w-4 ${uiState.isLiked ? 'fill-current' : ''}`} />
-              <span className="font-medium">
+              <Heart className={cn(
+                uiState.isLiked ? 'fill-current' : '',
+                isMobile ? "h-3.5 w-3.5" : "h-4 w-4"
+              )} />
+              <span className={cn(
+                "font-medium",
+                isMobile ? "text-xs" : "text-sm"
+              )}>
                 {(comment.likeCount + uiState.pendingChange) > 0 ? (comment.likeCount + uiState.pendingChange) : '좋아요'}
               </span>
-            </button>
+            </OptimizedTouchButton>
 
             {currentUserId && !isReply && (
-              <button
+              <OptimizedTouchButton
+                variant="ghost"
+                size={isMobile ? "mobile-sm" : "sm"}
                 onClick={() => onReply(comment.commentId)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                className={cn(
+                  "text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all",
+                  isMobile ? "px-2 py-1.5" : "px-2 py-1"
+                )}
               >
-                <Reply className="h-4 w-4" />
-                <span className="font-medium">답글</span>
-              </button>
+                <Reply className={cn(isMobile ? "h-3.5 w-3.5" : "h-4 w-4")} />
+                <span className={cn(
+                  "font-medium",
+                  isMobile ? "text-xs" : "text-sm"
+                )}>
+                  답글
+                </span>
+              </OptimizedTouchButton>
             )}
 
             {isAuthor && (
-              <div className="flex items-center gap-3">
+              <div className={cn(
+                "flex items-center",
+                isMobile ? "gap-1" : "gap-3"
+              )}>
                 {!isDeleted ? (
                   <>
-                    <button
+                    <OptimizedTouchButton
+                      variant="ghost"
+                      size={isMobile ? "mobile-sm" : "sm"}
                       onClick={() => onEdit(comment)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                      className={cn(
+                        "text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all",
+                        isMobile ? "px-2 py-1.5" : "px-2 py-1"
+                      )}
                     >
-                      <Edit className="h-4 w-4" />
-                      <span className="font-medium">수정</span>
-                    </button>
-                    <button
+                      <Edit className={cn(isMobile ? "h-3.5 w-3.5" : "h-4 w-4")} />
+                      <span className={cn(
+                        "font-medium",
+                        isMobile ? "text-xs" : "text-sm"
+                      )}>
+                        수정
+                      </span>
+                    </OptimizedTouchButton>
+                    <OptimizedTouchButton
+                      variant="ghost"
+                      size={isMobile ? "mobile-sm" : "sm"}
                       onClick={() => onDelete(comment.commentId)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all"
+                      className={cn(
+                        "text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all",
+                        isMobile ? "px-2 py-1.5" : "px-2 py-1"
+                      )}
                     >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="font-medium">삭제</span>
-                    </button>
+                      <Trash2 className={cn(isMobile ? "h-3.5 w-3.5" : "h-4 w-4")} />
+                      <span className={cn(
+                        "font-medium",
+                        isMobile ? "text-xs" : "text-sm"
+                      )}>
+                        삭제
+                      </span>
+                    </OptimizedTouchButton>
                   </>
                 ) : (
-                  <button
+                  <OptimizedTouchButton
+                    variant="ghost"
+                    size={isMobile ? "mobile-sm" : "sm"}
                     onClick={() => onEdit(comment)} // 원복 기능으로 활용
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-md text-gray-500 hover:text-green-600 hover:bg-green-50 transition-all"
+                    className={cn(
+                      "text-gray-500 hover:text-green-600 hover:bg-green-50 transition-all",
+                      isMobile ? "px-2 py-1.5" : "px-2 py-1"
+                    )}
                   >
-                    <Edit className="h-4 w-4" />
-                    <span className="font-medium">원복</span>
-                  </button>
+                    <Edit className={cn(isMobile ? "h-3.5 w-3.5" : "h-4 w-4")} />
+                    <span className={cn(
+                      "font-medium",
+                      isMobile ? "text-xs" : "text-sm"
+                    )}>
+                      원복
+                    </span>
+                  </OptimizedTouchButton>
                 )}
               </div>
             )}
           </div>
 
 
-          {/* 댓글 수정/원복 폼 */}
+          {/* 댓글 수정/원복 폼 - 모바일 최적화 */}
           {editingComment?.commentId === comment.commentId && (
-            <div className={`mt-4 px-6 py-4 border-l-2 ${
-              editingComment.commentStatus === 'DELETED' 
-                ? 'bg-green-50 border-green-200' 
-                : 'bg-yellow-50 border-yellow-200'
-            }`} style={{ marginLeft: isReply ? '48px' : '0px' }}>
-              <div className="space-y-4">
+            <div 
+              className={cn(
+                "mt-4 border-l-2",
+                isMobile ? "px-3 py-3" : "px-6 py-4",
+                editingComment.commentStatus === 'DELETED' 
+                  ? 'bg-green-50 border-green-200' 
+                  : 'bg-yellow-50 border-yellow-200'
+              )} 
+              style={{ marginLeft: isReply ? (isMobile ? '16px' : '48px') : '0px' }}
+            >
+              <div className={cn("space-y-3", isMobile && "space-y-2")}>
                 <Textarea
                   placeholder={editingComment.commentStatus === 'DELETED' 
                     ? "댓글을 원복할 새로운 내용을 입력하세요..." 
                     : "댓글 수정..."}
                   value={editContent}
                   onChange={(e) => onEditContentChange(e.target.value)}
-                  className={`min-h-[80px] bg-white border-gray-200 focus:ring-2 focus:border-transparent ${
+                  className={cn(
+                    "bg-white border-gray-200 focus:ring-2 focus:border-transparent",
+                    isMobile ? "min-h-[60px] text-base" : "min-h-[80px]", // 모바일에서 16px 최소 폰트
                     editingComment.commentStatus === 'DELETED' 
                       ? 'focus:ring-green-500' 
                       : 'focus:ring-yellow-500'
-                  }`}
+                  )}
+                  style={{ fontSize: isMobile ? '16px' : undefined }} // iOS Safari 줌인 방지
                 />
-                <div className="flex gap-2 justify-end">
-                  <Button
+                <div className={cn(
+                  "flex justify-end",
+                  isMobile ? "gap-2" : "gap-2"
+                )}>
+                  <OptimizedTouchButton
                     variant="outline"
-                    size="sm"
+                    size={isMobile ? "mobile-sm" : "sm"}
                     onClick={onCancelEdit}
                   >
                     취소
-                  </Button>
-                  <Button
-                    size="sm"
+                  </OptimizedTouchButton>
+                  <OptimizedTouchButton
+                    size={isMobile ? "mobile-sm" : "sm"}
                     onClick={onUpdateComment}
                     disabled={!editContent.trim() || isSubmitting}
-                    className={editingComment.commentStatus === 'DELETED' 
-                      ? "bg-green-600 hover:bg-green-700 text-white" 
-                      : "bg-yellow-600 hover:bg-yellow-700 text-white"}
+                    className={cn(
+                      "text-white",
+                      editingComment.commentStatus === 'DELETED' 
+                        ? "bg-green-600 hover:bg-green-700" 
+                        : "bg-yellow-600 hover:bg-yellow-700"
+                    )}
                   >
                     {editingComment.commentStatus === 'DELETED' ? '원복 완료' : '수정 완료'}
-                  </Button>
+                  </OptimizedTouchButton>
                 </div>
               </div>
             </div>
@@ -251,6 +355,7 @@ export function BoardCommentList({
   isLoading, 
   onCommentsUpdate 
 }: BoardCommentListProps) {
+  const isMobile = useMobile();
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -493,61 +598,81 @@ export function BoardCommentList({
 
   return (
     <Card>
-      {/* 댓글 헤더 */}
-      <CardHeader className="pb-4 border-b">
-        <CardTitle className="flex items-center gap-2 text-xl text-gray-900">
-          <MessageCircle className="h-5 w-5" />
+      {/* 댓글 헤더 - 모바일 최적화 */}
+      <CardHeader className={cn(
+        "border-b",
+        isMobile ? "pb-3 px-4" : "pb-4"
+      )}>
+        <CardTitle className={cn(
+          "flex items-center gap-2 text-gray-900",
+          isMobile ? "text-lg" : "text-xl"
+        )}>
+          <MessageCircle className={cn(isMobile ? "h-4 w-4" : "h-5 w-5")} />
           댓글 {getTotalCommentCount(localComments)}개
         </CardTitle>
       </CardHeader>
 
       <CardContent className="p-0">
-        {/* 새 댓글 작성 */}
+        {/* 새 댓글 작성 - 모바일 최적화 */}
         {currentUserId && (
-          <div className="p-6 border-b bg-gray-50">
-            <div className="space-y-4">
+          <div className={cn(
+            "border-b bg-gray-50",
+            isMobile ? "p-4" : "p-6"
+          )}>
+            <div className={cn("space-y-3", isMobile && "space-y-3")}>
               <Textarea
                 placeholder="댓글을 작성해주세요..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="min-h-[100px] bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={cn(
+                  "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                  isMobile ? "min-h-[80px] text-base" : "min-h-[100px]"
+                )}
+                style={{ fontSize: isMobile ? '16px' : undefined }} // iOS Safari 줌인 방지
               />
               <div className="flex justify-end">
-                <Button 
+                <OptimizedTouchButton 
                   onClick={handleSubmitComment}
                   disabled={!newComment.trim() || isSubmitting}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  size={isMobile ? "mobile-default" : "default"}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 >
-                  <Send className="h-4 w-4 mr-2" />
+                  <Send className={cn(isMobile ? "h-4 w-4 mr-2" : "h-4 w-4 mr-2")} />
                   댓글 작성
-                </Button>
+                </OptimizedTouchButton>
               </div>
             </div>
           </div>
         )}
-        {/* 댓글 목록 */}
+        {/* 댓글 목록 - 모바일 최적화 */}
         {isLoading ? (
-          <div className="space-y-6 p-6">
+          <div className={cn(
+            "space-y-6",
+            isMobile ? "p-4" : "p-6"
+          )}>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex gap-4">
-                <Skeleton className="w-10 h-10 rounded-full" />
+              <div key={i} className={cn("flex", isMobile ? "gap-2" : "gap-4")}>
+                <Skeleton className={cn(
+                  "rounded-full",
+                  isMobile ? "w-8 h-8" : "w-10 h-10"
+                )} />
                 <div className="flex-1 space-y-3">
                   <div className="flex gap-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className={cn(isMobile ? "h-3 w-20" : "h-4 w-24")} />
+                    <Skeleton className={cn(isMobile ? "h-3 w-16" : "h-4 w-20")} />
                   </div>
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className={cn(isMobile ? "h-3 w-full" : "h-4 w-full")} />
+                  <Skeleton className={cn(isMobile ? "h-3 w-3/4" : "h-4 w-3/4")} />
                   <div className="flex gap-4">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className={cn(isMobile ? "h-3 w-12" : "h-4 w-16")} />
+                    <Skeleton className={cn(isMobile ? "h-3 w-8" : "h-4 w-12")} />
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : localComments.length === 0 ? (
-          <div className="p-12">
+          <div className={cn(isMobile ? "p-8" : "p-12")}>
             <EmptyState
               title="댓글이 없습니다"
               description="첫 번째 댓글을 작성해보세요!"
@@ -612,33 +737,46 @@ export function BoardCommentList({
                   </div>
                 )}
 
-                {/* 답글 작성 폼 - 대댓글 목록 하단에 표시 */}
+                {/* 답글 작성 폼 - 모바일 최적화 */}
                 {replyingTo === comment.commentId && (
-                  <div className="mt-4 px-6 py-4 border-l-2 border-blue-200 bg-blue-50" style={{ marginLeft: '48px' }}>
-                    <div className="space-y-4">
+                  <div 
+                    className={cn(
+                      "mt-4 border-l-2 border-blue-200 bg-blue-50",
+                      isMobile ? "px-3 py-3" : "px-6 py-4"
+                    )} 
+                    style={{ marginLeft: isMobile ? '16px' : '48px' }}
+                  >
+                    <div className={cn("space-y-3", isMobile && "space-y-2")}>
                       <Textarea
                         ref={replyTextareaRef}
                         placeholder={`${comment.authorName}님에게 답글 작성...`}
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
-                        className="min-h-[80px] bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={cn(
+                          "bg-white border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                          isMobile ? "min-h-[60px] text-base" : "min-h-[80px]"
+                        )}
+                        style={{ fontSize: isMobile ? '16px' : undefined }} // iOS Safari 줌인 방지
                       />
-                      <div className="flex gap-2 justify-end">
-                        <Button
+                      <div className={cn(
+                        "flex justify-end",
+                        isMobile ? "gap-2" : "gap-2"
+                      )}>
+                        <OptimizedTouchButton
                           variant="outline"
-                          size="sm"
+                          size={isMobile ? "mobile-sm" : "sm"}
                           onClick={handleCancelReply}
                         >
                           취소
-                        </Button>
-                        <Button
-                          size="sm"
+                        </OptimizedTouchButton>
+                        <OptimizedTouchButton
+                          size={isMobile ? "mobile-sm" : "sm"}
                           onClick={handleSubmitReply}
                           disabled={!replyContent.trim() || isSubmitting}
                           className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
                           답글 작성
-                        </Button>
+                        </OptimizedTouchButton>
                       </div>
                     </div>
                   </div>
