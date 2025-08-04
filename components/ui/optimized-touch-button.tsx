@@ -7,17 +7,17 @@ import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useMobile } from "@/hooks/use-mobile"
 
-const touchButtonVariants = cva(
-  // Base styles - 애니메이션 최소화, CSS transforms 대신 opacity/scale만 사용
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 select-none touch-manipulation",
+const optimizedTouchButtonVariants = cva(
+  // Base styles - 모든 버튼의 공통 스타일 + 터치 최적화
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 select-none touch-manipulation",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground active:bg-accent/80",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70",
-        ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/80",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 active:scale-[0.98]",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80 active:scale-[0.98]",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground active:bg-accent/80 active:scale-[0.98]",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/70 active:scale-[0.98]",
+        ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/80 active:scale-[0.98]",
         link: "text-primary underline-offset-4 hover:underline active:text-primary/80",
       },
       size: {
@@ -45,13 +45,19 @@ const touchButtonVariants = cva(
 
 export interface OptimizedTouchButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof touchButtonVariants> {
+    VariantProps<typeof optimizedTouchButtonVariants> {
   asChild?: boolean
   loading?: boolean
   loadingText?: string
+  showRipple?: boolean
+  hapticFeedback?: boolean
   ariaLabel?: string
-  // 성능 최적화를 위해 복잡한 애니메이션 제거
-  disableAnimations?: boolean
+}
+
+interface RippleState {
+  id: number
+  x: number
+  y: number
 }
 
 const OptimizedTouchButton = React.forwardRef<HTMLButtonElement, OptimizedTouchButtonProps>(
@@ -63,69 +69,114 @@ const OptimizedTouchButton = React.forwardRef<HTMLButtonElement, OptimizedTouchB
     asChild = false, 
     loading = false,
     loadingText = "처리 중...",
+    showRipple = true,
+    hapticFeedback = true,
     ariaLabel,
     children,
     onClick,
     disabled,
-    disableAnimations = false,
     ...props 
   }, ref) => {
     const isMobile = useMobile()
+    const [ripples, setRipples] = React.useState<RippleState[]>([])
+    const buttonRef = React.useRef<HTMLButtonElement>(null)
     
+    // ref 병합
+    React.useImperativeHandle(ref, () => buttonRef.current!, [])
+
+    // 경량화된 리플 효과 생성 (CSS 애니메이션 사용)
+    const createRipple = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+      if (!showRipple || disabled || loading) return
+
+      const button = buttonRef.current
+      if (!button) return
+
+      const rect = button.getBoundingClientRect()
+      const x = event.clientX - rect.left
+      const y = event.clientY - rect.top
+
+      const newRipple: RippleState = {
+        id: Date.now(),
+        x,
+        y
+      }
+
+      setRipples(prev => [...prev, newRipple])
+
+      // 리플 애니메이션 완료 후 제거 (CSS 애니메이션 시간에 맞춤)
+      setTimeout(() => {
+        setRipples(prev => prev.filter(ripple => ripple.id !== newRipple.id))
+      }, 400) // 애니메이션 시간 단축
+    }, [showRipple, disabled, loading])
+
+    // 햅틱 피드백 - 모바일에서만 실행
+    const triggerHapticFeedback = React.useCallback(() => {
+      if (!hapticFeedback || disabled || loading || !isMobile) return
+      
+      if ('vibrate' in navigator) {
+        try {
+          navigator.vibrate(8) // 매우 짧은 진동으로 배터리 절약
+        } catch (e) {
+          // 진동 실패 시 무시
+        }
+      }
+    }, [hapticFeedback, disabled, loading, isMobile])
+
+    // 클릭 핸들러
+    const handleClick = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+      if (disabled || loading) return
+
+      createRipple(event)
+      triggerHapticFeedback()
+      onClick?.(event)
+    }, [disabled, loading, createRipple, triggerHapticFeedback, onClick])
+
     // 터치 사이즈를 모바일에서 자동 조정
     const effectiveTouchSize = React.useMemo(() => {
       if (!isMobile) return touchSize
       return touchSize === "default" ? "large" : touchSize
     }, [isMobile, touchSize])
 
-    // 햅틱 피드백 최적화 - 디바운스 적용
-    const triggerHapticFeedback = React.useCallback(() => {
-      if (disabled || loading) return
-      
-      if ('vibrate' in navigator) {
-        try {
-          navigator.vibrate(8) // 더 짧은 진동으로 성능 개선
-        } catch (e) {
-          // 진동 실패 시 무시
-        }
-      }
-    }, [disabled, loading])
-
-    // 클릭 핸들러 최적화
-    const handleClick = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-      if (disabled || loading) return
-      
-      triggerHapticFeedback()
-      onClick?.(event)
-    }, [disabled, loading, triggerHapticFeedback, onClick])
-
     const Comp = asChild ? Slot : "button"
 
     return (
       <Comp
-        ref={ref}
+        ref={buttonRef}
         className={cn(
-          touchButtonVariants({ 
+          optimizedTouchButtonVariants({ 
             variant, 
             size, 
             touchSize: effectiveTouchSize, 
             className 
           }),
-          // CSS 애니메이션 최적화 - will-change 제거하여 compositing layer 생성 방지
-          !disableAnimations && "transition-colors duration-150",
+          "relative overflow-hidden",
           loading && "cursor-wait"
         )}
         disabled={disabled || loading}
         onClick={handleClick}
         aria-label={ariaLabel}
         aria-busy={loading}
-        // 터치 최적화
-        style={{
-          touchAction: 'manipulation',
-          WebkitTapHighlightColor: 'transparent'
-        }}
         {...props}
       >
+        {/* CSS 기반 리플 효과 */}
+        {showRipple && (
+          <div className="absolute inset-0 pointer-events-none">
+            {ripples.map((ripple) => (
+              <div
+                key={ripple.id}
+                className="absolute rounded-full bg-current opacity-20 animate-ripple"
+                style={{
+                  left: ripple.x - 10,
+                  top: ripple.y - 10,
+                  width: 20,
+                  height: 20,
+                  animationDuration: '400ms'
+                }}
+              />
+            ))}
+          </div>
+        )}
+
         {/* 로딩 상태 */}
         {loading && (
           <>
@@ -134,8 +185,13 @@ const OptimizedTouchButton = React.forwardRef<HTMLButtonElement, OptimizedTouchB
           </>
         )}
 
-        {/* 버튼 내용 - 불필요한 wrapper 제거 */}
-        {loading ? loadingText : children}
+        {/* 버튼 내용 */}
+        <span className={cn(
+          "relative z-10 flex items-center gap-2",
+          loading && "opacity-70"
+        )}>
+          {loading ? loadingText : children}
+        </span>
       </Comp>
     )
   }
@@ -143,4 +199,4 @@ const OptimizedTouchButton = React.forwardRef<HTMLButtonElement, OptimizedTouchB
 
 OptimizedTouchButton.displayName = "OptimizedTouchButton"
 
-export { OptimizedTouchButton, touchButtonVariants }
+export { OptimizedTouchButton, optimizedTouchButtonVariants }

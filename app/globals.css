@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 성능 최적화된 리플 애니메이션 (Framer Motion 대신 CSS 사용) */
+@keyframes ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: ripple 0.4s ease-out forwards;
+}
+
 /* 성능 최적화 CSS - 인라인으로 통합하여 HTTP 요청 최소화 */
 
 /* 모바일 채팅 최적화 */

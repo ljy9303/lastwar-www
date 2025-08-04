@@ -24,17 +24,23 @@ interface PerformanceContextType {
 const PerformanceContext = createContext<PerformanceContextType | undefined>(undefined)
 
 export function PerformanceProvider({ children }: { children: React.ReactNode }) {
-  const [isPerformanceMode, setIsPerformanceMode] = useState(false)
+  // 운영 환경에서는 성능 모니터링을 완전히 비활성화
+  const shouldEnableMonitoring = process.env.NODE_ENV === 'development' || 
+                                process.env.NEXT_PUBLIC_PERFORMANCE_MODE === 'true'
+  
+  if (!shouldEnableMonitoring) {
+    // 운영 환경에서는 성능 Hook들을 실행하지 않음
+    return <>{children}</>
+  }
+
+  return <PerformanceProviderImpl>{children}</PerformanceProviderImpl>
+}
+
+function PerformanceProviderImpl({ children }: { children: React.ReactNode }) {
+  const [isPerformanceMode, setIsPerformanceMode] = useState(true) // 개발환경에서는 기본 활성화
   const { getReport, clearMetrics } = usePerformanceMonitoring()
   const { memoryInfo } = useMemoryMonitoring()
   const networkInfo = useNetworkMonitoring()
-
-  // 개발 환경에서만 성능 모드 활성화
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      setIsPerformanceMode(true)
-    }
-  }, [])
 
   const generateReport = () => {
     return getReport()

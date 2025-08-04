@@ -276,7 +276,8 @@ export function useMemoryMonitoring() {
     }
 
     updateMemoryInfo()
-    const interval = setInterval(updateMemoryInfo, 10000) // 10초마다 업데이트
+    // 메모리 모니터링 간격을 30초로 조정하여 성능 오버헤드 감소
+    const interval = setInterval(updateMemoryInfo, 30000) // 30초마다 업데이트
 
     return () => clearInterval(interval)
   }, [])

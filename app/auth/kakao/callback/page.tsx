@@ -58,7 +58,9 @@ export default function KakaoCallbackPage() {
 
         // NextAuth signIn을 통해 백엔드 로그인 (중복 호출 방지)
         const redirectUri = authUtils.generateRedirectUri()
-        console.log('[Callback] NextAuth signIn 호출 시작')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Callback] NextAuth signIn 호출 시작')
+        }
         
         const signInResult = await signIn('kakao', {
           code,
@@ -66,7 +68,9 @@ export default function KakaoCallbackPage() {
           redirect: false
         })
         
-        console.log('[Callback] NextAuth signIn 결과:', signInResult)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Callback] NextAuth signIn 결과:', signInResult)
+        }
         
         if (!signInResult?.ok) {
           throw new Error('NextAuth 세션 생성 실패: ' + (signInResult?.error || '알 수 없는 오류'))
@@ -82,14 +86,18 @@ export default function KakaoCallbackPage() {
         while (!session?.user && retryCount < maxRetries) {
           session = await getSession()
           if (process.env.NODE_ENV === 'development') {
-            console.log(`[Callback] NextAuth 세션 시도 ${retryCount + 1}:`, session)
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[Callback] NextAuth 세션 시도 ${retryCount + 1}:`, session)
+            }
           }
           
           if (!session?.user) {
             retryCount++
             if (retryCount < maxRetries) {
               if (process.env.NODE_ENV === 'development') {
-                console.log(`[Callback] 세션 조회 재시도 ${retryCount}/${maxRetries} (500ms 대기)`)
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`[Callback] 세션 조회 재시도 ${retryCount}/${maxRetries} (500ms 대기)`)
+                }
               }
               await new Promise(resolve => setTimeout(resolve, 500))
             }
@@ -117,12 +125,16 @@ export default function KakaoCallbackPage() {
           message: session.user.requiresSignup ? '회원가입이 필요합니다' : '로그인 성공'
         }
 
-        console.log('[FRONTEND] 카카오 로그인 API 응답:', loginResponse)
-        console.log('[FRONTEND] 사용자 정보:', loginResponse.user)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[FRONTEND] 카카오 로그인 API 응답:', loginResponse)
+          console.log('[FRONTEND] 사용자 정보:', loginResponse.user)
+        }
 
         // 로그인 상태에 따른 처리
         if (loginResponse.status === 'login') {
-          console.log('[Callback] 카카오 로그인 성공 - NextAuth 세션 생성됨')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Callback] 카카오 로그인 성공 - NextAuth 세션 생성됨')
+          }
           
           setStatus('success')
           setMessage('로그인되었습니다!')
@@ -140,7 +152,9 @@ export default function KakaoCallbackPage() {
           // 회원가입 필요 - 사용자 정보를 안전하게 전달
           const userId = loginResponse.user?.userId
           if (userId && loginResponse.user) {
-            console.log('[Callback] 회원가입 페이지로 이동 - userId:', userId)
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Callback] 회원가입 페이지로 이동 - userId:', userId)
+            }
             
             // 방법 1: sessionStorage에 임시 저장 (새로고침 시 유지, 탭 닫으면 삭제)
             const tempUserData = {
