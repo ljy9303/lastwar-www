@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { OptimizedTouchButton } from '@/components/ui/optimized-touch-button';
 
 export default function EditPostPage() {
   const params = useParams();
@@ -63,7 +63,7 @@ export default function EditPostPage() {
 
   if (isNaN(postId)) {
     return (
-      <div className="container mx-auto">
+      <div className="container mx-auto px-4">
         <div className="mb-6">
         </div>
         <EmptyState
@@ -80,15 +80,28 @@ export default function EditPostPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto">
-        <div className="flex justify-end items-center mb-6">
-          <Button 
-            variant="outline" 
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            뒤로 가기
-          </Button>
+      <div className="container mx-auto px-4">
+        {/* 모바일 최적화 헤더 */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
+                게시글 수정
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                오류가 발생했습니다
+              </p>
+            </div>
+            <OptimizedTouchButton 
+              variant="outline" 
+              size="mobile-default"
+              onClick={() => router.back()}
+              className="self-start sm:self-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              뒤로 가기
+            </OptimizedTouchButton>
+          </div>
         </div>
         <EmptyState
           title="게시글을 불러올 수 없습니다"
@@ -104,9 +117,16 @@ export default function EditPostPage() {
 
   if (isLoading || !post) {
     return (
-      <div className="container mx-auto">
-        <div className="flex justify-end items-center mb-6">
-          <Skeleton className="h-10 w-24" />
+      <div className="container mx-auto px-4">
+        {/* 로딩 시 헤더 스켈레톤 */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-12 w-24 self-start sm:self-center" />
+          </div>
         </div>
         
         {/* 폼 스켈레톤 */}
@@ -129,15 +149,28 @@ export default function EditPostPage() {
   }
 
   return (
-    <div className="container mx-auto">
-      <div className="flex justify-end items-center mb-6">
-        <Button 
-          variant="outline" 
-          onClick={() => router.back()}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          뒤로 가기
-        </Button>
+    <div className="container mx-auto px-4">
+      {/* 모바일 최적화 헤더 */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
+              게시글 수정
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              게시글 내용을 수정하고 저장하세요
+            </p>
+          </div>
+          <OptimizedTouchButton 
+            variant="outline" 
+            size="mobile-default"
+            onClick={() => router.back()}
+            className="self-start sm:self-center"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            뒤로 가기
+          </OptimizedTouchButton>
+        </div>
       </div>
 
       {/* 게시글 수정 폼 */}

@@ -134,8 +134,6 @@ const OptimizedTouchButton = React.memo(React.forwardRef<
       onTouchEnd={handleTouchEnd}
       {...props}
     >
-      {children}
-      
       {/* 리플 효과 렌더링 */}
       {enableRipple && ripples.map((ripple) => (
         <span

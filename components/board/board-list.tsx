@@ -372,18 +372,29 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
 
   return (
     <div className="px-4" ref={containerRef}>
-      {/* 헤더 */}
-      <div className="flex justify-between items-center mb-6">
-        <div></div>
-        {showCreateButton && (
-          <OptimizedTouchButton 
-            size="mobile-default" 
-            onClick={() => router.push('/board/posts/new')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            글 쓰기
-          </OptimizedTouchButton>
-        )}
+      {/* 모바일 최적화 헤더 */}
+      <div className="mb-6">
+        {/* 타이틀 영역 */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
+              {title}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              게시글을 검색하고 카테고리별로 탐색해보세요
+            </p>
+          </div>
+          {showCreateButton && (
+            <OptimizedTouchButton 
+              size="mobile-default" 
+              onClick={() => router.push("/board/posts/new")}
+              className="self-start sm:self-center"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              글 쓰기
+            </OptimizedTouchButton>
+          )}
+        </div>
       </div>
 
       {/* 검색 영역 */}
@@ -397,11 +408,13 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="mobile-input"
               />
               <OptimizedTouchButton 
                 onClick={handleSearch} 
                 variant="outline"
                 size="mobile-default"
+                className="shrink-0"
               >
                 <Search className="h-4 w-4" />
               </OptimizedTouchButton>
@@ -413,7 +426,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
                 value={filters.sortBy}
                 onValueChange={(value) => handleFilterChange('sortBy', value)}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-32 h-12 md:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -430,7 +443,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
 
       {/* 카테고리 탭 */}
       <Card className="mb-6">
-        <CardContent className="p-2">
+        <CardContent className="p-3">
           <div className="flex flex-wrap gap-2">
             <OptimizedTouchButton
               variant={!filters.categoryId ? "default" : "outline"}

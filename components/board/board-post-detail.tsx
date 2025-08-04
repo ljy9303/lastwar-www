@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { OptimizedTouchButton } from '@/components/ui/optimized-touch-button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -282,10 +283,11 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
 
   return (
     <div className="px-4">
-      {/* 뒤로 가기 버튼 */}
+      {/* 모바일 최적화 네비게이션 */}
       <div className="mb-6">
-        <Button 
+        <OptimizedTouchButton 
           variant="outline" 
+          size="mobile-default"
           className="mb-4" 
           onClick={() => {
             // 이전 페이지가 게시판 목록이면 뒤로가기, 아니면 게시판으로 이동
@@ -298,100 +300,92 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           목록으로
-        </Button>
+        </OptimizedTouchButton>
       </div>
 
       {/* 메인 게시글 카드 */}
       <Card className="mb-6">
-        {/* 게시글 헤더 */}
+        {/* 모바일 최적화 게시글 헤더 */}
         <CardHeader className="pb-4 border-b">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              {/* 카테고리와 핀 */}
-              <div className="flex items-center gap-2 mb-3">
-                {post.isPinned && <Pin className="h-5 w-5 text-orange-500" />}
-                {post.categoryName && (
-                  <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
-                    {post.categoryName}
-                  </Badge>
-                )}
-              </div>
-              
-              {/* 제목 */}
-              <CardTitle className="text-3xl font-bold mb-4 text-gray-900 leading-tight">
-                {post.title}
-              </CardTitle>
-              
-              {/* 작성자 및 메타 정보 */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={post.authorProfileImageUrl} />
-                      <AvatarFallback className="bg-blue-100 text-blue-700">
-                        <User className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        {post.serverNumber && post.allianceTag && (
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                            {post.serverNumber}서버 [{post.allianceTag}]
-                          </Badge>
-                        )}
-                        <span className="font-semibold text-gray-900">{post.authorName}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <span>{formatDistanceToNow(new Date(post.createdAt), { 
-                          addSuffix: true, 
-                          locale: ko 
-                        })}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* 통계 및 액션 버튼 */}
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" />
-                      {post.viewCount}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Heart className="h-4 w-4" />
-                      {post.likeCount + likeUIState.pendingChange}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageCircle className="h-4 w-4" />
-                      {getTotalCommentCount(comments)}
-                    </span>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    {isAuthor && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/board/posts/${postId}/edit`)}
-                          className="h-8"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleDelete}
-                          className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
+          <div className="space-y-4">
+            {/* 카테고리와 핀 */}
+            <div className="flex items-center gap-2">
+              {post.isPinned && <Pin className="h-5 w-5 text-orange-500" />}
+              {post.categoryName && (
+                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                  {post.categoryName}
+                </Badge>
+              )}
+            </div>
+            
+            {/* 제목 - 모바일 반응형 */}
+            <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight break-words">
+              {post.title}
+            </CardTitle>
+            
+            {/* 작성자 정보 - 모바일 최적화 */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                  <AvatarImage src={post.authorProfileImageUrl} />
+                  <AvatarFallback className="bg-blue-100 text-blue-700">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    {post.serverNumber && post.allianceTag && (
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 w-fit">
+                        {post.serverNumber}서버 [{post.allianceTag}]
+                      </Badge>
                     )}
+                    <span className="font-semibold text-gray-900 truncate">{post.authorName}</span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {formatDistanceToNow(new Date(post.createdAt), { 
+                      addSuffix: true, 
+                      locale: ko 
+                    })}
                   </div>
                 </div>
               </div>
+              
+              {/* 액션 버튼 - 모바일 최적화 */}
+              {isAuthor && (
+                <div className="flex gap-2 self-start sm:self-center">
+                  <OptimizedTouchButton
+                    variant="outline"
+                    size="mobile-sm"
+                    onClick={() => router.push(`/board/posts/${postId}/edit`)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </OptimizedTouchButton>
+                  <OptimizedTouchButton
+                    variant="outline"
+                    size="mobile-sm"
+                    onClick={handleDelete}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </OptimizedTouchButton>
+                </div>
+              )}
+            </div>
+            
+            {/* 통계 정보 - 모바일 최적화 */}
+            <div className="flex items-center gap-4 text-sm text-gray-600 pt-2 border-t border-gray-100">
+              <span className="flex items-center gap-1">
+                <Eye className="h-4 w-4" />
+                {post.viewCount}
+              </span>
+              <span className="flex items-center gap-1">
+                <Heart className="h-4 w-4" />
+                {post.likeCount + likeUIState.pendingChange}
+              </span>
+              <span className="flex items-center gap-1">
+                <MessageCircle className="h-4 w-4" />
+                {getTotalCommentCount(comments)}
+              </span>
             </div>
           </div>
         </CardHeader>
@@ -417,21 +411,21 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
           />
 
 
-          {/* 좋아요 버튼 */}
+          {/* 좋아요 버튼 - 모바일 최적화 */}
           <div className="flex justify-center mt-8 pt-6 border-t border-gray-200">
-            <Button
+            <OptimizedTouchButton
               variant={likeUIState.isLiked ? "default" : "outline"}
-              size="lg"
+              size="mobile-lg"
               onClick={handleLikeToggle}
               disabled={likeUIState.isProcessing}
               className={`px-8 py-3 text-base font-medium transition-all ${likeUIState.isLiked 
-                ? "bg-red-500 hover:bg-red-600 shadow-md" 
+                ? "bg-red-500 hover:bg-red-600 shadow-md text-white" 
                 : "hover:bg-red-50 hover:text-red-600 hover:border-red-200"
               } ${likeUIState.isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <Heart className={`h-5 w-5 mr-2 ${likeUIState.isLiked ? 'fill-current' : ''}`} />
               좋아요 {post.likeCount + likeUIState.pendingChange}
-            </Button>
+            </OptimizedTouchButton>
           </div>
         </CardContent>
       </Card>
