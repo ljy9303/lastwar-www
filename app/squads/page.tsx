@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { OptimizedTouchButton } from "@/components/ui/optimized-touch-button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -1129,17 +1130,17 @@ export default function SquadsPage() {
         </h1>
         <div className="ml-auto">
           <div className="flex gap-2">
-            <Button variant="outline" onClick={goBack}>
+            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={goBack}>
               사막전 관리
-            </Button>
+            </OptimizedTouchButton>
             {eventId && (
               <>
-                <Button variant="outline" onClick={() => router.push('/surveys')}>
+                <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => router.push('/surveys')}>
                   사전조사
-                </Button>
-                <Button variant="outline" onClick={() => router.push('/desert-results')}>
+                </OptimizedTouchButton>
+                <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => router.push('/desert-results')}>
                   사막전 결과
-                </Button>
+                </OptimizedTouchButton>
               </>
             )}
           </div>

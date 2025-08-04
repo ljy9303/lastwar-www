@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { OptimizedTouchButton } from "@/components/ui/optimized-touch-button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -130,10 +131,10 @@ export default function SettingsPage() {
               <div className="flex justify-end mb-4">
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button>
+                    <OptimizedTouchButton size="mobile-default">
                       <Plus className="mr-2 h-4 w-4" />
                       관리자 추가
-                    </Button>
+                    </OptimizedTouchButton>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -183,10 +184,10 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => setIsAddDialogOpen(false)}>
                         취소
-                      </Button>
-                      <Button onClick={handleAddAdmin}>추가</Button>
+                      </OptimizedTouchButton>
+                      <OptimizedTouchButton size="mobile-default" onClick={handleAddAdmin}>추가</OptimizedTouchButton>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -224,9 +225,9 @@ export default function SettingsPage() {
                           <TableCell>{getRoleLabel(admin.role)}</TableCell>
                           <TableCell>{admin.canViewHistory ? "O" : "X"}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteAdmin(admin.id)}>
+                            <OptimizedTouchButton variant="ghost" size="mobile-icon" onClick={() => handleDeleteAdmin(admin.id)}>
                               <Trash className="h-4 w-4" />
-                            </Button>
+                            </OptimizedTouchButton>
                           </TableCell>
                         </TableRow>
                       ))}

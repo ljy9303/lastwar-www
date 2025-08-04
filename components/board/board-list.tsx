@@ -265,11 +265,29 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
         {/* 2. 썸네일 또는 텍스트 미리보기 */}
         <div className="mb-3">
           {post.thumbnailUrl ? (
-            <img 
-              src={post.thumbnailUrl} 
-              alt="썸네일"
-              className="w-full h-32 object-cover rounded-md"
-            />
+            <div className="relative w-full h-32 rounded-md overflow-hidden bg-gray-100">
+              <img 
+                src={post.thumbnailUrl} 
+                alt={post.title + " 썸네일"}
+                className="w-full h-full object-cover transition-transform hover:scale-105"
+                loading="lazy"
+                onError={(e) => {
+                  // 이미지 로딩 실패 시 대체 컨텐츠 표시
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div class="w-full h-full bg-gray-50 flex items-center justify-center p-4">
+                        <p class="text-gray-600 text-sm line-clamp-4 text-center">
+                          ${post.contentPreview || '이미지를 불러올 수 없습니다.'}
+                        </p>
+                      </div>
+                    `;
+                  }
+                }}
+              />
+            </div>
           ) : (
             <div className="w-full h-32 bg-gray-50 rounded-md flex items-center justify-center p-4">
               <p className="text-gray-600 text-sm line-clamp-4 text-center">
@@ -369,7 +387,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
           {showCreateButton && (
             <OptimizedTouchButton 
               size="mobile-default" 
-              onClick={() => router.push('/board/posts/new')}
+              onClick={() => router.push("/board/posts/new")}
               className="self-start sm:self-center"
             >
               <Plus className="h-4 w-4 mr-2" />
