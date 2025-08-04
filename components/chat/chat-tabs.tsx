@@ -2,21 +2,30 @@
 
 import { useState } from "react"
 import { Globe, HelpCircle, X, Minimize2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { OptimizedTouchButton } from "@/components/ui/optimized-touch-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChatRoom } from "./chat-room"
+
+interface MobileKeyboardState {
+  isVisible: boolean
+  height: number
+  viewportHeight: number
+  screenHeight: number
+  isTransitioning: boolean
+}
 
 interface ChatTabsProps {
   isModalOpen?: boolean
   onMessageUpdate?: (messageId: number) => void
   onClose?: () => void
+  keyboardState?: MobileKeyboardState
 }
 
 /**
  * 채팅 탭 컴포넌트
  * 글로벌, 문의 채팅 탭 관리
  */
-export function ChatTabs({ isModalOpen = false, onMessageUpdate, onClose }: ChatTabsProps) {
+export function ChatTabs({ isModalOpen = false, onMessageUpdate, onClose, keyboardState }: ChatTabsProps) {
   const [activeTab, setActiveTab] = useState("global")
 
   const handleTabChange = (value: string) => {
@@ -36,14 +45,18 @@ export function ChatTabs({ isModalOpen = false, onMessageUpdate, onClose }: Chat
         <div className="relative bg-blue-600 rounded-t-2xl">
           {/* 모바일 닫기 버튼 */}
           {onClose && (
-            <Button
+            <OptimizedTouchButton
               variant="ghost"
               size="sm"
               onClick={onClose}
               className="absolute right-2 top-2 z-10 h-8 w-8 p-0 text-white hover:bg-blue-700 xs:hidden"
+              enableHaptics={true}
+              enableRipple={true}
+              minTouchTarget={true}
+              aria-label="채팅창 닫기"
             >
               <X className="h-4 w-4" />
-            </Button>
+            </OptimizedTouchButton>
           )}
           
           <TabsList 
@@ -105,6 +118,7 @@ export function ChatTabs({ isModalOpen = false, onMessageUpdate, onClose }: Chat
               color="purple"
               isModalOpen={isModalOpen}
               onMessageUpdate={onMessageUpdate}
+              keyboardState={keyboardState}
             />
           </TabsContent>
 

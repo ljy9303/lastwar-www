@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { createPortal } from "react-dom"
 import { MessageCircle, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { OptimizedTouchButton } from "@/components/ui/optimized-touch-button"
 import { ChatModal } from "./chat-modal"
 import { useWebSocket } from "@/hooks/chat/use-websocket"
+import { useMobileKeyboardWithCSSVars } from "@/hooks/use-mobile-keyboard"
 import { getLastReadMessageId, saveLastReadMessage } from "@/lib/chat-storage"
 import { ChatService, type ChatMessage } from "@/lib/chat-service"
 
@@ -22,6 +23,13 @@ const FloatingChatButton = memo(function FloatingChatButton() {
   const [mounted, setMounted] = useState(false)
   const [hasUnread, setHasUnread] = useState(false)
   const [latestMessageId, setLatestMessageId] = useState<number | null>(null)
+
+  // 모바일 키보드 상태 감지 (CSS 변수 자동 설정)
+  const keyboard = useMobileKeyboardWithCSSVars({
+    threshold: 150,
+    debounceMs: 100,
+    transitionMs: 300
+  })
 
   // 인증된 사용자만 WebSocket 연결
   const shouldConnectWebSocket = status === 'authenticated' && session?.user
@@ -122,31 +130,46 @@ const FloatingChatButton = memo(function FloatingChatButton() {
 
   const buttonContent = (
     <>
-      {/* 플로팅 채팅 버튼 - 뷰포트 기준 고정 */}
+      {/* 플로팅 채팅 버튼 - 키보드 대응 및 Safe Area 지원 */}
       <div
-        className="fixed bottom-4 right-4 xs:bottom-6 xs:right-6 z-[9999] pointer-events-auto"
+        className="fixed z-[9999] pointer-events-auto transition-all duration-300 ease-out"
+        style={{
+          // 키보드가 나타났을 때 위치 조정
+          bottom: keyboard.isVisible ? `${Math.max(16, keyboard.height + 16)}px` : undefined,
+          right: '16px',
+          // 키보드가 없을 때 기본 위치 (CSS env() Safe Area 지원)
+          ...(!keyboard.isVisible && {
+            bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+            right: 'max(16px, env(safe-area-inset-right, 16px))'
+          })
+        }}
       >
         <div className="gpu-accelerated relative">
-          {/* 메인 채팅 버튼 - 부드러운 애니메이션 */}
-          <Button
+          {/* 메인 채팅 버튼 - 모바일 최적화 */}
+          <OptimizedTouchButton
             onClick={toggleChat}
             size="lg"
-            className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg p-0 chat-button transition-all duration-200 hover:scale-110 active:scale-95"
+            enableHaptics={true}
+            enableRipple={true}
+            className="w-15 h-15 xs:w-16 xs:h-16 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg p-0 chat-button transition-all duration-200 hover:scale-105 active:scale-95"
+            aria-label={isOpen ? "채팅창 닫기" : "채팅창 열기"}
           >
             {isOpen ? (
-              <X className="h-6 w-6 text-white" />
+              <X className="h-6 w-6 xs:h-7 xs:w-7 text-white" />
             ) : (
-              <MessageCircle className="h-6 w-6 text-white" />
+              <MessageCircle className="h-6 w-6 xs:h-7 xs:w-7 text-white" />
             )}
-          </Button>
+          </OptimizedTouchButton>
           
-          {/* 미열람 메시지 빨간점 표시 */}
+          {/* 미열람 메시지 빨간점 표시 - 접근성 개선 */}
           {!isOpen && hasUnread && (
             <div 
-              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse"
+              className="absolute -top-1 -right-1 w-4 h-4 xs:w-5 xs:h-5 bg-red-500 rounded-full border-2 border-white animate-pulse"
               style={{
                 boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
               }}
+              role="img"
+              aria-label="읽지 않은 메시지 있음"
             />
           )}
         </div>
@@ -157,6 +180,7 @@ const FloatingChatButton = memo(function FloatingChatButton() {
         isOpen={isOpen} 
         onClose={() => setIsOpen(false)}
         onMessageUpdate={handleMessageUpdate}
+        keyboardState={keyboard}
       />
     </>
   )

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from "react"
 import { Send, CheckSquare, Square, Eye, EyeOff, X, ArrowDown, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { OptimizedTouchButton } from "@/components/ui/optimized-touch-button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { MessageBubble } from "./message-bubble"
@@ -17,6 +17,14 @@ import { useInfiniteScroll } from "@/hooks/chat/use-infinite-scroll"
 import { useChatCache } from "@/contexts/chat-cache-context"
 import { needsDateSeparator, getDateSeparatorLabel } from "@/lib/chat-time-utils"
 
+interface MobileKeyboardState {
+  isVisible: boolean
+  height: number
+  viewportHeight: number
+  screenHeight: number
+  isTransitioning: boolean
+}
+
 interface ChatRoomProps {
   roomType: "GLOBAL" | "INQUIRY"
   title: string
@@ -24,6 +32,7 @@ interface ChatRoomProps {
   color: "purple" | "green" | "orange"
   isModalOpen?: boolean
   onMessageUpdate?: (messageId: number) => void
+  keyboardState?: MobileKeyboardState
 }
 
 // ChatMessage 인터페이스는 ChatService에서 import
@@ -32,15 +41,14 @@ interface ChatRoomProps {
  * 채팅방 컴포넌트
  * 카카오톡 스타일의 실시간 채팅 인터페이스
  */
-const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, isModalOpen = false, onMessageUpdate }: ChatRoomProps) {
+const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, isModalOpen = false, onMessageUpdate, keyboardState }: ChatRoomProps) {
   const { data: session } = useSession()
   const isAdmin = useIsAdmin()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [isInitialLoading, setIsInitialLoading] = useState(false)
   
-  // 모바일 키보드 상태 관리
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
+  // 입력 필드 참조
   const inputRef = useRef<HTMLInputElement>(null)
   
   // 다중 선택 모드 관련 상태
@@ -240,54 +248,13 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
     }
   }, [isModalOpen, messages.length, loadInitialMessages])
 
-  // 모바일 키보드 감지 (Viewport height 변화 기반)
+  // 키보드 상태에 따른 스크롤 처리
   useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    const handleResize = () => {
-      // 모바일에서만 동작
-      if (window.innerWidth <= 768) {
-        const currentHeight = window.innerHeight
-        const fullHeight = window.screen.height
-        
-        // 키보드가 나타났을 때 viewport height가 크게 줄어듦
-        const keyboardVisible = currentHeight < fullHeight * 0.75
-        
-        if (keyboardVisible !== isKeyboardVisible) {
-          setIsKeyboardVisible(keyboardVisible)
-          
-          // 키보드가 나타났을 때 메시지 영역을 아래로 스크롤
-          if (keyboardVisible && scrollContainerRef.current) {
-            setTimeout(() => scrollToBottom(false), 300)
-          }
-        }
-      }
+    if (keyboardState?.isVisible && scrollContainerRef.current) {
+      // 키보드가 나타났을 때 메시지 영역을 아래로 스크롤
+      setTimeout(() => scrollToBottom(false), 300)
     }
-
-    // 초기 상태 설정
-    handleResize()
-    
-    // 리사이즈 이벤트 리스너
-    window.addEventListener('resize', handleResize)
-    window.addEventListener('orientationchange', handleResize)
-    
-    // Visualviewer API 지원 브라우저에서 더 정확한 키보드 감지
-    if ('visualViewport' in window) {
-      const visualViewport = window.visualViewport!
-      visualViewport.addEventListener('resize', handleResize)
-      
-      return () => {
-        window.removeEventListener('resize', handleResize)
-        window.removeEventListener('orientationchange', handleResize)
-        visualViewport.removeEventListener('resize', handleResize)
-      }
-    }
-    
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      window.removeEventListener('orientationchange', handleResize)
-    }
-  }, [isKeyboardVisible, scrollToBottom])
+  }, [keyboardState?.isVisible, scrollToBottom])
 
   // 모달이 닫힐 때 현재 메시지들을 캐시에 저장
   useEffect(() => {
@@ -601,16 +568,19 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
           {/* ADMIN 전용 선택 모드 버튼 */}
           {isAdmin && (
             <div className="flex items-center gap-1 xs:gap-2 flex-shrink-0">
-              <Button
+              <OptimizedTouchButton
                 variant={isSelectionMode ? "default" : "outline"}
                 size="sm"
                 onClick={toggleSelectionMode}
                 disabled={isBulkOperationLoading}
                 className="h-6 xs:h-7 px-1.5 xs:px-2 text-xs"
+                enableHaptics={true}
+                enableRipple={true}
+                aria-label={isSelectionMode ? "선택모드 완료" : "선택모드 시작"}
               >
                 {isSelectionMode ? <CheckSquare className="h-3 w-3 xs:mr-1" /> : <Square className="h-3 w-3 xs:mr-1" />}
                 <span className="hidden xs:inline">{isSelectionMode ? "선택완료" : "선택모드"}</span>
-              </Button>
+              </OptimizedTouchButton>
             </div>
           )}
         </div>
@@ -624,34 +594,44 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
               <Badge variant="secondary" className="text-xs flex-shrink-0">
                 {selectedMessageIds.size}개
               </Badge>
-              <Button
+              <OptimizedTouchButton
                 variant="ghost"
                 size="sm"
                 onClick={selectAllMessages}
                 disabled={isBulkOperationLoading}
                 className="h-5 xs:h-6 px-1.5 xs:px-2 text-xs hidden xs:inline-flex"
+                enableHaptics={true}
+                enableRipple={true}
+                aria-label="모든 메시지 선택"
               >
                 전체선택
-              </Button>
-              <Button
+              </OptimizedTouchButton>
+              <OptimizedTouchButton
                 variant="ghost"
                 size="sm"
                 onClick={clearSelection}
                 disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
                 className="h-5 xs:h-6 px-1.5 xs:px-2 text-xs"
+                enableHaptics={true}
+                enableRipple={true}
+                aria-label="선택 해제"
               >
                 <span className="hidden xs:inline">선택해제</span>
                 <span className="xs:hidden">해제</span>
-              </Button>
+              </OptimizedTouchButton>
             </div>
             
             <div className="flex items-center gap-1 xs:gap-2 flex-shrink-0">
-              <Button
+              <OptimizedTouchButton
                 variant="destructive"
                 size="sm"  
                 onClick={handleBulkHide}
                 disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
                 className="h-5 xs:h-6 px-1.5 xs:px-2 text-xs"
+                enableHaptics={true}
+                enableRipple={true}
+                touchDelay={100} // 실수 클릭 방지
+                aria-label="선택된 메시지 가리기"
               >
                 {isBulkOperationLoading ? (
                   <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent xs:mr-1" />
@@ -659,13 +639,16 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                   <EyeOff className="h-3 w-3 xs:mr-1" />
                 )}
                 <span className="hidden xs:inline">가리기</span>
-              </Button>
-              <Button
+              </OptimizedTouchButton>
+              <OptimizedTouchButton
                 variant="outline"
                 size="sm"
                 onClick={handleBulkUnhide}
                 disabled={isBulkOperationLoading || selectedMessageIds.size === 0}
                 className="h-5 xs:h-6 px-1.5 xs:px-2 text-xs"
+                enableHaptics={true}
+                enableRipple={true}
+                aria-label="선택된 메시지 복원"
               >
                 {isBulkOperationLoading ? (
                   <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent xs:mr-1" />
@@ -673,16 +656,19 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                   <Eye className="h-3 w-3 xs:mr-1" />
                 )}
                 <span className="hidden xs:inline">복원</span>
-              </Button>
-              <Button
+              </OptimizedTouchButton>
+              <OptimizedTouchButton
                 variant="ghost"
                 size="sm"
                 onClick={toggleSelectionMode}
                 disabled={isBulkOperationLoading}
                 className="h-5 xs:h-6 px-1 xs:px-2 text-xs"
+                enableHaptics={true}
+                enableRipple={true}
+                aria-label="선택모드 종료"
               >
                 <X className="h-3 w-3" />
-              </Button>
+              </OptimizedTouchButton>
             </div>
           </div>
         </div>
@@ -839,16 +825,19 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
         {/* 슬랙 스타일 새 메시지 버퍼 알림 */}
         {newMessageBuffer.hasMessages && (
           <div className="sticky bottom-2 xs:bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-            <Button
+            <OptimizedTouchButton
               onClick={newMessageBuffer.flushAndScroll}
               variant="secondary"
               size="sm"
               className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg animate-in slide-in-from-bottom-2 duration-200 h-8 xs:h-9 px-2 xs:px-3 text-xs xs:text-sm"
+              enableHaptics={true}
+              enableRipple={true}
+              aria-label={`새 메시지 ${newMessageBuffer.count}개 보기`}
             >
               <ArrowDown className="h-3 w-3 xs:h-4 xs:w-4 mr-1 xs:mr-2" />
               <span className="hidden xs:inline">새 메시지 {newMessageBuffer.count}개</span>
               <span className="xs:hidden">{newMessageBuffer.count}개</span>
-            </Button>
+            </OptimizedTouchButton>
           </div>
         )}
         
@@ -867,22 +856,28 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
                   </p>
                 </div>
                 <div className="flex gap-1 xs:gap-2 flex-shrink-0">
-                  <Button
+                  <OptimizedTouchButton
                     onClick={memoryLimitAlert.goToLatest}
                     variant="secondary"
                     size="sm"
                     className="h-6 xs:h-7 px-2 xs:px-3 text-xs bg-white text-green-600 hover:bg-green-50"
+                    enableHaptics={true}
+                    enableRipple={true}
+                    aria-label="새 메시지 보기"
                   >
                     보기
-                  </Button>
-                  <Button
+                  </OptimizedTouchButton>
+                  <OptimizedTouchButton
                     onClick={memoryLimitAlert.dismiss}
                     variant="ghost"
                     size="sm"
                     className="h-5 w-5 xs:h-6 xs:w-6 p-0 text-green-200 hover:text-white hover:bg-green-600"
+                    enableHaptics={true}
+                    enableRipple={true}
+                    aria-label="알림 닫기"
                   >
                     <X className="h-3 w-3 xs:h-4 xs:w-4" />
-                  </Button>
+                  </OptimizedTouchButton>
                 </div>
               </div>
             </div>
@@ -943,7 +938,7 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
               borderRadius: '0.375rem' // Tailwind rounded 클래스와 동일
             }}
           />
-          <Button
+          <OptimizedTouchButton
             onClick={handleSendMessage}
             disabled={!newMessage.trim() || !session?.user || messageLengthStatus.isOverLimit}
             size="sm"
@@ -952,9 +947,13 @@ const ChatRoom = memo(function ChatRoom({ roomType, title, description, color, i
               color === 'green' ? 'bg-green-600 hover:bg-green-700' :
               'bg-orange-600 hover:bg-orange-700'
             }`}
+            enableHaptics={true}
+            enableRipple={true}
+            minTouchTarget={true}
+            aria-label="메시지 전송"
           >
             <Send className="h-4 w-4" />
-          </Button>
+          </OptimizedTouchButton>
         </div>
       </div>
     </div>

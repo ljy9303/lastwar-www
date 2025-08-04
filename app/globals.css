@@ -77,6 +77,20 @@
   /* iOS Safari에서 100vh 문제 해결 */
   height: 100vh;
   height: 100dvh; /* Dynamic viewport height - 새로운 표준 */
+  
+  /* Safe Area 지원 */
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* Safe Area 지원 CSS 변수 */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
 }
 
 /* 모바일에서 입력 필드 줌인 방지 */
@@ -90,20 +104,28 @@
     transform: translateZ(0); /* 하드웨어 가속으로 렌더링 최적화 */
   }
   
-  /* 가상 키보드 대응 */
+  /* 가상 키보드 대응 - Visual Viewport API 지원 */
   .mobile-chat-container {
     /* 키보드 출현 시 viewport 변화 대응 */
     height: 100vh;
     height: 100dvh;
     min-height: -webkit-fill-available;
+    
+    /* CSS 변수를 활용한 키보드 대응 */
+    height: calc(var(--viewport-height, 100vh));
+    padding-bottom: calc(var(--keyboard-height, 0px) + env(safe-area-inset-bottom, 0px));
   }
   
-  /* 채팅 입력창 고정 */
+  /* 채팅 입력창 키보드 대응 */
   .chat-input-area {
     position: relative;
     background: white;
     border-top: 1px solid #e5e7eb;
     padding: 0.5rem 0.75rem;
+    
+    /* 키보드 위에 고정 */
+    bottom: var(--keyboard-height, 0px);
+    transition: bottom 0.3s ease-out;
   }
   
   /* 메시지 영역 스크롤 최적화 */
@@ -111,6 +133,16 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
     overscroll-behavior: none; /* 과도한 스크롤 방지 */
+    
+    /* 키보드 높이만큼 조정 */
+    height: calc(100% - var(--keyboard-height, 0px));
+    transition: height 0.3s ease-out;
+  }
+  
+  /* 플로팅 버튼 키보드 대응 */
+  .floating-chat-button {
+    bottom: calc(16px + var(--keyboard-height, 0px) + env(safe-area-inset-bottom, 0px));
+    transition: bottom 0.3s ease-out;
   }
 }
 
@@ -782,4 +814,125 @@ body {
 
 .ripple-effect {
   pointer-events: none;
+}
+
+/* Safe Area 추가 지원 및 모바일 최적화 */
+@media screen and (max-width: 768px) {
+  /* iOS 노치 및 홈 인디케이터 대응 */
+  .safe-area-inset {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+  
+  /* 채팅 모달 Safe Area 지원 */
+  .chat-modal {
+    /* 모달 위치를 Safe Area 내부로 조정 */
+    top: env(safe-area-inset-top, 0);
+    bottom: env(safe-area-inset-bottom, 0);
+    left: env(safe-area-inset-left, 0);
+    right: env(safe-area-inset-right, 0);
+  }
+  
+  /* 플로팅 버튼 추가 최적화 */
+  .floating-chat-button {
+    /* iOS 홈 인디케이터와 충돌 방지 */
+    margin-bottom: env(safe-area-inset-bottom, 0);
+    margin-right: env(safe-area-inset-right, 0);
+    
+    /* 터치 영역 확장 */
+    position: relative;
+  }
+  
+  .floating-chat-button::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    pointer-events: all;
+  }
+  
+  /* 모바일 스크롤 성능 최적화 */
+  .mobile-scroll-optimized {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    transform: translateZ(0);
+    will-change: scroll-position;
+  }
+  
+  /* 터치 성능 최적화 */
+  .mobile-touch-optimized {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  
+  /* Visual Viewport API 대응 */
+  @supports (height: 100dvh) {
+    .mobile-chat-container {
+      height: 100dvh;
+      min-height: 100dvh;
+    }
+  }
+  
+  /* 햅틱 피드백 지원 브라우저 체크 */
+  @media (hover: none) and (pointer: coarse) {
+    .haptic-supported {
+      /* 모바일 터치 디바이스에서만 적용 */
+      transition: transform 0.1s ease-out;
+    }
+    
+    .haptic-supported:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+/* 태블릿 최적화 (768px ~ 1024px) */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .chat-modal {
+    max-width: 480px;
+    max-height: 680px;
+  }
+  
+  .floating-chat-button {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* 고해상도 디스플레이 최적화 */
+@media screen and (-webkit-min-device-pixel-ratio: 2), 
+       screen and (min-resolution: 192dpi) {
+  .ripple-effect {
+    /* 고해상도에서 부드러운 애니메이션 */
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+  
+  .mobile-touch-optimized {
+    /* 고해상도에서 하드웨어 가속 최적화 */
+    transform: translateZ(0);
+    perspective: 1000px;
+  }
+}
+
+/* 다크모드 모바일 최적화 */
+@media screen and (max-width: 768px) and (prefers-color-scheme: dark) {
+  .chat-input-area {
+    background: #1f2937;
+    border-top-color: #374151;
+  }
+  
+  .mobile-input:-webkit-autofill,
+  .mobile-input:-webkit-autofill:hover,
+  .mobile-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px #1f2937 inset;
+  }
 }
