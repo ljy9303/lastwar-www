@@ -56,6 +56,22 @@
   }
 }
 
+/* 성능 최적화된 리플 애니메이션 (OptimizedTouchButton용) */
+@keyframes ripple-animation {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.ripple-effect {
+  animation: ripple-animation 0.6s ease-out;
+}
+
 /* 모바일 채팅 최적화 */
 .mobile-chat-container {
   /* iOS Safari에서 100vh 문제 해결 */
