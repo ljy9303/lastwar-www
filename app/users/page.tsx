@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { OptimizedTouchButton } from "@/components/ui/optimized-touch-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, FileDown, FileUp, Download } from "lucide-react"
@@ -638,10 +639,10 @@ export default function UsersPage() {
                 <div className="flex gap-2">
                   <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="flex-1 sm:flex-auto">
+                      <OptimizedTouchButton size="mobile-default" className="flex-1 sm:flex-auto">
                         <Plus className="mr-2 h-4 w-4" />
                         유저 추가
-                      </Button>
+                      </OptimizedTouchButton>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
@@ -653,19 +654,20 @@ export default function UsersPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={downloadSampleCsv} className="flex-1 sm:flex-auto">
+                  <OptimizedTouchButton variant="outline" size="mobile-default" onClick={downloadSampleCsv} className="flex-1 sm:flex-auto">
                     <Download className="mr-2 h-4 w-4" />
                     샘플 파일
-                  </Button>
-                  <Button 
+                  </OptimizedTouchButton>
+                  <OptimizedTouchButton 
                     variant="outline" 
+                    size="mobile-default"
                     onClick={handleImportClick} 
                     className="flex-1 sm:flex-auto"
                     disabled={isUploading}
                   >
                     <FileUp className="mr-2 h-4 w-4" />
                     {isUploading ? "업로드 중..." : "파일 가져오기"}
-                  </Button>
+                  </OptimizedTouchButton>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -742,12 +744,13 @@ export default function UsersPage() {
                   </div>
                 </div>
 
-                <Button 
+                <OptimizedTouchButton 
+                  size="mobile-default"
                   onClick={() => setIsMergeDialogOpen(true)}
                   className="w-full sm:w-auto"
                 >
                   사용자 데이터 통합 시작
-                </Button>
+                </OptimizedTouchButton>
               </div>
             </CardContent>
           </Card>
