@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { FloatingChatButton } from "@/components/chat/floating-chat-button"
 import { ChatCacheProvider } from "@/contexts/chat-cache-context"
 import { CurrentEventProvider } from "@/contexts/current-event-context"
+import { PageViewTracker } from "@/components/analytics/page-view-tracker"
 
 interface ClientProvidersProps {
   children: React.ReactNode
@@ -31,6 +32,7 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
             <AuthLayout>
               {children}
               <FloatingChatButton />
+              <PageViewTracker />
             </AuthLayout>
           </ChatCacheProvider>
         </CurrentEventProvider>
