@@ -746,7 +746,8 @@ export default function DesertResultsPage() {
               />
             </div>
 
-            <div className="rounded-md border">
+            {/* 데스크톱용 테이블 */}
+            <div className="hidden sm:block rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -761,7 +762,7 @@ export default function DesertResultsPage() {
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </OptimizedTouchButton>
                     </TableHead>
-                    <TableHead className="hidden sm:table-cell">
+                    <TableHead>
                       <OptimizedTouchButton
                         variant="ghost"
                         size="mobile-sm"
@@ -772,7 +773,7 @@ export default function DesertResultsPage() {
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </OptimizedTouchButton>
                     </TableHead>
-                    <TableHead className="w-[80px] sm:w-[100px]">참석</TableHead>
+                    <TableHead className="w-[100px]">참석</TableHead>
                     <TableHead className="hidden md:table-cell">비고</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -787,19 +788,14 @@ export default function DesertResultsPage() {
                     filteredResults.map((result) => (
                       <TableRow key={result.userSeq}>
                         <TableCell>
-                          <div>
-                            <div className="font-medium">{result.name}</div>
-                            <div className="sm:hidden text-xs text-muted-foreground mt-1">
-                              {getTeamName(result.desertType)}
-                            </div>
-                          </div>
+                          <div className="font-medium">{result.name}</div>
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell">{getTeamName(result.desertType)}</TableCell>
+                        <TableCell>{getTeamName(result.desertType)}</TableCell>
                         <TableCell>
                           <OptimizedTouchButton
                             variant={result.isPlayed ? "default" : "outline"}
                             size="mobile-sm"
-                            className={`w-16 sm:w-20 h-10 sm:h-11 md:h-8 text-xs sm:text-sm transition-all ${
+                            className={`w-20 h-8 text-sm transition-all ${
                               result.isPlayed ? "bg-green-500 hover:bg-green-600 text-white" : "text-gray-500 hover:text-gray-700"
                             }`}
                             onClick={() => handleParticipationChange(result.userSeq, !result.isPlayed)}
@@ -837,6 +833,70 @@ export default function DesertResultsPage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* 모바일용 카드 리스트 */}
+            <div className="sm:hidden space-y-3">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-sm text-muted-foreground">데이터를 불러오는 중...</div>
+                </div>
+              ) : filteredResults.length > 0 ? (
+                filteredResults.map((result) => (
+                  <Card key={result.userSeq} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="font-medium text-base">{result.name}</div>
+                          <div className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
+                            {getTeamName(result.desertType)}
+                          </div>
+                        </div>
+                        {result.description && (
+                          <div className="text-sm text-muted-foreground mb-2">
+                            비고: {result.description}
+                          </div>
+                        )}
+                        <div className="md:hidden">
+                          <Input
+                            placeholder="비고를 입력하세요..."
+                            value={result.description || ""}
+                            onChange={(e) => handleDescriptionChange(result.userSeq, e.target.value)}
+                            className="text-sm mt-2"
+                          />
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <OptimizedTouchButton
+                          variant={result.isPlayed ? "default" : "outline"}
+                          size="mobile-default"
+                          className={`w-20 h-12 text-sm transition-all ${
+                            result.isPlayed ? "bg-green-500 hover:bg-green-600 text-white" : "text-gray-500 hover:text-gray-700"
+                          }`}
+                          onClick={() => handleParticipationChange(result.userSeq, !result.isPlayed)}
+                        >
+                          {result.isPlayed ? "참석" : "불참"}
+                        </OptimizedTouchButton>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  {results.length > 0 ? (
+                    <>
+                      <p className="text-sm">검색 결과가 없습니다.</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {activeTab === "b" && teamCounts.B === 0
+                          ? "B조에 배정된 인원이 없습니다."
+                          : "필터 조건을 변경해보세요."}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm">데이터가 없습니다.</p>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
