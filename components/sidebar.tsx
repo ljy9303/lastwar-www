@@ -433,10 +433,11 @@ export default function Sidebar() {
           <DialogHeader>
             <DialogTitle>닉네임 수정</DialogTitle>
             <DialogDescription className="space-y-2">
-              <div>새로운 닉네임을 입력해주세요. 2~20자 사이의 영문자, 숫자, 한글만 사용할 수 있습니다.</div>
-              <div className="text-amber-600 font-medium">
+              새로운 닉네임을 입력해주세요. 2~20자 사이의 영문자, 숫자, 한글만 사용할 수 있습니다.
+              <br />
+              <span className="text-amber-600 font-medium">
                 ⚠️ 닉네임 변경이 완료되면 자동으로 로그아웃되며, 다시 로그인해야 합니다.
-              </div>
+              </span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
