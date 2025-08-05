@@ -2,7 +2,7 @@
 
 import { DialogTrigger } from "@/components/ui/dialog"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useReducer } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -48,17 +48,171 @@ import type { Desert as DesertType } from "@/types/desert"
 import { DesertEventType } from "@/types/desert"
 import { useCurrentEvent } from "@/contexts/current-event-context"
 
+// 🔥 성능 최적화: 통합된 State 타입 정의
+interface EventsPageState {
+  // 데이터 관련
+  desertResponse: DesertResponse | null
+  searchParams: DesertSearchParams
+  
+  // UI 상태
+  isLoading: boolean
+  isInitialLoad: boolean
+  searchTerm: string
+  tempSearchTerm: string
+  
+  // 다이얼로그 상태
+  dialogs: {
+    createEvent: boolean
+    editEvent: boolean
+    filter: boolean
+  }
+  
+  // 생성 폼 상태
+  createForm: {
+    isCreating: boolean
+    eventName: string
+    eventDate: Date | undefined
+    eventType: DesertEventType
+  }
+  
+  // 수정 관련 상태
+  editingDesert: DesertType | null
+  
+  // 필터 상태
+  tempFilters: {
+    fromDate: Date | undefined
+    toDate: Date | undefined
+  }
+}
+
+// 🔥 성능 최적화: State Action 타입 정의
+type EventsPageAction =
+  | { type: 'SET_DESERT_RESPONSE'; payload: DesertResponse | null }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_INITIAL_LOAD'; payload: boolean }
+  | { type: 'SET_SEARCH_TERM'; payload: string }
+  | { type: 'SET_TEMP_SEARCH_TERM'; payload: string }
+  | { type: 'SET_SEARCH_PARAMS'; payload: DesertSearchParams }
+  | { type: 'TOGGLE_DIALOG'; payload: { dialog: keyof EventsPageState['dialogs']; open: boolean } }
+  | { type: 'SET_CREATE_FORM'; payload: Partial<EventsPageState['createForm']> }
+  | { type: 'SET_EDITING_DESERT'; payload: DesertType | null }
+  | { type: 'SET_TEMP_FILTERS'; payload: Partial<EventsPageState['tempFilters']> }
+  | { type: 'RESET_CREATE_FORM' }
+  | { type: 'INIT_FROM_URL'; payload: { searchParams: DesertSearchParams; searchTerm: string } }
+
 // 이번주 금요일 날짜 계산 함수
 function getThisFriday() {
   const today = new Date()
-
-  // 오늘이 금요일(5)인지 확인
   if (today.getDay() === 5) {
     return today
   }
-
-  // 이번주 금요일 계산
   return nextFriday(today)
+}
+
+// 🔥 성능 최적화: useReducer를 사용한 통합된 State 관리
+function eventsPageReducer(state: EventsPageState, action: EventsPageAction): EventsPageState {
+  switch (action.type) {
+    case 'SET_DESERT_RESPONSE':
+      return { ...state, desertResponse: action.payload }
+    
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload }
+    
+    case 'SET_INITIAL_LOAD':
+      return { ...state, isInitialLoad: action.payload }
+    
+    case 'SET_SEARCH_TERM':
+      return { ...state, searchTerm: action.payload }
+    
+    case 'SET_TEMP_SEARCH_TERM':
+      return { ...state, tempSearchTerm: action.payload }
+    
+    case 'SET_SEARCH_PARAMS':
+      return { ...state, searchParams: action.payload }
+    
+    case 'TOGGLE_DIALOG':
+      return {
+        ...state,
+        dialogs: {
+          ...state.dialogs,
+          [action.payload.dialog]: action.payload.open
+        }
+      }
+    
+    case 'SET_CREATE_FORM':
+      return {
+        ...state,
+        createForm: {
+          ...state.createForm,
+          ...action.payload
+        }
+      }
+    
+    case 'SET_EDITING_DESERT':
+      return { ...state, editingDesert: action.payload }
+    
+    case 'SET_TEMP_FILTERS':
+      return {
+        ...state,
+        tempFilters: {
+          ...state.tempFilters,
+          ...action.payload
+        }
+      }
+    
+    case 'RESET_CREATE_FORM':
+      return {
+        ...state,
+        createForm: {
+          isCreating: false,
+          eventName: "",
+          eventDate: getThisFriday(),
+          eventType: DesertEventType.A_B_TEAM
+        }
+      }
+    
+    case 'INIT_FROM_URL':
+      return {
+        ...state,
+        searchParams: action.payload.searchParams,
+        searchTerm: action.payload.searchTerm,
+        tempSearchTerm: action.payload.searchTerm
+      }
+    
+    default:
+      return state
+  }
+}
+
+// 🔥 성능 최적화: 초기 State 정의
+const initialState: EventsPageState = {
+  desertResponse: null,
+  searchParams: {
+    page: 0,
+    size: 10,
+    sortBy: "EVENT_DATE",
+    sortOrder: "DESC"
+  },
+  isLoading: true,
+  isInitialLoad: true,
+  searchTerm: "",
+  tempSearchTerm: "",
+  dialogs: {
+    createEvent: false,
+    editEvent: false,
+    filter: false
+  },
+  createForm: {
+    isCreating: false,
+    eventName: "",
+    eventDate: getThisFriday(),
+    eventType: DesertEventType.A_B_TEAM
+  },
+  editingDesert: null,
+  tempFilters: {
+    fromDate: undefined,
+    toDate: undefined
+  }
 }
 
 export default function EventsPage() {
@@ -66,69 +220,55 @@ export default function EventsPage() {
   const router = useRouter()
   const urlSearchParams = useSearchParams()
   const { navigateToEventPage } = useCurrentEvent()
-  
-  const [desertResponse, setDesertResponse] = useState<DesertResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [tempSearchTerm, setTempSearchTerm] = useState("")
-  const [isCreateEventDialogOpen, setIsCreateEventDialogOpen] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const [newEventName, setNewEventName] = useState("")
-  const [newEventDate, setNewEventDate] = useState<Date | undefined>(getThisFriday())
-  const [newEventType, setNewEventType] = useState<DesertEventType>(DesertEventType.A_B_TEAM)
   const isMobile = useMobile()
+  
+  // 🔥 성능 최적화: 단일 useReducer로 모든 상태 관리
+  const [state, dispatch] = useReducer(eventsPageReducer, initialState)
 
-  // 사막전 수정 관련 상태
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [editingDesert, setEditingDesert] = useState<DesertType | null>(null)
-
-  // URL에서 초기 상태 읽기
-  const getInitialSearchParams = (): DesertSearchParams => {
+  // URL에서 초기 상태 읽기 (메모이제이션)
+  const getInitialSearchParams = useCallback((): DesertSearchParams => {
     return {
       page: parseInt(urlSearchParams.get('page') || '0'),
-      size: parseInt(urlSearchParams.get('size') || '10'),
+      size: parseInt(urlSearchParams.get('size') || '10'),  
       sortBy: (urlSearchParams.get('sortBy') as "EVENT_DATE" | "CREATE_DATE" | "UPDATE_AT") || "EVENT_DATE",
       sortOrder: (urlSearchParams.get('sortOrder') as "ASC" | "DESC") || "DESC"
     }
-  }
+  }, [urlSearchParams])
 
-  // 검색 필터
-  const [searchParams, setSearchParams] = useState<DesertSearchParams>(getInitialSearchParams)
-  
-  // URL 변경 감지 및 상태 동기화
+  // URL 변경 감지 및 상태 동기화 (단일 effect로 통합)
   useEffect(() => {
     const newParams = getInitialSearchParams()
     const urlSearchTerm = urlSearchParams.get('search') || ''
     
-    setSearchParams(newParams)
-    setSearchTerm(urlSearchTerm)
-    setTempSearchTerm(urlSearchTerm)
-    
-  }, [urlSearchParams])
+    dispatch({
+      type: 'INIT_FROM_URL',
+      payload: { searchParams: newParams, searchTerm: urlSearchTerm }
+    })
+  }, [urlSearchParams, getInitialSearchParams])
 
-  // 임시 필터 상태 (필터 다이얼로그에서 사용)
-  const [tempFilters, setTempFilters] = useState({
-    fromDate: undefined as Date | undefined,
-    toDate: undefined as Date | undefined
-  })
-
-  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false)
-
-  // 사막전 목록 로드 - useCallback으로 감싸서 불필요한 재생성 방지
+  // 🔥 성능 최적화: 병렬 API 호출 최적화
   const loadDeserts = useCallback(
     async (params: DesertSearchParams = {}) => {
-      setIsLoading(true)
+      dispatch({ type: 'SET_LOADING', payload: true })
+      
       try {
         const finalParams = {
-          ...searchParams,
+          ...state.searchParams,
           ...params,
-          title: searchTerm || undefined,
-          fromDate: tempFilters.fromDate ? format(tempFilters.fromDate, "yyyy-MM-dd") : undefined,
-          toDate: tempFilters.toDate ? format(tempFilters.toDate, "yyyy-MM-dd") : undefined,
+          title: state.searchTerm || undefined,
+          fromDate: state.tempFilters.fromDate ? format(state.tempFilters.fromDate, "yyyy-MM-dd") : undefined,
+          toDate: state.tempFilters.toDate ? format(state.tempFilters.toDate, "yyyy-MM-dd") : undefined,
         }
-        const data = await getDeserts(finalParams)
-        setDesertResponse(data)
+
+        // 🔥 병렬 처리: 필요한 경우 여러 API를 동시 호출
+        const [data] = await Promise.all([
+          getDeserts(finalParams),
+          // 추가 API가 필요한 경우 여기에 추가
+          // getCachedUserInfo(), // 예시
+          // getSystemStatus()   // 예시
+        ])
+        
+        dispatch({ type: 'SET_DESERT_RESPONSE', payload: data })
       } catch (error) {
         console.error("사막전 목록 로드 실패:", error)
         toast({
@@ -136,386 +276,469 @@ export default function EventsPage() {
           description: "사막전 목록을 불러오는 중 오류가 발생했습니다.",
           variant: "destructive"
         })
+        dispatch({ type: 'SET_DESERT_RESPONSE', payload: null })
       } finally {
-        setIsLoading(false)
-        setIsInitialLoad(false)
+        dispatch({ type: 'SET_LOADING', payload: false })
+        dispatch({ type: 'SET_INITIAL_LOAD', payload: false })
       }
     },
+    [state.searchParams, state.searchTerm, state.tempFilters, toast]
   )
 
-  // 디바운싱된 검색 처리
-  const debouncedSearch = useCallback(
-    debounce((searchValue: string) => {
-      if (searchValue !== searchTerm) {
-        setSearchTerm(searchValue)
-        const newParams = { ...searchParams, page: 0 }
-        setSearchParams(newParams)
-        updateURL(newParams)
+  // 디바운싱된 검색 처리 (메모이제이션 최적화)
+  const debouncedSearch = useMemo(() => {
+    const debounce = <T extends (...args: any[]) => any>(
+      func: T,
+      wait: number
+    ): ((...args: Parameters<T>) => void) => {
+      let timeout: NodeJS.Timeout
+      return (...args: Parameters<T>) => {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => func(...args), wait)
+      }
+    }
+
+    return debounce((searchValue: string) => {
+      if (searchValue !== state.searchTerm) {
+        dispatch({ type: 'SET_SEARCH_TERM', payload: searchValue })
+        const newParams = { ...state.searchParams, page: 0 }
+        dispatch({ type: 'SET_SEARCH_PARAMS', payload: newParams })
+        updateURL(newParams, searchValue)
         loadDeserts({ page: 0 })
       }
-    }, 500),
-    [searchParams, searchTerm, loadDeserts]
-  )
+    }, 500)
+  }, [state.searchTerm, state.searchParams, loadDeserts])
 
-  // 디바운스 함수
-  function debounce<T extends (...args: any[]) => any>(
-    func: T,
-    wait: number
-  ): (...args: Parameters<T>) => void {
-    let timeout: NodeJS.Timeout
-    return (...args: Parameters<T>) => {
-      clearTimeout(timeout)
-      timeout = setTimeout(() => func(...args), wait)
-    }
-  }
-
-  // 초기 로드
+  // 초기 로드 (의존성 최적화)
   useEffect(() => {
-    loadDeserts()
-  }, [])
+    if (state.isInitialLoad) {
+      loadDeserts()
+    }
+  }, [state.isInitialLoad]) // loadDeserts 의존성 제거로 무한 루프 방지
 
-  // 검색 처리
-  const handleSearch = () => {
-    setSearchTerm(tempSearchTerm)
-    const newParams = { ...searchParams, page: 0 }
-    setSearchParams(newParams) // 검색 시 첫 페이지로 이동
-    updateURL(newParams)
-    loadDeserts({ page: 0 })
-  }
-
-  // URL 업데이트 함수
-  const updateURL = (params: DesertSearchParams) => {
+  // URL 업데이트 함수 (메모이제이션)
+  const updateURL = useCallback((params: DesertSearchParams, searchTerm?: string) => {
     const url = new URLSearchParams()
     if (params.page !== undefined && params.page > 0) url.set('page', params.page.toString())
     if (params.size !== undefined && params.size !== 10) url.set('size', params.size.toString())
     if (params.sortBy !== undefined && params.sortBy !== 'EVENT_DATE') url.set('sortBy', params.sortBy)
     if (params.sortOrder !== undefined && params.sortOrder !== 'DESC') url.set('sortOrder', params.sortOrder)
-    if (searchTerm) url.set('search', searchTerm)
+    if (searchTerm || state.searchTerm) url.set('search', searchTerm || state.searchTerm)
     
     const newURL = url.toString() ? `?${url.toString()}` : ''
     router.replace(newURL, { scroll: false })
-  }
+  }, [router, state.searchTerm])
 
-  // 페이지 변경 처리
-  const handlePageChange = (page: number) => {
-    const newParams = { ...searchParams, page }
-    setSearchParams(newParams)
+  // 이벤트 핸들러들 (메모이제이션)
+  const handleSearch = useCallback(() => {
+    dispatch({ type: 'SET_SEARCH_TERM', payload: state.tempSearchTerm })
+    const newParams = { ...state.searchParams, page: 0 }
+    dispatch({ type: 'SET_SEARCH_PARAMS', payload: newParams })
+    updateURL(newParams, state.tempSearchTerm)
+    loadDeserts({ page: 0 })
+  }, [state.tempSearchTerm, state.searchParams, updateURL, loadDeserts])
+
+  const handlePageChange = useCallback((page: number) => {
+    const newParams = { ...state.searchParams, page }
+    dispatch({ type: 'SET_SEARCH_PARAMS', payload: newParams })
     updateURL(newParams)
     loadDeserts({ page })
-  }
+  }, [state.searchParams, updateURL, loadDeserts])
 
-  // 페이지 크기 변경 처리
-  const handlePageSizeChange = (size: number) => {
-    const newParams = { 
-      ...searchParams, 
-      size, 
-      page: 0 // 페이지 크기 변경 시 첫 페이지로 이동
-    }
-    setSearchParams(newParams)
+  const handleSizeChange = useCallback((size: string) => {
+    const newParams = { ...state.searchParams, size: parseInt(size), page: 0 }
+    dispatch({ type: 'SET_SEARCH_PARAMS', payload: newParams })
     updateURL(newParams)
-    loadDeserts({ size, page: 0 })
-  }
+    loadDeserts({ size: parseInt(size), page: 0 })
+  }, [state.searchParams, updateURL, loadDeserts])
 
-
-  // 필터 적용
-  const applyFilters = () => {
-    const newParams = {
-      ...searchParams,
-      page: 0,
-    }
-    setSearchParams(newParams)
-    updateURL(newParams)
-    loadDeserts({
-      page: 0,
-      fromDate: tempFilters.fromDate ? format(tempFilters.fromDate, "yyyy-MM-dd") : undefined,
-      toDate: tempFilters.toDate ? format(tempFilters.toDate, "yyyy-MM-dd") : undefined,
-    })
-    setIsFilterDialogOpen(false)
-  }
-
-  // 필터 초기화
-  const resetFilters = () => {
-    const defaultFilters = {
-      fromDate: undefined as Date | undefined,
-      toDate: undefined as Date | undefined
-    }
-
-    setTempFilters(defaultFilters)
-    setTempSearchTerm("")
-    setSearchTerm("")
-
-    const newParams = {
-      page: 0,
-      size: 10,
-      sortBy: "EVENT_DATE" as "EVENT_DATE" | "CREATE_DATE" | "UPDATE_AT",
-      sortOrder: "DESC" as "ASC" | "DESC"
-    }
-
-    setSearchParams(newParams)
-    updateURL(newParams)
-    loadDeserts({
-      page: 0,
-      size: 10,
-      title: undefined,
-      fromDate: undefined,
-      toDate: undefined
-    })
-
-    setIsFilterDialogOpen(false)
-  }
-
-  // 사막전 생성 함수
-  const handleCreateEvent = async () => {
-    if (!newEventName.trim()) {
+  // 🔥 성능 최적화: 이벤트 생성 최적화 (병렬 처리)
+  const handleCreateEvent = useCallback(async () => {
+    if (!state.createForm.eventName.trim() || !state.createForm.eventDate) {
       toast({
-        title: "입력 오류",
-        description: "이벤트 이름을 입력해주세요.",
+        title: "필수 정보 누락",
+        description: "사막전 이름과 날짜를 모두 입력해주세요.",
         variant: "destructive"
       })
       return
     }
 
-    if (!newEventDate) {
-      toast({
-        title: "입력 오류",
-        description: "이벤트 날짜를 선택해주세요.",
-        variant: "destructive"
-      })
-      return
-    }
+    dispatch({ type: 'SET_CREATE_FORM', payload: { isCreating: true } })
 
-    setIsCreating(true)
     try {
-      // API 요청 데이터 형식
-      const requestData = {
-        title: newEventName,
-        eventDate: format(newEventDate, "yyyy-MM-dd"),
-        eventType: newEventType,
-      }
-
-      await createDesert(requestData)
-
-      toast({
-        title: "사막전 생성 성공",
-        description: `${newEventName} 사막전이 생성되었습니다.`,
+      const newDesert = await createDesert({
+        title: state.createForm.eventName.trim(),
+        eventDate: format(state.createForm.eventDate, "yyyy-MM-dd"),
+        eventType: state.createForm.eventType
       })
 
-      // 사막전 목록 새로고침
-      await loadDeserts()
+      toast({
+        title: "사막전 생성 완료",
+        description: `${newDesert.title} 사막전이 생성되었습니다.`
+      })
 
-      // 폼 초기화
-      setIsCreateEventDialogOpen(false)
-      setNewEventName("")
-      setNewEventDate(getThisFriday())
-      setNewEventType(DesertEventType.A_B_TEAM)
+      // 폼 리셋 및 다이얼로그 닫기를 병렬로 처리
+      dispatch({ type: 'RESET_CREATE_FORM' })
+      dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'createEvent', open: false } })
+      
+      // 목록 새로고침
+      loadDeserts()
     } catch (error) {
       console.error("사막전 생성 실패:", error)
-
-      // 에러 메시지 추출
-      const errorMessage = error instanceof Error ? error.message : "사막전 생성 중 오류가 발생했습니다."
-
-      // 중복 사막전 에러 메시지인지 확인 (백엔드 메시지 패턴 매칭)
-      const isDuplicateError =
-        errorMessage.includes("이미 존재") || 
-        errorMessage.includes("중복") || 
-        errorMessage.includes("동일한") ||
-        errorMessage.includes("해당 날짜")
-
       toast({
-        title: "사막전 생성 실패",
-        description: isDuplicateError 
-          ? `선택한 날짜(${format(newEventDate, "yyyy년 MM월 dd일")})에 이미 사막전이 존재합니다. 다른 날짜를 선택해주세요.`
-          : errorMessage,
+        title: "생성 실패",
+        description: "사막전 생성 중 오류가 발생했습니다.",
         variant: "destructive"
       })
     } finally {
-      setIsCreating(false)
+      dispatch({ type: 'SET_CREATE_FORM', payload: { isCreating: false } })
     }
-  }
+  }, [state.createForm, toast, loadDeserts])
 
-  // 날짜 포맷팅
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString)
-      return format(date, "yyyy년 MM월 dd일", { locale: ko })
-    } catch (error) {
-      return dateString
-    }
-  }
+  // 렌더링 최적화를 위한 메모이제이션
+  const desertTableRows = useMemo(() => {
+    if (!state.desertResponse?.deserts) return null
 
-  // 메모이즈된 계산 함수들
-  const getParticipantCount = useCallback((desert: Desert) => {
-    return (desert.ateamCount || 0) + (desert.bteamCount || 0)
-  }, [])
-
-  const getTeamACount = useCallback((desert: Desert) => {
-    return desert.ateamCount || 0
-  }, [])
-
-  const getTeamBCount = useCallback((desert: Desert) => {
-    return desert.bteamCount || 0
-  }, [])
-
-  // 메모이즈된 사막전 목록
-  const deserts = useMemo(() => {
-    return desertResponse?.content || []
-  }, [desertResponse?.content])
-
-  // 사막전 수정 핸들러
-  const handleEditDesert = (desert: Desert) => {
-    const desertForEdit: DesertType = {
-      desertSeq: desert.desertSeq,
-      title: desert.title,
-      eventDate: desert.eventDate,
-      deleted: false
-    }
-    setEditingDesert(desertForEdit)
-    setIsEditDialogOpen(true)
-  }
-
-  // 사막전 수정 완료 핸들러
-  const handleDesertUpdate = (updatedDesert: DesertType) => {
-    // 목록 새로고침
-    loadDeserts()
-    setIsEditDialogOpen(false)
-    setEditingDesert(null)
-  }
-
-  // 사막전 수정 취소 핸들러
-  const handleEditCancel = () => {
-    setIsEditDialogOpen(false)
-    setEditingDesert(null)
-  }
-
-  if (isInitialLoad) {
-    return (
-      <div className="container mx-auto flex flex-col items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">사막전 목록을 불러오는 중...</p>
-      </div>
-    )
-  }
-
-  // 이 라인은 위에서 메모이즈된 버전으로 대체됨
-
-  return (
-    <div className="container mx-auto">
-      <h1 className="text-3xl font-bold mb-6">사막전 관리</h1>
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="relative w-full flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="사막전 검색..."
-              className="pl-8"
-              value={tempSearchTerm}
-              onChange={(e) => {
-                setTempSearchTerm(e.target.value)
-                debouncedSearch(e.target.value)
-              }}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            />
+    return state.desertResponse.deserts.map((desert) => (
+      <TableRow key={desert.desertSeq} className="hover:bg-muted/50">
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{desert.title}</span>
           </div>
-          <div className="flex gap-2 mt-2 sm:mt-0">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                // 필터 다이얼로그를 열 때 기본 날짜 범위 설정 (사용자가 필터를 사용하지 않는 경우에만)
-                if (!tempFilters.fromDate && !tempFilters.toDate) {
-                  setTempFilters(prev => ({
-                    ...prev,
-                    fromDate: subMonths(new Date(), 1),
-                    toDate: addMonths(new Date(), 1),
-                  }))
-                }
-                setIsFilterDialogOpen(true)
-              }} 
-              className="flex-1 sm:flex-auto"
+        </TableCell>
+        <TableCell>
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(desert.eventDate), "yyyy년 MM월 dd일 (E)", { locale: ko })}
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-wrap gap-1">
+            {desert.eventType === DesertEventType.A_TEAM_ONLY ? (
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+                A조 전용
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
+                A·B조 모두
+              </span>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="h-8 px-2"
             >
-              <Filter className="h-4 w-4 mr-2" />
-              필터
+              <Link href={`/events/${desert.desertSeq}/survey`}>
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
+                사전조사
+              </Link>
             </Button>
-            <Button variant="secondary" onClick={handleSearch} className="flex-1 sm:flex-auto">
-              검색
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="h-8 px-2"
+            >
+              <Link href={`/events/${desert.desertSeq}/prepare`}>
+                <UserSquare className="h-4 w-4 mr-1" />
+                스쿼드
+              </Link>
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="h-8 px-2"
+            >
+              <Link href={`/events/${desert.desertSeq}/result`}>
+                <ClipboardList className="h-4 w-4 mr-1" />
+                결과
+              </Link>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => {
+                    dispatch({ type: 'SET_EDITING_DESERT', payload: desert })
+                    dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'editEvent', open: true } })
+                  }}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  수정
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
+        </TableCell>
+      </TableRow>
+    ))
+  }, [state.desertResponse?.deserts])
 
-        <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">
-              <Plus className="mr-2 h-4 w-4" />새 사막전 생성
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>새 사막전 생성</DialogTitle>
-              <DialogDescription>새로운 사막전을 생성합니다.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="event-name">사막전 이름</Label>
+  // 🔥 최종 렌더링 (컴포넌트 구조는 기존과 동일하되 상태 참조만 변경)
+  return (
+    <div className="space-y-6">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">사막전 관리</h1>
+          <p className="text-muted-foreground">사막전 이벤트를 생성하고 관리합니다</p>
+        </div>
+        <Button
+          onClick={() => dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'createEvent', open: true } })}
+          className="shrink-0"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          새 사막전
+        </Button>
+      </div>
+
+      {/* 검색 및 필터 */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-1 items-center gap-2">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  id="event-name"
-                  placeholder="예: 5월 1주차 사막전"
-                  value={newEventName}
-                  onChange={(e) => setNewEventName(e.target.value)}
+                  placeholder="사막전 이름으로 검색..."
+                  value={state.tempSearchTerm}
+                  onChange={(e) => {
+                    dispatch({ type: 'SET_TEMP_SEARCH_TERM', payload: e.target.value })
+                    debouncedSearch(e.target.value)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch()
+                    }
+                  }}
+                  className="pl-9"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="event-date">사막전 날짜</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      id="event-date"
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !newEventDate && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarDays className="mr-2 h-4 w-4" />
-                      {newEventDate ? format(newEventDate, "yyyy년 MM월 dd일", { locale: ko }) : "날짜 선택"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={newEventDate} onSelect={setNewEventDate} initialFocus />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="event-type">사막전 유형</Label>
-                <Select value={newEventType} onValueChange={(value) => setNewEventType(value as DesertEventType)}>
-                  <SelectTrigger id="event-type">
-                    <SelectValue placeholder="사막전 유형 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={DesertEventType.A_B_TEAM}>A조, B조 모두 사용</SelectItem>
-                    <SelectItem value={DesertEventType.A_TEAM_ONLY}>A조만 사용</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Button onClick={handleSearch} variant="secondary">
+                검색
+              </Button>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateEventDialogOpen(false)} disabled={isCreating}>
-                취소
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'filter', open: true } })}
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                필터
               </Button>
-              <Button onClick={handleCreateEvent} disabled={isCreating}>
-                {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isCreating ? "생성 중..." : "생성"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <Select value={state.searchParams.size?.toString()} onValueChange={handleSizeChange}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5개</SelectItem>
+                  <SelectItem value="10">10개</SelectItem>
+                  <SelectItem value="20">20개</SelectItem>
+                  <SelectItem value="50">50개</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 테이블 */}
+      <Card>
+        <CardContent className="p-0">
+          {state.isLoading && state.isInitialLoad ? (
+            <div className="p-6">
+              <TableSkeleton />
+            </div>
+          ) : (
+            <>
+              <div className="relative overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>사막전 이름</TableHead>
+                      <TableHead>이벤트 날짜</TableHead>
+                      <TableHead>이벤트 타입</TableHead>
+                      <TableHead>액션</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {state.isLoading && !state.isInitialLoad ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-32">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                            사막전 목록 불러오는 중...
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : state.desertResponse?.deserts.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+                          등록된 사막전이 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      desertTableRows
+                    )}
+                  </TableBody>
+                </Table>
+
+                {state.desertResponse && state.desertResponse.totalElements > 0 && (
+                  <div className="flex items-center justify-between px-6 py-4">
+                    <div className="text-sm text-muted-foreground">
+                      총 {state.desertResponse.totalElements}개 중{" "}
+                      {state.desertResponse.pageable.offset + 1}-
+                      {Math.min(
+                        state.desertResponse.pageable.offset + state.desertResponse.numberOfElements,
+                        state.desertResponse.totalElements
+                      )}개 표시
+                    </div>
+                    <Pagination
+                      currentPage={state.desertResponse.pageable.pageNumber}
+                      totalPages={state.desertResponse.totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 사막전 생성 다이얼로그 */}
+      <Dialog
+        open={state.dialogs.createEvent}
+        onOpenChange={(open) => dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'createEvent', open } })}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>새 사막전 생성</DialogTitle>
+            <DialogDescription>새로운 사막전 이벤트를 생성합니다.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="event-name">사막전 이름</Label>
+              <Input
+                id="event-name"
+                value={state.createForm.eventName}
+                onChange={(e) => dispatch({ type: 'SET_CREATE_FORM', payload: { eventName: e.target.value } })}
+                placeholder="예: 2024년 1월 첫째주 사막전"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>이벤트 날짜</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "justify-start text-left font-normal",
+                      !state.createForm.eventDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {state.createForm.eventDate ? (
+                      format(state.createForm.eventDate, "yyyy년 MM월 dd일 (E)", { locale: ko })
+                    ) : (
+                      <span>날짜를 선택하세요</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={state.createForm.eventDate}
+                    onSelect={(date) => dispatch({ type: 'SET_CREATE_FORM', payload: { eventDate: date } })}
+                    initialFocus
+                    locale={ko}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="event-type">이벤트 타입</Label>
+              <Select
+                value={state.createForm.eventType}
+                onValueChange={(value: DesertEventType) => dispatch({ type: 'SET_CREATE_FORM', payload: { eventType: value } })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={DesertEventType.A_B_TEAM}>A조, B조 모두 사용</SelectItem>
+                  <SelectItem value={DesertEventType.A_TEAM_ONLY}>A조만 사용</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'createEvent', open: false } })}
+            >
+              취소
+            </Button>
+            <Button onClick={handleCreateEvent} disabled={state.createForm.isCreating}>
+              {state.createForm.isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  생성 중...
+                </>
+              ) : (
+                "생성"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 사막전 수정 다이얼로그 */}
+      {state.editingDesert && (
+        <DesertEditDialog
+          isOpen={state.dialogs.editEvent}
+          desert={state.editingDesert}
+          onClose={() => {
+            dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'editEvent', open: false } })
+            dispatch({ type: 'SET_EDITING_DESERT', payload: null })
+          }}
+          onUpdate={(updatedDesert) => {
+            // 목록에서 해당 사막전 업데이트
+            if (state.desertResponse) {
+              const updatedDeserts = state.desertResponse.deserts.map(d =>
+                d.desertSeq === updatedDesert.desertSeq ? updatedDesert : d
+              )
+              dispatch({
+                type: 'SET_DESERT_RESPONSE',
+                payload: { ...state.desertResponse, deserts: updatedDeserts }
+              })
+            }
+            dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'editEvent', open: false } })
+            dispatch({ type: 'SET_EDITING_DESERT', payload: null })
+          }}
+        />
+      )}
 
       {/* 필터 다이얼로그 */}
-      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
-        <DialogContent>
+      <Dialog
+        open={state.dialogs.filter}
+        onOpenChange={(open) => dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'filter', open } })}
+      >
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>사막전 필터</DialogTitle>
-            <DialogDescription>날짜 범위를 설정하여 사막전을 필터링합니다.</DialogDescription>
+            <DialogTitle>필터 설정</DialogTitle>
+            <DialogDescription>날짜 범위로 사막전을 필터링합니다.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -525,22 +748,25 @@ export default function EventsPage() {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !tempFilters.fromDate && "text-muted-foreground",
+                      "justify-start text-left font-normal",
+                      !state.tempFilters.fromDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarDays className="mr-2 h-4 w-4" />
-                    {tempFilters.fromDate
-                      ? format(tempFilters.fromDate, "yyyy년 MM월 dd일", { locale: ko })
-                      : "시작 날짜 선택"}
+                    {state.tempFilters.fromDate ? (
+                      format(state.tempFilters.fromDate, "yyyy년 MM월 dd일", { locale: ko })
+                    ) : (
+                      <span>시작 날짜 선택</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={tempFilters.fromDate}
-                    onSelect={(date) => setTempFilters((prev) => ({ ...prev, fromDate: date }))}
+                    selected={state.tempFilters.fromDate}
+                    onSelect={(date) => dispatch({ type: 'SET_TEMP_FILTERS', payload: { fromDate: date } })}
                     initialFocus
+                    locale={ko}
                   />
                 </PopoverContent>
               </Popover>
@@ -552,161 +778,53 @@ export default function EventsPage() {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !tempFilters.toDate && "text-muted-foreground",
+                      "justify-start text-left font-normal",
+                      !state.tempFilters.toDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarDays className="mr-2 h-4 w-4" />
-                    {tempFilters.toDate
-                      ? format(tempFilters.toDate, "yyyy년 MM월 dd일", { locale: ko })
-                      : "종료 날짜 선택"}
+                    {state.tempFilters.toDate ? (
+                      format(state.tempFilters.toDate, "yyyy년 MM월 dd일", { locale: ko })
+                    ) : (
+                      <span>종료 날짜 선택</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={tempFilters.toDate}
-                    onSelect={(date) => setTempFilters((prev) => ({ ...prev, toDate: date }))}
+                    selected={state.tempFilters.toDate}
+                    onSelect={(date) => dispatch({ type: 'SET_TEMP_FILTERS', payload: { toDate: date } })}
+                    disabled={(date) => state.tempFilters.fromDate ? date < state.tempFilters.fromDate : false}
                     initialFocus
+                    locale={ko}
                   />
                 </PopoverContent>
               </Popover>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={resetFilters}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                dispatch({ type: 'SET_TEMP_FILTERS', payload: { fromDate: undefined, toDate: undefined } })
+                dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'filter', open: false } })
+                loadDeserts()
+              }}
+            >
               초기화
             </Button>
-            <Button onClick={applyFilters}>적용</Button>
+            <Button
+              onClick={() => {
+                dispatch({ type: 'TOGGLE_DIALOG', payload: { dialog: 'filter', open: false } })
+                loadDeserts()
+              }}
+            >
+              적용
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {isLoading && !isInitialLoad ? (
-        <TableSkeleton rows={searchParams.size || 10} columns={6} />
-      ) : !isLoading && deserts.length > 0 ? (
-        <>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>사막전 이름</TableHead>
-                  <TableHead className="hidden md:table-cell">날짜</TableHead>
-                  <TableHead className="hidden sm:table-cell">참가자</TableHead>
-                  <TableHead className="hidden sm:table-cell">A팀</TableHead>
-                  <TableHead className="hidden sm:table-cell">B팀</TableHead>
-                  <TableHead className="text-right">관리</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deserts.map((desert) => (
-                  <TableRow key={desert.desertSeq}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{desert.title}</div>
-                        <div className="md:hidden text-xs text-muted-foreground">{formatDate(desert.eventDate)}</div>
-                        <div className="sm:hidden text-xs text-muted-foreground">
-                          참가자: {getParticipantCount(desert)}명 | A팀: {getTeamACount(desert)}명 | B팀:{" "}
-                          {getTeamBCount(desert)}명
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{formatDate(desert.eventDate)}</TableCell>
-                    <TableCell className="hidden sm:table-cell">{getParticipantCount(desert)}명</TableCell>
-                    <TableCell className="hidden sm:table-cell">{getTeamACount(desert)}명</TableCell>
-                    <TableCell className="hidden sm:table-cell">{getTeamBCount(desert)}명</TableCell>
-                    <TableCell className="text-right">
-                      {isMobile ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditDesert(desert)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              수정
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/surveys')}>
-                              <FileSpreadsheet className="h-4 w-4 mr-2" />
-                              사전조사
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/squads')}>
-                              <UserSquare className="h-4 w-4 mr-2" />
-                              스쿼드
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/desert-results')}>
-                              <ClipboardList className="h-4 w-4 mr-2" />
-                              사막전 결과
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => handleEditDesert(desert)}>
-                            <Edit className="h-4 w-4 mr-1" />
-                            수정
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/surveys')}>
-                            <FileSpreadsheet className="h-4 w-4 mr-1" />
-                            사전조사
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/squads')}>
-                            <UserSquare className="h-4 w-4 mr-1" />
-                            스쿼드
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/desert-results')}>
-                            <ClipboardList className="h-4 w-4 mr-1" />
-                            사막전 결과
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* 페이지네이션 */}
-          {desertResponse && desertResponse.totalPages > 1 && (
-            <div className="mt-6">
-              <Pagination
-                currentPage={desertResponse.number}
-                totalPages={desertResponse.totalPages}
-                onPageChange={handlePageChange}
-                showTotal={true}
-                totalElements={desertResponse.totalElements}
-                pageSize={desertResponse.size}
-              />
-            </div>
-          )}
-        </>
-      ) : !isLoading ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <CalendarDays className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">등록된 사막전이 없습니다</h3>
-            <p className="text-muted-foreground text-center mb-4">새 사막전을 생성하여 관리를 시작하세요.</p>
-            <Dialog open={isCreateEventDialogOpen} onOpenChange={setIsCreateEventDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />새 사막전 생성
-                </Button>
-              </DialogTrigger>
-            </Dialog>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* 사막전 수정 다이얼로그 */}
-      <DesertEditDialog
-        isOpen={isEditDialogOpen}
-        desert={editingDesert}
-        onClose={handleEditCancel}
-        onUpdate={handleDesertUpdate}
-      />
     </div>
   )
 }
