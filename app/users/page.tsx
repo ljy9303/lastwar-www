@@ -636,14 +636,17 @@ export default function UsersPage() {
                 <div className="flex gap-2">
                   <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                     <DialogTrigger asChild>
-                      <OptimizedTouchButton size="mobile-default" className="flex-1 sm:flex-auto">
+                      <OptimizedTouchButton 
+                        size="mobile-default" 
+                        className="flex-1 sm:flex-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200"
+                      >
                         <Plus className="mr-2 h-4 w-4" />
                         유저 추가
                       </OptimizedTouchButton>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="bg-background border-border">
                       <DialogHeader>
-                        <DialogTitle>새 유저 추가</DialogTitle>
+                        <DialogTitle className="text-foreground">새 유저 추가</DialogTitle>
                       </DialogHeader>
                       <UserForm mode="create" onSuccess={handleAddSuccess} onCancel={() => setIsAddDialogOpen(false)} />
                     </DialogContent>
@@ -651,7 +654,12 @@ export default function UsersPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <OptimizedTouchButton variant="outline" size="mobile-default" onClick={downloadSampleCsv} className="flex-1 sm:flex-auto">
+                  <OptimizedTouchButton 
+                    variant="outline" 
+                    size="mobile-default" 
+                    onClick={downloadSampleCsv} 
+                    className="flex-1 sm:flex-auto border-border hover:bg-accent hover:text-accent-foreground transition-all duration-200 shadow-sm"
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     샘플 파일
                   </OptimizedTouchButton>
@@ -659,7 +667,7 @@ export default function UsersPage() {
                     variant="outline" 
                     size="mobile-default"
                     onClick={handleImportClick} 
-                    className="flex-1 sm:flex-auto"
+                    className="flex-1 sm:flex-auto border-border hover:bg-accent hover:text-accent-foreground transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={isUploading}
                   >
                     <FileUp className="mr-2 h-4 w-4" />
@@ -676,7 +684,15 @@ export default function UsersPage() {
               </div>
 
               {isLoading ? (
-                <div className="text-center py-8">로딩 중...</div>
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-muted-foreground bg-muted transition ease-in-out duration-150">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    로딩 중...
+                  </div>
+                </div>
               ) : (
                 <UserList users={users} onEdit={handleEdit} />
               )}
@@ -711,12 +727,12 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <div className="text-yellow-600 mt-0.5">⚠️</div>
+                    <div className="text-yellow-600 dark:text-yellow-400 mt-0.5">⚠️</div>
                     <div>
-                      <h4 className="font-medium text-yellow-800 mb-2">주의사항</h4>
-                      <ul className="text-sm text-yellow-700 space-y-1">
+                      <h4 className="font-medium text-yellow-800 dark:text-yellow-200 mb-2">주의사항</h4>
+                      <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
                         <li>• 이 작업은 되돌릴 수 없습니다</li>
                         <li>• 소스 사용자의 모든 데이터가 타겟 사용자로 이관됩니다</li>
                         <li>• 소스 사용자는 완전히 삭제됩니다</li>
@@ -726,16 +742,16 @@ export default function UsersPage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <div className="text-blue-600 mt-0.5">💡</div>
+                    <div className="text-blue-600 dark:text-blue-400 mt-0.5">💡</div>
                     <div>
-                      <h4 className="font-medium text-blue-800 mb-2">사용 예시</h4>
-                      <p className="text-sm text-blue-700">
+                      <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">사용 예시</h4>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
                         "아빠꽁치" 사용자가 게임에서 닉네임을 "아빠"로 변경했고, 
                         관리자가 실수로 "아빠"를 신규 사용자로 등록한 경우:
                         <br />
-                        <span className="font-medium">소스: "아빠" (신규) → 타겟: "아빠꽁치" (기존)</span>
+                        <span className="font-medium text-blue-800 dark:text-blue-200">소스: "아빠" (신규) → 타겟: "아빠꽁치" (기존)</span>
                       </p>
                     </div>
                   </div>
@@ -744,7 +760,7 @@ export default function UsersPage() {
                 <OptimizedTouchButton 
                   size="mobile-default"
                   onClick={() => setIsMergeDialogOpen(true)}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   사용자 데이터 통합 시작
                 </OptimizedTouchButton>
@@ -757,9 +773,9 @@ export default function UsersPage() {
       {/* 유저 수정 다이얼로그 */}
       {currentUser && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="bg-background border-border">
             <DialogHeader>
-              <DialogTitle>유저 정보 수정</DialogTitle>
+              <DialogTitle className="text-foreground">유저 정보 수정</DialogTitle>
             </DialogHeader>
             <UserForm
               mode="edit"

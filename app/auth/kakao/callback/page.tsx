@@ -188,39 +188,39 @@ export default function KakaoCallbackPage() {
       case 'loading':
         return (
           <div className="text-center space-y-4">
-            <Loader2 className="h-12 w-12 text-blue-600 animate-spin mx-auto" />
-            <h2 className="text-xl font-semibold text-gray-900">로그인 처리 중</h2>
-            <p className="text-gray-600">카카오 로그인을 처리하고 있습니다...</p>
+            <Loader2 className="h-12 w-12 text-blue-600 dark:text-blue-400 animate-spin mx-auto" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">로그인 처리 중</h2>
+            <p className="text-gray-600 dark:text-gray-300">카카오 로그인을 처리하고 있습니다...</p>
           </div>
         )
 
       case 'success':
         return (
           <div className="text-center space-y-4">
-            <CheckCircle className="h-12 w-12 text-green-600 mx-auto" />
-            <h2 className="text-xl font-semibold text-gray-900">로그인 성공!</h2>
-            <p className="text-gray-600">{message}</p>
-            <p className="text-sm text-gray-500">메인 페이지로 이동합니다...</p>
+            <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">로그인 성공!</h2>
+            <p className="text-gray-600 dark:text-gray-300">{message}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">메인 페이지로 이동합니다...</p>
           </div>
         )
 
       case 'signup_required':
         return (
           <div className="text-center space-y-4">
-            <AlertTriangle className="h-12 w-12 text-orange-600 mx-auto" />
-            <h2 className="text-xl font-semibold text-gray-900">회원가입 필요</h2>
-            <p className="text-gray-600">{message}</p>
-            <p className="text-sm text-gray-500">회원가입 페이지로 이동합니다...</p>
+            <AlertTriangle className="h-12 w-12 text-orange-600 dark:text-orange-400 mx-auto" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">회원가입 필요</h2>
+            <p className="text-gray-600 dark:text-gray-300">{message}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">회원가입 페이지로 이동합니다...</p>
           </div>
         )
 
       case 'error':
         return (
           <div className="text-center space-y-4">
-            <XCircle className="h-12 w-12 text-red-600 mx-auto" />
-            <h2 className="text-xl font-semibold text-gray-900">로그인 실패</h2>
-            <p className="text-gray-600">{message}</p>
-            <p className="text-sm text-gray-500">로그인 페이지로 이동합니다...</p>
+            <XCircle className="h-12 w-12 text-red-600 dark:text-red-400 mx-auto" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">로그인 실패</h2>
+            <p className="text-gray-600 dark:text-gray-300">{message}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">로그인 페이지로 이동합니다...</p>
           </div>
         )
 
@@ -230,14 +230,14 @@ export default function KakaoCallbackPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="w-full max-w-md">
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0 shadow-lg dark:bg-gray-800 dark:shadow-gray-900/20">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               LastWar 로그인
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-gray-600 dark:text-gray-300">
               카카오톡 로그인 처리
             </CardDescription>
           </CardHeader>

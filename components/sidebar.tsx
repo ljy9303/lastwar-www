@@ -395,10 +395,6 @@ export default function Sidebar() {
                 </Link>
               ))}
             </nav>
-            {/* 모바일 테마 토글 */}
-            <div className="p-4 border-b">
-              <ThemeToggle collapsed={false} />
-            </div>
             {/* 모바일 테마 전환 및 후원 버튼 */}
             <div className="p-4 space-y-3">
               {/* 테마 전환 버튼 */}

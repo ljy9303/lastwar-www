@@ -64,6 +64,17 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        game: {
+          primary: "hsl(var(--game-primary))",
+          "primary-foreground": "hsl(var(--game-primary-foreground))",
+          secondary: "hsl(var(--game-secondary))",
+          "secondary-foreground": "hsl(var(--game-secondary-foreground))",
+          accent: "hsl(var(--game-accent))",
+          "accent-foreground": "hsl(var(--game-accent-foreground))",
+          success: "hsl(var(--game-success))",
+          warning: "hsl(var(--game-warning))",
+          danger: "hsl(var(--game-danger))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
