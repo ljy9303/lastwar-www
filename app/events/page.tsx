@@ -414,6 +414,20 @@ export default function EventsPage() {
         </TableCell>
         <TableCell>
           <div className="flex flex-wrap gap-1">
+            {(() => {
+              // 상세 디버그 로그
+              console.log(`🔍 Desert ${desert.desertSeq} (${desert.title}):`);
+              console.log(`  eventType value: "${desert.eventType}"`);
+              console.log(`  eventType typeof: ${typeof desert.eventType}`);
+              console.log(`  DesertEventType.A_TEAM_ONLY: "${DesertEventType.A_TEAM_ONLY}"`);
+              console.log(`  DesertEventType.A_B_TEAM: "${DesertEventType.A_B_TEAM}"`);
+              console.log(`  === A_TEAM_ONLY enum: ${desert.eventType === DesertEventType.A_TEAM_ONLY}`);
+              console.log(`  === "A_TEAM_ONLY" string: ${desert.eventType === "A_TEAM_ONLY"}`);
+              console.log(`  === A_B_TEAM enum: ${desert.eventType === DesertEventType.A_B_TEAM}`);
+              console.log(`  === "A_B_TEAM" string: ${desert.eventType === "A_B_TEAM"}`);
+              console.log(`  Full desert object:`, desert);
+              return null;
+            })()}
             {(desert.eventType === DesertEventType.A_TEAM_ONLY || desert.eventType === "A_TEAM_ONLY") ? (
               <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                 A조 전용
