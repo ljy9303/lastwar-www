@@ -9,6 +9,7 @@ import { FloatingChatButton } from "@/components/chat/floating-chat-button"
 import { ChatCacheProvider } from "@/contexts/chat-cache-context"
 import { CurrentEventProvider } from "@/contexts/current-event-context"
 import { PageViewTracker } from "@/components/analytics/page-view-tracker"
+import { JsonLd } from "@/components/seo/json-ld"
 
 interface ClientProvidersProps {
   children: React.ReactNode
@@ -33,6 +34,7 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
               {children}
               <FloatingChatButton />
               <PageViewTracker />
+              <JsonLd />
             </AuthLayout>
           </ChatCacheProvider>
         </CurrentEventProvider>
