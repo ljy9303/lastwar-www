@@ -22,8 +22,8 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
       disableTransitionOnChange={false}
     >
       <SessionProvider 
-        refetchInterval={5 * 60} 
-        refetchOnWindowFocus={true}
+        refetchInterval={0}
+        refetchOnWindowFocus={false}
         refetchWhenOffline={false}
       >
         <CurrentEventProvider>

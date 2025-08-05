@@ -27,15 +27,17 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   const isAuthenticated = status === 'authenticated' && !!session?.user
   const shouldShowSidebar = isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)
 
-  // 개발 환경에서만 로그 출력
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[AuthLayout] 인증 상태:', {
-      pathname,
-      nextAuthSession: !!session?.user,
-      isAuthenticated,
-      isLoading
-    })
-  }
+  // 개발 환경에서만 로그 출력 (상태 변경 시에만)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AuthLayout] 인증 상태 변경:', {
+        pathname,
+        nextAuthSession: !!session?.user,
+        isAuthenticated,
+        isLoading
+      })
+    }
+  }, [pathname, isAuthenticated, isLoading, session?.user])
 
   // 안전한 리다이렉트 처리
   useEffect(() => {
