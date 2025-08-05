@@ -19,8 +19,8 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <ThemeProvider 
       attribute="class" 
-      defaultTheme="system" 
-      enableSystem 
+      defaultTheme="light" 
+      enableSystem={false}
       disableTransitionOnChange={false}
     >
       <SessionProvider 
