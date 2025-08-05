@@ -401,62 +401,83 @@ export default function EventsPage() {
 
     return state.desertResponse.deserts.map((desert) => (
       <TableRow key={desert.desertSeq} className="hover:bg-muted/50">
-        <TableCell>
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">{desert.title}</span>
+        <TableCell className="min-w-[150px] max-w-[200px]">
+          <div className="flex items-start gap-2">
+            <CalendarDays className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium truncate" title={desert.title}>
+                {desert.title}
+              </div>
+              <div className="sm:hidden text-xs text-muted-foreground mt-1 truncate">
+                {format(new Date(desert.eventDate), "MM/dd (E)", { locale: ko })}
+              </div>
+              <div className="md:hidden mt-1">
+                {(desert.eventType === DesertEventType.A_TEAM_ONLY || desert.eventType === "A_TEAM_ONLY") ? (
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+                    A조 전용
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
+                    A·B조 모두
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </TableCell>
-        <TableCell>
-          <div className="text-sm text-muted-foreground">
+        <TableCell className="hidden sm:table-cell min-w-[120px]">
+          <div className="text-sm text-muted-foreground truncate" title={format(new Date(desert.eventDate), "yyyy년 MM월 dd일 (E)", { locale: ko })}>
             {format(new Date(desert.eventDate), "yyyy년 MM월 dd일 (E)", { locale: ko })}
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="hidden md:table-cell min-w-[100px]">
           <div className="flex flex-wrap gap-1">
             {(desert.eventType === DesertEventType.A_TEAM_ONLY || desert.eventType === "A_TEAM_ONLY") ? (
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 truncate">
                 A조 전용
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
+              <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400 truncate">
                 A·B조 모두
               </span>
             )}
           </div>
         </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2">
+        <TableCell className="min-w-[120px] sm:min-w-[200px]">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/surveys')}
-              className="h-8 px-2"
+              className="h-8 px-1 sm:px-2 text-xs sm:text-sm"
+              title="사전조사"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-1" />
-              사전조사
+              <FileSpreadsheet className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">사전조사</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/squads')}
-              className="h-8 px-2"
+              className="h-8 px-1 sm:px-2 text-xs sm:text-sm"
+              title="스쿼드"
             >
-              <UserSquare className="h-4 w-4 mr-1" />
-              스쿼드
+              <UserSquare className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">스쿼드</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/desert-results')}
-              className="h-8 px-2"
+              className="h-8 px-1 sm:px-2 text-xs sm:text-sm"
+              title="결과"
             >
-              <ClipboardList className="h-4 w-4 mr-1" />
-              결과
+              <ClipboardList className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">결과</span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
+                <Button variant="ghost" className="h-8 w-8 p-0" title="더보기">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -582,10 +603,10 @@ export default function EventsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>사막전 이름</TableHead>
-                      <TableHead>이벤트 날짜</TableHead>
-                      <TableHead>이벤트 타입</TableHead>
-                      <TableHead>액션</TableHead>
+                      <TableHead className="min-w-[150px] max-w-[200px]">사막전 이름</TableHead>
+                      <TableHead className="hidden sm:table-cell min-w-[120px]">이벤트 날짜</TableHead>
+                      <TableHead className="hidden md:table-cell min-w-[100px]">이벤트 타입</TableHead>
+                      <TableHead className="min-w-[120px] sm:min-w-[200px]">액션</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

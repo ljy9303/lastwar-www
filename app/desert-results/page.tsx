@@ -485,19 +485,22 @@ export default function DesertResultsPage() {
   // useRequiredEvent 훅에서 이미 eventId 체크를 처리하므로 제거
 
   return (
-    <div className="container mx-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <h1 className="text-3xl font-bold">{eventTitle || '사막전 결과'}</h1>
-        <div className="ml-auto">
-          <div className="flex gap-2">
-            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={goBack}>
-              사막전 관리
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">{eventTitle || '사막전 결과'}</h1>
+        <div className="sm:ml-auto">
+          <div className="flex flex-wrap gap-2">
+            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={goBack} className="flex-1 sm:flex-none">
+              <span className="hidden sm:inline">사막전 관리</span>
+              <span className="sm:hidden">관리</span>
             </OptimizedTouchButton>
-            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => router.push('/surveys')}>
-              사전조사
+            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => router.push('/surveys')} className="flex-1 sm:flex-none">
+              <span className="hidden sm:inline">사전조사</span>
+              <span className="sm:hidden">조사</span>
             </OptimizedTouchButton>
-            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => router.push('/squads')}>
-              스쿼드 관리
+            <OptimizedTouchButton variant="outline" size="mobile-default" onClick={() => router.push('/squads')} className="flex-1 sm:flex-none">
+              <span className="hidden sm:inline">스쿼드 관리</span>
+              <span className="sm:hidden">스쿼드</span>
             </OptimizedTouchButton>
           </div>
         </div>
@@ -506,20 +509,21 @@ export default function DesertResultsPage() {
       <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <div>
-                <CardTitle>참여자 출석여부 관리</CardTitle>
-                <CardDescription>사막전 참여자들의 출석 여부를 관리합니다.</CardDescription>
+                <CardTitle className="text-lg sm:text-xl">참여자 출석관리</CardTitle>
+                <CardDescription className="text-sm">참여자들의 출석 여부를 관리합니다.</CardDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <OptimizedTouchButton
                   variant="default"
                   size="mobile-default"
                   onClick={saveAllChanges}
                   disabled={Object.keys(pendingChanges).length === 0 || isSaving}
+                  className="w-full sm:w-auto"
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {isSaving ? "저장 중..." : `저장 (${Object.keys(pendingChanges).length})`}
+                  {isSaving ? "저장중" : `저장(${Object.keys(pendingChanges).length})`}
                 </OptimizedTouchButton>
                 <TooltipProvider>
                   <Tooltip>
@@ -551,24 +555,24 @@ export default function DesertResultsPage() {
             {/* 사막전 결과 입력 섹션 - 탭 안으로 이동 */}
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>
+                <CardTitle className="text-lg sm:text-xl">
                   {selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY 
                     ? "A조" 
                     : (activeTab === "a" ? "A조" : "B조")
-                  } 사막전 결과 입력
+                  } 전투결과 입력
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   {selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY 
                     ? "A조" 
                     : (activeTab === "a" ? "A조" : "B조")
-                  }의 사막전 결과를 입력하고 저장합니다.
+                  } 전투결과를 입력합니다.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                   {/* 결과 선택 */}
                   <div className="space-y-2">
-                    <Label htmlFor="desertResult">결과 *</Label>
+                    <Label htmlFor="desertResult" className="text-sm">결과 *</Label>
                     <Select
                       value={desertResultForm.desertResult === null ? "" : desertResultForm.desertResult.toString()}
                       onValueChange={(value) =>
@@ -590,7 +594,7 @@ export default function DesertResultsPage() {
 
                   {/* 상대 서버 */}
                   <div className="space-y-2">
-                    <Label htmlFor="battleServer">상대 서버</Label>
+                    <Label htmlFor="battleServer" className="text-sm">상대 서버</Label>
                     <Input
                       id="battleServer"
                       type="number"
@@ -602,7 +606,7 @@ export default function DesertResultsPage() {
 
                   {/* 상대 연맹 순위 */}
                   <div className="space-y-2">
-                    <Label htmlFor="battleUnionRank">상대 연맹 순위</Label>
+                    <Label htmlFor="battleUnionRank" className="text-sm">상대 순위</Label>
                     <Input
                       id="battleUnionRank"
                       type="number"
@@ -613,10 +617,10 @@ export default function DesertResultsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   {/* 상대 연맹 */}
                   <div className="space-y-2">
-                    <Label htmlFor="battleUnion">상대 연맹</Label>
+                    <Label htmlFor="battleUnion" className="text-sm">상대 연맹</Label>
                     <Input
                       id="battleUnion"
                       placeholder="상대 연맹명"
@@ -627,7 +631,7 @@ export default function DesertResultsPage() {
 
                   {/* 상대 연맹 태그 */}
                   <div className="space-y-2">
-                    <Label htmlFor="battleUnionAlias">상대 연맹 태그</Label>
+                    <Label htmlFor="battleUnionAlias" className="text-sm">연맹 태그</Label>
                     <Input
                       id="battleUnionAlias"
                       placeholder="연맹 태그"
@@ -639,13 +643,14 @@ export default function DesertResultsPage() {
 
                 {/* 비고 */}
                 <div className="space-y-2 mb-4">
-                  <Label htmlFor="description">비고</Label>
+                  <Label htmlFor="description" className="text-sm">비고</Label>
                   <Textarea
                     id="description"
-                    placeholder="추가 설명이나 특이사항을 입력하세요..."
+                    placeholder="특이사항을 입력하세요..."
                     value={desertResultForm.desertDescription}
                     onChange={(e) => setDesertResultForm((prev) => ({ ...prev, desertDescription: e.target.value }))}
-                    rows={3}
+                    rows={2}
+                    className="resize-none"
                   />
                 </div>
 
@@ -699,7 +704,7 @@ export default function DesertResultsPage() {
 
                       toast({
                         title: "저장 완료",
-                        description: `${activeTab === "a" ? "A조" : "B조"} 사막전 결과가 저장되었습니다.`,
+                        description: `${activeTab === "a" ? "A조" : "B조"} 결과가 저장되었습니다.`,
                       })
                     } catch (error) {
                       console.error("사막전 결과 저장 실패:", error)
@@ -723,7 +728,8 @@ export default function DesertResultsPage() {
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      {activeTab === "a" ? "A조" : "B조"} 결과 저장
+                      <span className="hidden sm:inline">{activeTab === "a" ? "A조" : "B조"} 결과 저장</span>
+                      <span className="sm:hidden">결과 저장</span>
                     </>
                   )}
                 </OptimizedTouchButton>
@@ -740,34 +746,35 @@ export default function DesertResultsPage() {
               />
             </div>
 
-            <div className="rounded-md border">
+            {/* 데스크톱용 테이블 */}
+            <div className="hidden sm:block rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>
+                    <TableHead className="max-w-[120px]">
                       <OptimizedTouchButton
                         variant="ghost"
                         size="mobile-sm"
-                        className="h-auto p-0 font-medium hover:bg-transparent"
+                        className="h-auto p-0 font-medium hover:bg-transparent truncate"
                         onClick={() => handleSort("name")}
                       >
                         닉네임
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </OptimizedTouchButton>
                     </TableHead>
-                    <TableHead className="hidden sm:table-cell">
+                    <TableHead className="max-w-[100px]">
                       <OptimizedTouchButton
                         variant="ghost"
                         size="mobile-sm"
-                        className="h-auto p-0 font-medium hover:bg-transparent"
+                        className="h-auto p-0 font-medium hover:bg-transparent truncate"
                         onClick={() => handleSort("team")}
                       >
                         팀
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </OptimizedTouchButton>
                     </TableHead>
-                    <TableHead className="w-[100px]">참석여부</TableHead>
-                    <TableHead className="hidden md:table-cell">비고</TableHead>
+                    <TableHead className="w-[100px]">참석</TableHead>
+                    <TableHead className="hidden md:table-cell max-w-[200px]">비고</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -780,32 +787,35 @@ export default function DesertResultsPage() {
                   ) : filteredResults.length > 0 ? (
                     filteredResults.map((result) => (
                       <TableRow key={result.userSeq}>
-                        <TableCell>
-                          <div>
-                            <div>{result.name}</div>
-                            <div className="sm:hidden text-xs text-muted-foreground">
-                              {getTeamName(result.desertType)}
-                            </div>
+                        <TableCell className="max-w-[120px]">
+                          <div className="font-medium truncate" title={result.name}>
+                            {result.name}
                           </div>
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell">{getTeamName(result.desertType)}</TableCell>
-                        <TableCell>
+                        <TableCell className="max-w-[100px]">
+                          <div className="truncate" title={getTeamName(result.desertType)}>
+                            {getTeamName(result.desertType)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="w-[100px]">
                           <OptimizedTouchButton
                             variant={result.isPlayed ? "default" : "outline"}
                             size="mobile-sm"
-                            className={`w-20 h-11 md:h-8 transition-all ${
-                              result.isPlayed ? "bg-green-500 hover:bg-green-600" : "text-gray-500 hover:text-gray-700"
+                            className={`w-20 h-8 text-sm transition-all ${
+                              result.isPlayed ? "bg-green-500 hover:bg-green-600 text-white" : "text-gray-500 hover:text-gray-700"
                             }`}
                             onClick={() => handleParticipationChange(result.userSeq, !result.isPlayed)}
                           >
                             {result.isPlayed ? "참석" : "불참"}
                           </OptimizedTouchButton>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">
+                        <TableCell className="hidden md:table-cell max-w-[200px]">
                           <Input
                             placeholder="비고"
                             value={result.description || ""}
                             onChange={(e) => handleDescriptionChange(result.userSeq, e.target.value)}
+                            className="text-sm"
+                            title={result.description || ""}
                           />
                         </TableCell>
                       </TableRow>
@@ -830,6 +840,70 @@ export default function DesertResultsPage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* 모바일용 카드 리스트 */}
+            <div className="sm:hidden space-y-3">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-sm text-muted-foreground">데이터를 불러오는 중...</div>
+                </div>
+              ) : filteredResults.length > 0 ? (
+                filteredResults.map((result) => (
+                  <Card key={result.userSeq} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="font-medium text-base">{result.name}</div>
+                          <div className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
+                            {getTeamName(result.desertType)}
+                          </div>
+                        </div>
+                        {result.description && (
+                          <div className="text-sm text-muted-foreground mb-2">
+                            비고: {result.description}
+                          </div>
+                        )}
+                        <div className="md:hidden">
+                          <Input
+                            placeholder="비고를 입력하세요..."
+                            value={result.description || ""}
+                            onChange={(e) => handleDescriptionChange(result.userSeq, e.target.value)}
+                            className="text-sm mt-2"
+                          />
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <OptimizedTouchButton
+                          variant={result.isPlayed ? "default" : "outline"}
+                          size="mobile-default"
+                          className={`w-20 h-12 text-sm transition-all ${
+                            result.isPlayed ? "bg-green-500 hover:bg-green-600 text-white" : "text-gray-500 hover:text-gray-700"
+                          }`}
+                          onClick={() => handleParticipationChange(result.userSeq, !result.isPlayed)}
+                        >
+                          {result.isPlayed ? "참석" : "불참"}
+                        </OptimizedTouchButton>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  {results.length > 0 ? (
+                    <>
+                      <p className="text-sm">검색 결과가 없습니다.</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {activeTab === "b" && teamCounts.B === 0
+                          ? "B조에 배정된 인원이 없습니다."
+                          : "필터 조건을 변경해보세요."}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm">데이터가 없습니다.</p>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
