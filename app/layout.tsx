@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css" // Make sure this imports Tailwind's base styles
 import ClientProviders from "@/components/client-providers"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -55,6 +56,7 @@ export default function RootLayout({
         <ClientProviders>
           {children}
         </ClientProviders>
+        <SpeedInsights />
       </body>
     </html>
   )
