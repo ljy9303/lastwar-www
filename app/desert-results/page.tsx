@@ -751,22 +751,22 @@ export default function DesertResultsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>
+                    <TableHead className="max-w-[120px]">
                       <OptimizedTouchButton
                         variant="ghost"
                         size="mobile-sm"
-                        className="h-auto p-0 font-medium hover:bg-transparent"
+                        className="h-auto p-0 font-medium hover:bg-transparent truncate"
                         onClick={() => handleSort("name")}
                       >
                         닉네임
                         <ArrowUpDown className="ml-1 h-3 w-3" />
                       </OptimizedTouchButton>
                     </TableHead>
-                    <TableHead>
+                    <TableHead className="max-w-[100px]">
                       <OptimizedTouchButton
                         variant="ghost"
                         size="mobile-sm"
-                        className="h-auto p-0 font-medium hover:bg-transparent"
+                        className="h-auto p-0 font-medium hover:bg-transparent truncate"
                         onClick={() => handleSort("team")}
                       >
                         팀
@@ -774,7 +774,7 @@ export default function DesertResultsPage() {
                       </OptimizedTouchButton>
                     </TableHead>
                     <TableHead className="w-[100px]">참석</TableHead>
-                    <TableHead className="hidden md:table-cell">비고</TableHead>
+                    <TableHead className="hidden md:table-cell max-w-[200px]">비고</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -787,11 +787,17 @@ export default function DesertResultsPage() {
                   ) : filteredResults.length > 0 ? (
                     filteredResults.map((result) => (
                       <TableRow key={result.userSeq}>
-                        <TableCell>
-                          <div className="font-medium">{result.name}</div>
+                        <TableCell className="max-w-[120px]">
+                          <div className="font-medium truncate" title={result.name}>
+                            {result.name}
+                          </div>
                         </TableCell>
-                        <TableCell>{getTeamName(result.desertType)}</TableCell>
-                        <TableCell>
+                        <TableCell className="max-w-[100px]">
+                          <div className="truncate" title={getTeamName(result.desertType)}>
+                            {getTeamName(result.desertType)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="w-[100px]">
                           <OptimizedTouchButton
                             variant={result.isPlayed ? "default" : "outline"}
                             size="mobile-sm"
@@ -803,12 +809,13 @@ export default function DesertResultsPage() {
                             {result.isPlayed ? "참석" : "불참"}
                           </OptimizedTouchButton>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">
+                        <TableCell className="hidden md:table-cell max-w-[200px]">
                           <Input
                             placeholder="비고"
                             value={result.description || ""}
                             onChange={(e) => handleDescriptionChange(result.userSeq, e.target.value)}
                             className="text-sm"
+                            title={result.description || ""}
                           />
                         </TableCell>
                       </TableRow>
