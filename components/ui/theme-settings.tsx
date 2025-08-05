@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Moon, Sun, Monitor, Palette, Settings, Check } from "lucide-react"
+import { Moon, Sun, Palette, Settings, Check } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,12 +15,17 @@ interface ThemeSettingsProps {
 }
 
 export function ThemeSettings({ className, onClose }: ThemeSettingsProps) {
-  const { theme, setTheme, themes, systemTheme } = useTheme()
+  const { theme, setTheme, themes } = useTheme()
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
     setMounted(true)
-  }, [])
+    
+    // 기존 시스템 테마 사용자를 라이트 테마로 마이그레이션
+    if (theme === "system") {
+      setTheme("light")
+    }
+  }, [theme, setTheme])
 
   if (!mounted) {
     return (
@@ -42,7 +47,7 @@ export function ThemeSettings({ className, onClose }: ThemeSettingsProps) {
     )
   }
 
-  const currentTheme = theme === "system" ? systemTheme : theme
+  const currentTheme = theme
 
   const themeOptions = [
     {
@@ -60,14 +65,6 @@ export function ThemeSettings({ className, onClose }: ThemeSettingsProps) {
       description: "어두운 배경과 밝은 텍스트로 야간 작업에 적합하며 눈의 피로를 줄입니다",
       preview: "bg-gray-900 border border-gray-700",
       active: theme === "dark"
-    },
-    {
-      key: "system",
-      icon: Monitor,
-      label: "시스템 테마",
-      description: "운영체제 설정에 따라 자동으로 테마가 변경됩니다",
-      preview: currentTheme === "dark" ? "bg-gray-900 border border-gray-700" : "bg-white border border-gray-200",
-      active: theme === "system"
     }
   ]
 
@@ -92,7 +89,6 @@ export function ThemeSettings({ className, onClose }: ThemeSettingsProps) {
           <Badge variant="secondary" className="gap-1">
             {currentTheme === "dark" ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
             {currentTheme === "dark" ? "다크" : "라이트"}
-            {theme === "system" && " (자동)"}
           </Badge>
         </div>
 
