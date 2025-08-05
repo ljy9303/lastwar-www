@@ -418,10 +418,6 @@ export default function EventsPage() {
               <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                 A조 전용
               </span>
-            ) : desert.eventType === undefined || desert.eventType === null ? (
-              <span className="inline-flex items-center rounded-full bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 dark:bg-orange-500/10 dark:text-orange-400">
-                타입 미설정
-              </span>
             ) : (
               <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400">
                 A·B조 모두
