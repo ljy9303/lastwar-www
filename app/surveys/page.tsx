@@ -41,10 +41,10 @@ const formatPower = (power: number): string => {
 
 // 전체 투표 옵션
 const allPreferenceOptions = [
-  { value: "A_TEAM", label: "A팀" },
-  { value: "B_TEAM", label: "B팀" },
-  { value: "A_RESERVE", label: "A팀 예비" },
-  { value: "B_RESERVE", label: "B팀 예비" },
+  { value: "A_TEAM", label: "A조" },
+  { value: "B_TEAM", label: "B조" },
+  { value: "A_RESERVE", label: "A조 예비" },
+  { value: "B_RESERVE", label: "B조 예비" },
   { value: "AB_POSSIBLE", label: "모두 가능" },
   { value: "NONE", label: "미배정" },
 ]

@@ -430,35 +430,29 @@ export default function EventsPage() {
             <Button
               variant="ghost"
               size="sm"
-              asChild
+              onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/surveys')}
               className="h-8 px-2"
             >
-              <Link href={`/events/${desert.desertSeq}/survey`}>
-                <FileSpreadsheet className="h-4 w-4 mr-1" />
-                사전조사
-              </Link>
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+              사전조사
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              asChild
+              onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/squads')}
               className="h-8 px-2"
             >
-              <Link href={`/events/${desert.desertSeq}/prepare`}>
-                <UserSquare className="h-4 w-4 mr-1" />
-                스쿼드
-              </Link>
+              <UserSquare className="h-4 w-4 mr-1" />
+              스쿼드
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              asChild
+              onClick={() => navigateToEventPage(desert.desertSeq, desert.title, '/desert-results')}
               className="h-8 px-2"
             >
-              <Link href={`/events/${desert.desertSeq}/result`}>
-                <ClipboardList className="h-4 w-4 mr-1" />
-                결과
-              </Link>
+              <ClipboardList className="h-4 w-4 mr-1" />
+              결과
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -582,7 +576,7 @@ export default function EventsPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : state.desertResponse?.deserts.length === 0 ? (
+                    ) : state.desertResponse?.deserts?.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
                           등록된 사막전이 없습니다.

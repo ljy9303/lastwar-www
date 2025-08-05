@@ -27,8 +27,39 @@ export interface DesertSearchParams {
   sortOrder?: "ASC" | "DESC"
 }
 
-export interface DesertResponse {
+// 백엔드 원본 응답 구조
+interface DesertAPIResponse {
   content: Desert[]
+  pageable: {
+    pageNumber: number
+    pageSize: number
+    sort: {
+      empty: boolean
+      sorted: boolean
+      unsorted: boolean
+    }
+    offset: number
+    paged: boolean
+    unpaged: boolean
+  }
+  last: boolean
+  totalElements: number
+  totalPages: number
+  first: boolean
+  numberOfElements: number
+  size: number
+  number: number
+  sort: {
+    empty: boolean
+    sorted: boolean
+    unsorted: boolean
+  }
+  empty: boolean
+}
+
+// 프론트엔드에서 사용하는 응답 구조
+export interface DesertResponse {
+  deserts: Desert[]  // content -> deserts로 변환됨
   pageable: {
     pageNumber: number
     pageSize: number
@@ -62,7 +93,13 @@ export interface DesertResponse {
 export async function getDeserts(params: DesertSearchParams = {}): Promise<DesertResponse> {
   try {
     const queryString = buildQueryString(params)
-    return await fetchFromAPI(`/desert${queryString}`)
+    const apiResponse: DesertAPIResponse = await fetchFromAPI(`/desert${queryString}`)
+    
+    // 백엔드 응답의 content를 deserts로 변환하여 프론트엔드 호환성 보장
+    return {
+      ...apiResponse,
+      deserts: apiResponse.content  // content -> deserts 변환
+    }
   } catch (error) {
     console.error("사막전 조회 실패:", error)
     throw error

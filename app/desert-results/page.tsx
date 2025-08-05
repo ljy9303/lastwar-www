@@ -169,7 +169,7 @@ export default function DesertResultsPage() {
 
       toast({
         title: "저장 완료",
-        description: `${activeTab === "a" ? "A팀" : "B팀"} 사막전 결과가 저장되었습니다.`,
+        description: `${activeTab === "a" ? "A조" : "B조"} 사막전 결과가 저장되었습니다.`,
       })
     } catch (error) {
       console.error("사막전 결과 저장 실패:", error)
@@ -416,13 +416,13 @@ export default function DesertResultsPage() {
   const getTeamName = useCallback((team: string) => {
     switch (team) {
       case "A_TEAM":
-        return "A팀"
+        return "A조"
       case "B_TEAM":
-        return "B팀"
+        return "B조"
       case "A_RESERVE":
-        return "A팀 예비"
+        return "A조 예비"
       case "B_RESERVE":
-        return "B팀 예비"
+        return "B조 예비"
       case "UNASSIGNED":
         return "미배정"
       case "EXCLUDED":
@@ -541,9 +541,9 @@ export default function DesertResultsPage() {
           <CardContent>
             <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
               <TabsList>
-                <TabsTrigger value="a">A팀</TabsTrigger>
+                <TabsTrigger value="a">A조</TabsTrigger>
                 {selectedEvent?.eventType !== DesertEventType.A_TEAM_ONLY && (
-                  <TabsTrigger value="b">B팀</TabsTrigger>
+                  <TabsTrigger value="b">B조</TabsTrigger>
                 )}
               </TabsList>
             </Tabs>
@@ -553,14 +553,14 @@ export default function DesertResultsPage() {
               <CardHeader>
                 <CardTitle>
                   {selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY 
-                    ? "A팀" 
-                    : (activeTab === "a" ? "A팀" : "B팀")
+                    ? "A조" 
+                    : (activeTab === "a" ? "A조" : "B조")
                   } 사막전 결과 입력
                 </CardTitle>
                 <CardDescription>
                   {selectedEvent?.eventType === DesertEventType.A_TEAM_ONLY 
-                    ? "A팀" 
-                    : (activeTab === "a" ? "A팀" : "B팀")
+                    ? "A조" 
+                    : (activeTab === "a" ? "A조" : "B조")
                   }의 사막전 결과를 입력하고 저장합니다.
                 </CardDescription>
               </CardHeader>
@@ -699,7 +699,7 @@ export default function DesertResultsPage() {
 
                       toast({
                         title: "저장 완료",
-                        description: `${activeTab === "a" ? "A팀" : "B팀"} 사막전 결과가 저장되었습니다.`,
+                        description: `${activeTab === "a" ? "A조" : "B조"} 사막전 결과가 저장되었습니다.`,
                       })
                     } catch (error) {
                       console.error("사막전 결과 저장 실패:", error)
@@ -723,7 +723,7 @@ export default function DesertResultsPage() {
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      {activeTab === "a" ? "A팀" : "B팀"} 결과 저장
+                      {activeTab === "a" ? "A조" : "B조"} 결과 저장
                     </>
                   )}
                 </OptimizedTouchButton>
@@ -818,7 +818,7 @@ export default function DesertResultsPage() {
                             <p>검색 결과가 없습니다.</p>
                             <p className="text-sm text-muted-foreground mt-1">
                               {activeTab === "b" && teamCounts.B === 0
-                                ? "B팀에 배정된 인원이 없습니다."
+                                ? "B조에 배정된 인원이 없습니다."
                                 : "필터 조건을 변경해보세요."}
                             </p>
                           </>
