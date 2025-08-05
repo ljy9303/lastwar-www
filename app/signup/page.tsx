@@ -272,29 +272,29 @@ export default function SignupPage() {
   // 인증 확인 중일 때 로딩 화면
   if (checkingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">인증 상태를 확인하는 중...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-game-primary dark:border-game-accent mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">인증 상태를 확인하는 중...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 p-4 transition-colors duration-300">
       <div className="w-full max-w-md space-y-6">
         {/* 메인 회원가입 카드 */}
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0 shadow-lg dark:shadow-2xl dark:bg-slate-800/80 dark:backdrop-blur-sm transition-all duration-300">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto bg-green-600 text-white p-3 rounded-full w-16 h-16 flex items-center justify-center">
+            <div className="mx-auto bg-gradient-to-br from-game-success to-game-primary text-white p-3 rounded-full w-16 h-16 flex items-center justify-center shadow-lg">
               <UserPlus className="h-8 w-8" />
             </div>
             <div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
+              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
                 회원가입
               </CardTitle>
-              <CardDescription className="text-gray-600 mt-2">
+              <CardDescription className="text-gray-600 dark:text-gray-300 mt-2 transition-colors duration-300">
                 서버 정보와 연맹 정보를 입력해주세요
               </CardDescription>
             </div>
@@ -305,7 +305,7 @@ export default function SignupPage() {
               {/* 이메일 (읽기 전용) */}
               {currentUser && (
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2 text-gray-700">
+                  <Label htmlFor="email" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 transition-colors duration-300">
                     <Shield className="h-4 w-4" />
                     로그인 이메일
                   </Label>
@@ -314,9 +314,9 @@ export default function SignupPage() {
                     type="email"
                     value={currentUser.email}
                     disabled
-                    className="bg-gray-50 text-gray-600 cursor-not-allowed"
+                    className="bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 cursor-not-allowed border-gray-300 dark:border-slate-600 transition-colors duration-300"
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
                     카카오 계정으로 인증된 이메일입니다
                   </p>
                 </div>
@@ -324,8 +324,8 @@ export default function SignupPage() {
 
               {/* 서버 정보 */}
               <div className="space-y-2">
-                <Label htmlFor="serverInfo" className="flex items-center gap-2 text-gray-700">
-                  <Server className="h-4 w-4 text-blue-600" />
+                <Label htmlFor="serverInfo" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 transition-colors duration-300">
+                  <Server className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   서버 번호 *
                 </Label>
                 <Input
@@ -340,12 +340,12 @@ export default function SignupPage() {
                       handleInputChange('serverInfo', value ? parseInt(value) : 0)
                     }
                   }}
-                  className={errors.serverInfo ? "border-red-500" : ""}
+                  className={errors.serverInfo ? "border-red-500 dark:border-red-400" : "dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-gray-400 transition-colors duration-300"}
                 />
                 {errors.serverInfo && (
-                  <p className="text-sm text-red-500">{errors.serverInfo}</p>
+                  <p className="text-sm text-red-500 dark:text-red-400 transition-colors duration-300">{errors.serverInfo}</p>
                 )}
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
                   • 게임 접속 시 확인할 수 있는 서버 번호 (1~9999)
                   <br />
                   • 잘못 입력하면 같은 서버 유저들과 매칭되지 않을 수 있습니다
@@ -354,8 +354,8 @@ export default function SignupPage() {
 
               {/* 연맹 태그 */}
               <div className="space-y-2">
-                <Label htmlFor="allianceTag" className="flex items-center gap-2 text-gray-700">
-                  <Shield className="h-4 w-4 text-green-600" />
+                <Label htmlFor="allianceTag" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 transition-colors duration-300">
+                  <Shield className="h-4 w-4 text-green-600 dark:text-green-400" />
                   연맹 태그 *
                 </Label>
                 
@@ -366,14 +366,14 @@ export default function SignupPage() {
                   placeholder="소속 연맹의 3~4자리 태그 (예: ROK, ROKK, ABC, ABCD)"
                   value={formData.allianceTag}
                   onChange={(e) => handleInputChange('allianceTag', e.target.value.toUpperCase())}
-                  className={errors.allianceTag ? "border-red-500" : ""}
+                  className={errors.allianceTag ? "border-red-500 dark:border-red-400" : "dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-gray-400 transition-colors duration-300"}
                 />
                 
                 {errors.allianceTag && (
-                  <p className="text-sm text-red-500">{errors.allianceTag}</p>
+                  <p className="text-sm text-red-500 dark:text-red-400 transition-colors duration-300">{errors.allianceTag}</p>
                 )}
                 
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
                   • 게임 내 연맹 정보에서 확인 가능한 3~4자리 태그
                   <br />
                   • 영문자(A-Z)와 숫자(0-9)만 입력 가능, 자동으로 대문자 변환
@@ -384,8 +384,8 @@ export default function SignupPage() {
 
               {/* 닉네임 */}
               <div className="space-y-2">
-                <Label htmlFor="nickname" className="flex items-center gap-2 text-gray-700">
-                  <User className="h-4 w-4 text-purple-600" />
+                <Label htmlFor="nickname" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 transition-colors duration-300">
+                  <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   닉네임 *
                 </Label>
                 <Input
@@ -395,12 +395,12 @@ export default function SignupPage() {
                   placeholder="시스템에서 사용할 닉네임 (예: 플레이어123, 김철수)"
                   value={formData.nickname}
                   onChange={(e) => handleInputChange('nickname', e.target.value)}
-                  className={errors.nickname ? "border-red-500" : ""}
+                  className={errors.nickname ? "border-red-500 dark:border-red-400" : "dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-gray-400 transition-colors duration-300"}
                 />
                 {errors.nickname && (
-                  <p className="text-sm text-red-500">{errors.nickname}</p>
+                  <p className="text-sm text-red-500 dark:text-red-400 transition-colors duration-300">{errors.nickname}</p>
                 )}
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
                   • 2~20자 길이, 영문자, 숫자, 한글만 사용 가능
                   <br />
                   • 띄어쓰기, 특수문자(!@#$ 등) 사용 불가
@@ -413,7 +413,7 @@ export default function SignupPage() {
               <Button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700 h-12"
+                className="w-full bg-gradient-to-r from-game-success to-game-primary hover:from-game-success/90 hover:to-game-primary/90 text-white h-12 shadow-lg transition-all duration-200"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
@@ -433,7 +433,7 @@ export default function SignupPage() {
             <Button 
               variant="outline" 
               onClick={handleBackToLogin}
-              className="w-full"
+              className="w-full dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-700 dark:hover:border-slate-500 transition-all duration-200"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               로그인 페이지로 돌아가기

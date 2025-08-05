@@ -105,35 +105,35 @@ export default function TestLoginPage() {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md border-0 shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 p-4 transition-colors duration-300">
+      <Card className="w-full max-w-md border-0 shadow-lg dark:shadow-2xl dark:bg-slate-800/80 dark:backdrop-blur-sm transition-all duration-300">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl font-bold text-gray-900">테스트 로그인</CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardTitle className="text-xl font-bold text-gray-900 dark:text-white transition-colors duration-300">테스트 로그인</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-300 transition-colors duration-300">
             개발/테스트용 이메일 로그인입니다
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">이메일</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors duration-300">이메일</Label>
               <Input
                 id="email"
                 type="email"
                 value={form.email}
                 onChange={handleInputChange}
                 placeholder="이메일을 입력하세요"
-                className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                className="h-11 border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors duration-300"
                 required
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
                 기존 계정이면 로그인, 신규 계정이면 회원가입 페이지로 이동됩니다
               </p>
             </div>
 
             <Button 
               type="submit" 
-              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+              className="w-full h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 dark:from-blue-500 dark:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700 text-white font-medium shadow-lg transition-all duration-200"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -150,7 +150,7 @@ export default function TestLoginPage() {
           <div className="mt-6 text-center">
             <Button 
               variant="ghost" 
-              className="text-gray-600 hover:text-gray-800"
+              className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white dark:hover:bg-slate-700 transition-all duration-200"
               onClick={() => router.push('/login')}
             >
               카카오 로그인으로 돌아가기
