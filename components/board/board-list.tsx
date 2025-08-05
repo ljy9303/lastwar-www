@@ -245,7 +245,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
     
     return (
     <Card 
-      className="hover:shadow-md transition-shadow cursor-pointer h-full"
+      className="hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-gray-900/20 transition-shadow cursor-pointer h-full dark:bg-gray-800 dark:border-gray-700"
       onClick={() => {
         saveScrollPosition();
         router.push(`/board/posts/${post.postId}`);
@@ -256,7 +256,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
         <div className="flex items-center gap-2 mb-3">
           {isPinned && <Pin className="h-4 w-4 text-orange-500" />}
           {post.categoryName && (
-            <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+            <Badge variant="secondary" className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700">
               {post.categoryName}
             </Badge>
           )}
@@ -289,8 +289,8 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
               />
             </div>
           ) : (
-            <div className="w-full h-32 bg-gray-50 rounded-md flex items-center justify-center p-4">
-              <p className="text-gray-600 text-sm line-clamp-4 text-center">
+            <div className="w-full h-32 bg-gray-50 dark:bg-gray-800 rounded-md flex items-center justify-center p-4">
+              <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-4 text-center">
                 {post.contentPreview || '내용 미리보기가 없습니다.'}
               </p>
             </div>
@@ -298,16 +298,16 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
         </div>
         
         {/* 3. 제목 */}
-        <h3 className="font-semibold text-lg mb-3 line-clamp-2 min-h-[3.5rem] text-gray-900">
+        <h3 className="font-semibold text-lg mb-3 line-clamp-2 min-h-[3.5rem] text-gray-900 dark:text-gray-100">
           {post.title}
         </h3>
         
         {/* 작성자 정보 */}
         <div className="mb-3">
-          <div className="flex items-center gap-1 text-sm text-gray-700">
+          <div className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
             <User className="h-3 w-3" />
             {post.serverNumber && post.allianceTag && (
-              <span className="inline-block px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded border mr-1">
+              <span className="inline-block px-2 py-0.5 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded border dark:border-blue-700 mr-1">
                 {post.serverNumber}서버 [{post.allianceTag}]
               </span>
             )}
@@ -316,7 +316,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
         </div>
         
         {/* 하단: 메타데이터 */}
-        <div className="flex items-center justify-between text-sm text-gray-500 mt-auto pt-3 border-t">
+        <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mt-auto pt-3 border-t dark:border-gray-700">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             {formatDistanceToNow(new Date(post.createdAt), { 
@@ -398,7 +398,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
       </div>
 
       {/* 검색 영역 */}
-      <Card className="mb-4">
+      <Card className="mb-4 dark:bg-gray-800 dark:border-gray-700">
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             {/* 검색 */}
@@ -442,7 +442,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
       </Card>
 
       {/* 카테고리 탭 */}
-      <Card className="mb-6">
+      <Card className="mb-6 dark:bg-gray-800 dark:border-gray-700">
         <CardContent className="p-3">
           <div className="flex flex-wrap gap-2">
             <OptimizedTouchButton
@@ -477,7 +477,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
       {/* 고정 게시글 */}
       {pinnedPosts.length > 0 && (
         <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
             <Pin className="h-5 w-5 text-orange-500" />
             고정 게시글
           </h2>
@@ -493,7 +493,7 @@ export function BoardList({ categoryId, title = '게시글 목록', showCreateBu
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
+            <Card key={i} className="dark:bg-gray-800 dark:border-gray-700">
               <CardContent className="p-4">
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-20" />

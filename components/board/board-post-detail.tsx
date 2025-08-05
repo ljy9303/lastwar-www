@@ -239,8 +239,8 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
           {/* 뒤로 가기 버튼 스켈레톤 */}
           <Skeleton className="h-10 w-24 mb-6" />
           {/* 메인 카드 스켈레톤 */}
-          <Card className="mb-6">
-            <CardHeader className="pb-4 border-b">
+          <Card className="mb-6 dark:bg-gray-800 dark:border-gray-700">
+            <CardHeader className="pb-4 border-b dark:border-gray-700">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <Skeleton className="h-6 w-20 mb-3" />
@@ -304,22 +304,22 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
       </div>
 
       {/* 메인 게시글 카드 */}
-      <Card className="mb-6">
+      <Card className="mb-6 dark:bg-gray-800 dark:border-gray-700">
         {/* 모바일 최적화 게시글 헤더 */}
-        <CardHeader className="pb-4 border-b">
+        <CardHeader className="pb-4 border-b dark:border-gray-700">
           <div className="space-y-4">
             {/* 카테고리와 핀 */}
             <div className="flex items-center gap-2">
               {post.isPinned && <Pin className="h-5 w-5 text-orange-500" />}
               {post.categoryName && (
-                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700">
                   {post.categoryName}
                 </Badge>
               )}
             </div>
             
             {/* 제목 - 모바일 반응형 */}
-            <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight break-words">
+            <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 leading-tight break-words">
               {post.title}
             </CardTitle>
             
@@ -335,13 +335,13 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                     {post.serverNumber && post.allianceTag && (
-                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 w-fit">
+                      <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 w-fit">
                         {post.serverNumber}서버 [{post.allianceTag}]
                       </Badge>
                     )}
-                    <span className="font-semibold text-gray-900 truncate">{post.authorName}</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">{post.authorName}</span>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     {formatDistanceToNow(new Date(post.createdAt), { 
                       addSuffix: true, 
                       locale: ko 
@@ -373,7 +373,7 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
             </div>
             
             {/* 통계 정보 - 모바일 최적화 */}
-            <div className="flex items-center gap-4 text-sm text-gray-600 pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
               <span className="flex items-center gap-1">
                 <Eye className="h-4 w-4" />
                 {post.viewCount}
@@ -393,7 +393,7 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
         {/* 게시글 내용 */}
         <CardContent className="p-8">
           <div 
-            className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-img:rounded-lg prose-img:shadow-sm prose-img:cursor-pointer prose-ul:list-disc prose-ol:list-decimal prose-li:ml-4 tiptap-content"
+            className="prose prose-sm max-w-none prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-img:rounded-lg prose-img:shadow-sm prose-img:cursor-pointer prose-ul:list-disc prose-ol:list-decimal prose-li:ml-4 tiptap-content"
             dangerouslySetInnerHTML={{ __html: post.content || '' }}
             onClick={(e) => {
               const target = e.target as HTMLElement;
@@ -412,7 +412,7 @@ export function BoardPostDetail({ postId, currentUserId }: BoardPostDetailProps)
 
 
           {/* 좋아요 버튼 - 모바일 최적화 */}
-          <div className="flex justify-center mt-8 pt-6 border-t border-gray-200">
+          <div className="flex justify-center mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <OptimizedTouchButton
               variant={likeUIState.isLiked ? "default" : "outline"}
               size="mobile-lg"
