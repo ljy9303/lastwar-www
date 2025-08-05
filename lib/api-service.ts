@@ -14,7 +14,7 @@ export async function fetchFromAPI<T = any>(endpoint: string, options: RequestIn
     console.log(`[FRONTEND] API 요청 시작 - ${method} ${endpoint}`, options.body ? { body: options.body } : '')
   }
 
-  // 로그인/회원가입 페이지에서 채팅 API 호출 차단
+  // 로그인/회원가입 페이지에서 채팅 API 호출 차단 (조용히 처리)
   if (typeof window !== 'undefined' && endpoint.includes('/chat/')) {
     const currentPath = window.location.pathname
     const authPages = ['/login', '/signup', '/test-login', '/auth/kakao/callback']
@@ -22,9 +22,12 @@ export async function fetchFromAPI<T = any>(endpoint: string, options: RequestIn
     
     if (isAuthPage) {
       console.warn(`[FRONTEND] 로그인/회원가입 페이지에서 채팅 API 호출 차단 - ${currentPath}`)
-      const error = new Error('로그인/회원가입 페이지에서는 채팅 기능을 사용할 수 없습니다.') as Error & { status?: number; data?: any }
-      error.status = 403
-      throw error
+      // 에러를 던지는 대신 빈 응답 반환
+      return Promise.resolve({
+        success: false,
+        message: '로그인/회원가입 페이지에서는 채팅 기능을 사용할 수 없습니다.',
+        data: null
+      } as T)
     }
   }
 
