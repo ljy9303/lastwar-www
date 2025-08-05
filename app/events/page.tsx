@@ -414,6 +414,8 @@ export default function EventsPage() {
         </TableCell>
         <TableCell>
           <div className="flex flex-wrap gap-1">
+            {/* 디버그: 실제 eventType 값 확인 */}
+            {console.log(`Desert ${desert.desertSeq}: eventType = "${desert.eventType}", A_TEAM_ONLY = "${DesertEventType.A_TEAM_ONLY}", comparison result: ${desert.eventType === DesertEventType.A_TEAM_ONLY}`)}
             {desert.eventType === DesertEventType.A_TEAM_ONLY ? (
               <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                 A조 전용
