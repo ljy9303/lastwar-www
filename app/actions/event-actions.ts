@@ -2,19 +2,20 @@
 
 import { fetchFromAPI, buildQueryString } from "@/lib/api-service"
 import { revalidatePath } from "next/cache"
+import { DesertEventType } from "@/types/desert"
 
 export interface Desert {
   desertSeq: number
   title: string
   eventDate: string
   deleted: boolean
-  eventType: string
+  eventType: DesertEventType
 }
 
 export interface DesertCreateRequest {
   title: string
   eventDate: string
-  eventType: string
+  eventType: DesertEventType
 }
 
 export interface DesertSearchParams {
