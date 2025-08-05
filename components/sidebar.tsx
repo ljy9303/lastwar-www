@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User, Edit3, Loader2, Shield, MessageSquare } from "lucide-react"
+import { Users, UserSquare, Menu, X, Shuffle, ChevronRight, ChevronLeft, LayoutDashboard, LogOut, User, Edit3, Loader2, Shield, MessageSquare, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,7 @@ import { toast } from "@/hooks/use-toast"
 import { createLogger } from "@/lib/logger"
 import SponsorButton from "@/components/ui/sponsor-button"
 import { useIsAdmin } from "@/lib/auth-utils"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 const logger = createLogger('Sidebar')
 
@@ -277,8 +278,29 @@ export default function Sidebar() {
             </Link>
           ))}
         </nav>
-        {/* 후원 버튼 */}
-        <div className="p-4">
+        {/* 테마 전환 및 후원 버튼 */}
+        <div className="p-4 space-y-3">
+          {/* 테마 전환 버튼 */}
+          <div className={cn(
+            "flex items-center gap-2",
+            isSidebarCollapsed ? "justify-center" : "justify-between"
+          )}>
+            {!isSidebarCollapsed && (
+              <span className="text-sm text-muted-foreground font-medium">
+                테마 설정
+              </span>
+            )}
+            <ThemeToggle
+              variant={isSidebarCollapsed ? "icon" : "dropdown"}
+              collapsed={isSidebarCollapsed}
+              showTooltip={isSidebarCollapsed}
+            />
+          </div>
+          
+          {/* 구분선 */}
+          {!isSidebarCollapsed && <div className="h-px bg-border" />}
+          
+          {/* 후원 버튼 */}
           <SponsorButton collapsed={isSidebarCollapsed} />
         </div>
         {/* 사용자 정보 및 로그아웃 */}
@@ -373,8 +395,20 @@ export default function Sidebar() {
                 </Link>
               ))}
             </nav>
-            {/* 모바일 후원 버튼 */}
-            <div className="p-4">
+            {/* 모바일 테마 전환 및 후원 버튼 */}
+            <div className="p-4 space-y-3">
+              {/* 테마 전환 버튼 */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground font-medium">
+                  테마 설정
+                </span>
+                <ThemeToggle variant="dropdown" />
+              </div>
+              
+              {/* 구분선 */}
+              <div className="h-px bg-border" />
+              
+              {/* 후원 버튼 */}
               <SponsorButton collapsed={false} />
             </div>
             {/* 모바일 사용자 정보 및 로그아웃 */}

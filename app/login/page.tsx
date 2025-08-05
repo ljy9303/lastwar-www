@@ -64,10 +64,10 @@ export default function LoginPage() {
   // 세션 로딩 중일 때 로딩 화면 표시
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">로그인 상태를 확인하는 중...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-game-primary dark:border-game-accent mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">로그인 상태를 확인하는 중...</p>
         </div>
       </div>
     )
@@ -76,29 +76,29 @@ export default function LoginPage() {
   // 이미 로그인되어 있으면 빈 화면 (리다이렉트 중)
   if (status === 'authenticated') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">대시보드로 이동 중...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-game-primary dark:border-game-accent mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300 transition-colors duration-300">대시보드로 이동 중...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 p-4 transition-colors duration-300">
       <div className="w-full max-w-md space-y-6">
         {/* 메인 로그인 카드 */}
-        <Card className="border-0 shadow-lg">
+        <Card className="border-0 shadow-lg dark:shadow-2xl dark:bg-slate-800/80 dark:backdrop-blur-sm transition-all duration-300">
           <CardHeader className="text-center space-y-4">
-            <div className="mx-auto bg-blue-600 text-white p-3 rounded-full w-16 h-16 flex items-center justify-center">
+            <div className="mx-auto bg-gradient-to-br from-game-primary to-game-accent text-game-primary-foreground p-3 rounded-full w-16 h-16 flex items-center justify-center shadow-lg">
               <Shield className="h-8 w-8" />
             </div>
             <div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
+              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
                 LastWar 관리 시스템
               </CardTitle>
-              <CardDescription className="text-gray-600 mt-2">
+              <CardDescription className="text-gray-600 dark:text-gray-300 mt-2 transition-colors duration-300">
                 연맹 관리를 위한 통합 플랫폼
               </CardDescription>
             </div>
@@ -109,7 +109,7 @@ export default function LoginPage() {
               <Button 
                 onClick={handleKakaoLogin}
                 disabled={isLoading}
-                className="w-full bg-[#FEE500] hover:bg-[#FEE500]/90 text-[#000000] font-semibold h-12 rounded-lg border-0"
+                className="w-full bg-[#FEE500] hover:bg-[#FEE500]/90 text-[#000000] font-semibold h-12 rounded-lg border-0 dark:bg-[#FEE500] dark:hover:bg-[#FDC500] dark:text-[#000000] transition-all duration-200"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
@@ -124,7 +124,7 @@ export default function LoginPage() {
                 )}
               </Button>
               
-              <p className="text-xs text-gray-500 text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center transition-colors duration-300">
                 3초만에 간편 가입하고 시작하세요
               </p>
             </div>
@@ -133,7 +133,7 @@ export default function LoginPage() {
         </Card>
 
         {/* 제작자 정보 */}
-        <div className="text-center text-xs text-gray-500">
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
           Made by 1242 튼튼이네집
         </div>
       </div>

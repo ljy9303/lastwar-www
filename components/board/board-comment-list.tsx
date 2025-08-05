@@ -96,10 +96,10 @@ function CommentItem({
   return (
     <div 
       className={cn(
-        "transition-colors hover:bg-gray-50",
+        "transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50",
         // 모바일 최적화된 패딩
         isMobile ? "px-4 py-4" : "px-6 py-5",
-        showBorder && "border-l-2 border-gray-200 bg-gray-50"
+        showBorder && "border-l-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50"
       )}
       style={{ marginLeft: `${marginLeft}px` }}
     >
@@ -124,14 +124,14 @@ function CommentItem({
             )}>
               {comment.serverNumber && comment.allianceTag && (
                 <Badge variant="outline" className={cn(
-                  "bg-blue-50 text-blue-700",
+                  "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700",
                   isMobile ? "text-xs px-1.5 py-0.5" : "text-xs"
                 )}>
                   {comment.serverNumber}서버 [{comment.allianceTag}]
                 </Badge>
               )}
               <span className={cn(
-                "font-semibold text-gray-900",
+                "font-semibold text-gray-900 dark:text-gray-100",
                 isMobile ? "text-sm" : "text-base"
               )}>
                 {comment.authorName}
@@ -146,7 +146,7 @@ function CommentItem({
               )}
             </div>
             <span className={cn(
-              "text-gray-500",
+              "text-gray-500 dark:text-gray-400",
               isMobile ? "text-xs" : "text-sm"
             )}>
               {formatDistanceToNow(new Date(comment.createdAt), { 
@@ -164,7 +164,7 @@ function CommentItem({
             <p className={cn(
               "whitespace-pre-wrap leading-relaxed",
               isMobile ? "text-sm" : "text-base",
-              isDeleted ? 'text-gray-500 italic' : 'text-gray-800'
+              isDeleted ? 'text-gray-500 dark:text-gray-400 italic' : 'text-gray-800 dark:text-gray-200'
             )}>
               {comment.content}
             </p>
@@ -292,8 +292,8 @@ function CommentItem({
                 "mt-4 border-l-2",
                 isMobile ? "px-3 py-3" : "px-6 py-4",
                 editingComment.commentStatus === 'DELETED' 
-                  ? 'bg-green-50 border-green-200' 
-                  : 'bg-yellow-50 border-yellow-200'
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700' 
+                  : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
               )} 
               style={{ marginLeft: isReply ? (isMobile ? '16px' : '48px') : '0px' }}
             >
@@ -331,8 +331,8 @@ function CommentItem({
                     className={cn(
                       "text-white",
                       editingComment.commentStatus === 'DELETED' 
-                        ? "bg-green-600 hover:bg-green-700" 
-                        : "bg-yellow-600 hover:bg-yellow-700"
+                        ? "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600" 
+                        : "bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600"
                     )}
                   >
                     {editingComment.commentStatus === 'DELETED' ? '원복 완료' : '수정 완료'}
@@ -597,14 +597,14 @@ export function BoardCommentList({
   };
 
   return (
-    <Card>
+    <Card className="dark:bg-gray-800 dark:border-gray-700">
       {/* 댓글 헤더 - 모바일 최적화 */}
       <CardHeader className={cn(
-        "border-b",
+        "border-b dark:border-gray-700",
         isMobile ? "pb-3 px-4" : "pb-4"
       )}>
         <CardTitle className={cn(
-          "flex items-center gap-2 text-gray-900",
+          "flex items-center gap-2 text-gray-900 dark:text-gray-100",
           isMobile ? "text-lg" : "text-xl"
         )}>
           <MessageCircle className={cn(isMobile ? "h-4 w-4" : "h-5 w-5")} />
@@ -616,7 +616,7 @@ export function BoardCommentList({
         {/* 새 댓글 작성 - 모바일 최적화 */}
         {currentUserId && (
           <div className={cn(
-            "border-b bg-gray-50",
+            "border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50",
             isMobile ? "p-4" : "p-6"
           )}>
             <div className={cn("space-y-3", isMobile && "space-y-3")}>
@@ -635,7 +635,7 @@ export function BoardCommentList({
                   onClick={handleSubmitComment}
                   disabled={!newComment.trim() || isSubmitting}
                   size={isMobile ? "mobile-default" : "default"}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium"
                 >
                   <Send className={cn(isMobile ? "h-4 w-4 mr-2" : "h-4 w-4 mr-2")} />
                   댓글 작성
@@ -741,7 +741,7 @@ export function BoardCommentList({
                 {replyingTo === comment.commentId && (
                   <div 
                     className={cn(
-                      "mt-4 border-l-2 border-blue-200 bg-blue-50",
+                      "mt-4 border-l-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20",
                       isMobile ? "px-3 py-3" : "px-6 py-4"
                     )} 
                     style={{ marginLeft: isMobile ? '16px' : '48px' }}
@@ -773,7 +773,7 @@ export function BoardCommentList({
                           size={isMobile ? "mobile-sm" : "sm"}
                           onClick={handleSubmitReply}
                           disabled={!replyContent.trim() || isSubmitting}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white"
                         >
                           답글 작성
                         </OptimizedTouchButton>
@@ -783,7 +783,7 @@ export function BoardCommentList({
                 )}
 
                 {index < localComments.length - 1 && (
-                  <div className="border-b border-gray-100" />
+                  <div className="border-b border-gray-100 dark:border-gray-700" />
                 )}
                 </div>
               ))}

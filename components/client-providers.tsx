@@ -15,7 +15,12 @@ interface ClientProvidersProps {
 
 export default function ClientProviders({ children }: ClientProvidersProps) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+    <ThemeProvider 
+      attribute="class" 
+      defaultTheme="system" 
+      enableSystem 
+      disableTransitionOnChange={false}
+    >
       <SessionProvider 
         refetchInterval={5 * 60} 
         refetchOnWindowFocus={true}

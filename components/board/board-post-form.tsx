@@ -402,9 +402,9 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
 
   return (
     <div className="w-full">
-      <Card>
-          <CardHeader>
-            <CardTitle>
+      <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <CardHeader className="dark:border-gray-700">
+            <CardTitle className="dark:text-gray-100">
               {postId ? '게시글 수정' : '새 게시글 작성'}
             </CardTitle>
           </CardHeader>
@@ -412,7 +412,7 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* 카테고리 선택 */}
               <div className="space-y-2">
-                <Label htmlFor="category">카테고리 *</Label>
+                <Label htmlFor="category" className="dark:text-gray-200">카테고리 *</Label>
                 {isCategoriesLoading ? (
                   <Skeleton className="h-10 w-full" />
                 ) : (
@@ -438,7 +438,7 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
 
               {/* 제목 */}
               <div className="space-y-2">
-                <Label htmlFor="title">제목 *</Label>
+                <Label htmlFor="title" className="dark:text-gray-200">제목 *</Label>
                 <Input
                   id="title"
                   placeholder="게시글 제목을 입력하세요"
@@ -449,18 +449,18 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
                   onKeyDown={handleTitleKeyDown}
                   maxLength={200}
                 />
-                <div className="text-sm text-gray-500 text-right">
+                <div className="text-sm text-gray-500 dark:text-gray-400 text-right">
                   {formData.title.length}/200
                 </div>
               </div>
 
               {/* WYSIWYG 에디터 */}
               <div className="space-y-3">
-                <Label>내용 *</Label>
+                <Label className="dark:text-gray-200">내용 *</Label>
                 
                 {/* 툴바 */}
                 {editor && (
-                  <div className="border border-b-0 rounded-t-lg p-2 bg-gray-50 flex gap-1 flex-wrap">
+                  <div className="border border-b-0 rounded-t-lg p-2 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 flex gap-1 flex-wrap">
                     <Button
                       type="button"
                       variant={editor.isActive('bold') ? 'default' : 'outline'}
@@ -495,7 +495,7 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
                     </Button>
                     
                     {/* 구분선 */}
-                    <div className="w-px h-6 bg-gray-300 mx-1" />
+                    <div className="w-px h-6 bg-gray-300 dark:bg-gray-500 mx-1" />
                     
                     {/* 헤딩 드롭다운 */}
                     <DropdownMenu>
@@ -558,7 +558,7 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
                     </DropdownMenu>
                     
                     {/* 구분선 */}
-                    <div className="w-px h-6 bg-gray-300 mx-1" />
+                    <div className="w-px h-6 bg-gray-300 dark:bg-gray-500 mx-1" />
                     
                     {/* 텍스트 정렬 버튼들 */}
                     <Button
@@ -599,7 +599,7 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
                     </Button>
                     
                     {/* 구분선 */}
-                    <div className="w-px h-6 bg-gray-300 mx-1" />
+                    <div className="w-px h-6 bg-gray-300 dark:bg-gray-500 mx-1" />
                     
                     <Button
                       type="button"
@@ -625,14 +625,14 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
                 )}
                 
                 {/* 에디터 */}
-                <div className="border border-t-0 rounded-b-lg min-h-[500px] p-4 focus-within:ring-2 focus-within:ring-blue-500">
+                <div className="border border-t-0 rounded-b-lg min-h-[500px] p-4 focus-within:ring-2 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800">
                   <EditorContent 
                     editor={editor} 
                     className="prose prose-sm max-w-none min-h-[450px] focus:outline-none"
                   />
                 </div>
                 
-                <div className="text-sm text-gray-500 text-right space-y-1">
+                <div className="text-sm text-gray-500 dark:text-gray-400 text-right space-y-1">
                   <div>{formData.content.replace(/<[^>]*>/g, '').length}자</div>
                   <div>
                     {postId ? (
@@ -647,7 +647,7 @@ export function BoardPostForm({ postId, initialData }: BoardPostFormProps) {
 
 
               {/* 액션 버튼 */}
-              <div className="flex gap-3 justify-end pt-6 border-t">
+              <div className="flex gap-3 justify-end pt-6 border-t dark:border-gray-700">
                 <Button
                   type="button"
                   variant="outline"

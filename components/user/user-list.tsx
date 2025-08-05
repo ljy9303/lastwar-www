@@ -117,7 +117,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("name")}
-                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                  className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
                 >
                   닉네임
                   {sortField === "name" &&
@@ -132,7 +132,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("level")}
-                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                  className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
                 >
                   본부 레벨
                   {sortField === "level" &&
@@ -147,7 +147,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("power")}
-                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                  className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
                 >
                   전투력
                   {sortField === "power" &&
@@ -162,7 +162,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("userGrade")}
-                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                  className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
                 >
                   유저 등급
                   {sortField === "userGrade" &&
@@ -177,7 +177,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("leave")}
-                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                  className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
                 >
                   연맹 탈퇴
                   {sortField === "leave" &&
@@ -192,7 +192,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                 <Button
                   variant="ghost"
                   onClick={() => handleSort("updatedAt")}
-                  className="h-auto p-0 font-semibold hover:bg-transparent"
+                  className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
                 >
                   최근수정
                   {sortField === "updatedAt" &&
@@ -211,21 +211,47 @@ export function UserList({ users, onEdit }: UserListProps) {
               sortedUsers.map((user) => (
                 <TableRow 
                   key={user.userSeq} 
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer hover:bg-muted/50 dark:hover:bg-muted/20 transition-colors duration-150"
                   onClick={() => handleRowClick(user.userSeq)}
                 >
                   <TableCell>
                     <div>
                       <div>{user.name}</div>
-                      <div className="sm:hidden text-xs text-muted-foreground">
-                        Lv.{user.level} | {formatPower(user.power)} | {user.userGrade} |{" "}
-                        {user.leave ? "탈퇴" : "활동중"}
+                      <div className="sm:hidden text-xs text-muted-foreground space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-muted px-2 py-0.5 rounded text-xs">Lv.{user.level}</span>
+                          <span className="bg-muted px-2 py-0.5 rounded text-xs">{formatPower(user.power)}</span>
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            user.userGrade === 'R5' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                            user.userGrade === 'R4' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                            user.userGrade === 'R3' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                            user.userGrade === 'R2' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                            'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                          }`}>{user.userGrade}</span>
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            user.leave 
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" 
+                              : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          }`}>
+                            {user.leave ? "탈퇴" : "활동중"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">{user.level}</TableCell>
                   <TableCell className="hidden sm:table-cell">{formatPower(user.power)}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{user.userGrade}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      user.userGrade === 'R5' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                      user.userGrade === 'R4' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                      user.userGrade === 'R3' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                      user.userGrade === 'R2' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                      'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                    }`}>
+                      {user.userGrade}
+                    </span>
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       user.leave 
@@ -251,6 +277,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                         size="icon" 
                         onClick={(e) => handleDetailClick(e, user.userSeq)}
                         title="상세정보"
+                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -263,6 +290,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                             onEdit(user)
                           }}
                           title="수정"
+                          className="hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
