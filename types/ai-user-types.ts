@@ -3,7 +3,7 @@ export interface ExtractedPlayerInfo {
   power: string
   level: number
   imageIndex: number // 어느 이미지에서 추출되었는지
-  confidence?: number // OCR 신뢰도 (선택적)
+  confidence?: number // AI 신뢰도 (선택적)
 }
 
 export interface ProcessedImage {
@@ -32,7 +32,7 @@ export interface ValidatedPlayerInfo extends ExtractedPlayerInfo {
   editedLevel?: number
 }
 
-export interface GeminiOCRResponse {
+export interface GeminiAIResponse {
   success: boolean
   players: ExtractedPlayerInfo[]
   error?: string
@@ -48,8 +48,8 @@ export interface UserRegistrationBatch {
   }[]
 }
 
-// OCR 진행 상태
-export interface OCRProgress {
+// AI 진행 상태
+export interface AIProgress {
   total: number
   processed: number
   currentImage?: string
@@ -69,7 +69,7 @@ export interface GradeSlotInfo {
 export type RegistrationStep = 
   | 'grade-selection'
   | 'image-upload'
-  | 'ocr-processing' 
+  | 'ai-processing' 
   | 'validation-editing'
   | 'final-registration'
 
@@ -87,7 +87,7 @@ export interface DuplicateGroup {
   action: 'merge' | 'keep-all' | 'keep-first' | 'manual'
 }
 
-// OCR 결과 검증 규칙
+// AI 결과 검증 규칙
 export interface ValidationRules {
   nicknameMinLength: number
   nicknameMaxLength: number

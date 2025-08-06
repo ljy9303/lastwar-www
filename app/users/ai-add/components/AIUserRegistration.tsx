@@ -1,31 +1,38 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { motion, AnimatePresence } from "framer-motion"
 import { 
   CheckCircle, 
   AlertTriangle,
   Loader2,
   ArrowLeft,
-  Bot
+  Bot,
+  Sparkles,
+  Shield,
+  Upload,
+  Search,
+  UserPlus,
+  CheckSquare
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { GeminiOCRService } from "@/lib/gemini-ocr"
+import { GeminiAIService } from "@/lib/gemini-ai"
 import { ImageProcessingService } from "@/lib/image-processing"
 import { autoUpsertUsers } from "@/lib/api-service"
 import { UserGradeSelector } from "./UserGradeSelector"
 import { ImageUploadZone } from "./ImageUploadZone"
-import { OCRResultEditor } from "./OCRResultEditor"
+import { AIResultEditor } from "./AIResultEditor"
 import type { 
   RegistrationStep, 
   ProcessedImage, 
   ValidatedPlayerInfo,
-  OCRProgress 
+  AIProgress 
 } from "@/types/ai-user-types"
 
 export function AIUserRegistration() {
@@ -36,21 +43,21 @@ export function AIUserRegistration() {
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('grade-selection')
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null)
   
-  // 이미지 및 OCR 상태
+  // 이미지 및 AI 상태
   const [images, setImages] = useState<ProcessedImage[]>([])
   const [extractedPlayers, setExtractedPlayers] = useState<ValidatedPlayerInfo[]>([])
-  const [ocrProgress, setOcrProgress] = useState<OCRProgress>({
+  const [aiProgress, setAiProgress] = useState<AIProgress>({
     total: 0,
     processed: 0,
     status: 'idle'
   })
 
   // 서비스 인스턴스
-  const [ocrService] = useState(() => {
+  const [aiService] = useState(() => {
     try {
-      return new GeminiOCRService()
+      return new GeminiAIService()
     } catch (error) {
-      console.error("Gemini OCR 서비스 초기화 실패:", error)
+      console.error("Gemini AI 서비스 초기화 실패:", error)
       toast({
         title: "초기화 오류",
         description: "Gemini API 키가 설정되지 않았습니다. 관리자에게 문의하세요.",
@@ -62,8 +69,42 @@ export function AIUserRegistration() {
 
   // 단계별 진행률 계산
   const getStepProgress = (step: RegistrationStep): number => {
-    const steps = ['grade-selection', 'image-upload', 'ocr-processing', 'validation-editing', 'final-registration']
+    const steps = ['grade-selection', 'image-upload', 'ai-processing', 'validation-editing', 'final-registration']
     return ((steps.indexOf(step) + 1) / steps.length) * 100
+  }
+
+  // 단계별 정보 정의
+  const stepInfo = {
+    'grade-selection': {
+      icon: Shield,
+      title: '등급 선택',
+      description: '신규 유저들의 연맹 등급을 선택하세요',
+      color: 'text-blue-600'
+    },
+    'image-upload': {
+      icon: Upload,
+      title: '이미지 업로드',
+      description: '연맹원 목록 스크린샷을 업로드하세요',
+      color: 'text-green-600'
+    },
+    'ai-processing': {
+      icon: Search,
+      title: 'AI 분석',
+      description: 'AI가 이미지에서 유저 정보를 추출합니다',
+      color: 'text-purple-600'
+    },
+    'validation-editing': {
+      icon: CheckSquare,
+      title: '정보 검증',
+      description: '추출된 정보를 검토하고 수정하세요',
+      color: 'text-orange-600'
+    },
+    'final-registration': {
+      icon: UserPlus,
+      title: '등록 완료',
+      description: '검증된 정보로 유저를 등록합니다',
+      color: 'text-emerald-600'
+    }
   }
 
   // 이미지 추가 처리
@@ -113,19 +154,19 @@ export function AIUserRegistration() {
     })
   }, [])
 
-  // OCR 처리 시작
-  const startOCRProcessing = useCallback(async () => {
-    if (!ocrService || images.length === 0) {
+  // AI 처리 시작
+  const startAIProcessing = useCallback(async () => {
+    if (!aiService || images.length === 0) {
       toast({
         title: "처리 불가",
-        description: "OCR 서비스를 사용할 수 없거나 이미지가 없습니다.",
+        description: "AI 서비스를 사용할 수 없거나 이미지가 없습니다.",
         variant: "destructive"
       })
       return
     }
 
-    setCurrentStep('ocr-processing')
-    setOcrProgress({
+    setCurrentStep('ai-processing')
+    setAiProgress({
       total: images.length,
       processed: 0,
       status: 'processing'
@@ -143,14 +184,14 @@ export function AIUserRegistration() {
           : img
       ))
 
-      setOcrProgress(prev => ({
+      setAiProgress(prev => ({
         ...prev,
         processed: i,
         currentImage: image.file.name
       }))
 
       try {
-        const result = await ocrService.extractPlayerInfo(image.file, i)
+        const result = await aiService.extractPlayerInfo(image.file, i)
         
         if (result.success && result.players.length > 0) {
           // 플레이어 정보를 ValidatedPlayerInfo로 변환
@@ -192,12 +233,12 @@ export function AIUserRegistration() {
 
           toast({
             title: `이미지 ${i + 1} 처리 실패`,
-            description: result.error || "OCR 처리 중 오류가 발생했습니다.",
+            description: result.error || "AI 처리 중 오류가 발생했습니다.",
             variant: "destructive"
           })
         }
       } catch (error) {
-        console.error(`이미지 ${i + 1} OCR 처리 실패:`, error)
+        console.error(`이미지 ${i + 1} AI 처리 실패:`, error)
         
         setImages(prev => prev.map(img => 
           img.id === image.id 
@@ -211,7 +252,7 @@ export function AIUserRegistration() {
 
         toast({
           title: `이미지 ${i + 1} 처리 실패`,
-          description: "OCR 처리 중 오류가 발생했습니다.",
+          description: "AI 처리 중 오류가 발생했습니다.",
           variant: "destructive"
         })
       }
@@ -222,8 +263,8 @@ export function AIUserRegistration() {
       }
     }
 
-    // OCR 완료
-    setOcrProgress({
+    // AI 처리 완료
+    setAiProgress({
       total: images.length,
       processed: images.length,
       status: 'completed'
@@ -235,7 +276,7 @@ export function AIUserRegistration() {
       setExtractedPlayers(validatedPlayers)
       
       toast({
-        title: "OCR 처리 완료",
+        title: "AI 처리 완료",
         description: `총 ${validatedPlayers.length}명의 유저 정보가 인식되었습니다.`,
       })
 
@@ -250,7 +291,7 @@ export function AIUserRegistration() {
       
       setCurrentStep('image-upload')
     }
-  }, [ocrService, images, toast])
+  }, [aiService, images, toast])
 
   // 모든 플레이어 유효성 검사
   const validateAllPlayers = (players: ValidatedPlayerInfo[]): ValidatedPlayerInfo[] => {
@@ -434,7 +475,7 @@ export function AIUserRegistration() {
         break
       case 'image-upload':
         if (images.length > 0) {
-          startOCRProcessing()
+          startAIProcessing()
         }
         break
       case 'validation-editing':
@@ -443,7 +484,7 @@ export function AIUserRegistration() {
     }
   }
 
-  if (!ocrService) {
+  if (!aiService) {
     return (
       <div className="container mx-auto py-8">
         <Alert>
@@ -459,148 +500,363 @@ export function AIUserRegistration() {
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* 헤더 */}
-      <div className="flex items-center gap-4">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex items-center gap-4"
+      >
         <Button
           variant="outline"
           onClick={() => router.push('/users')}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           유저 관리로 돌아가기
         </Button>
         
         <div className="flex-1">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Bot className="h-8 w-8 text-blue-600" />
+          <motion.h1 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="text-3xl font-bold flex items-center gap-3"
+          >
+            <div className="relative">
+              <Bot className="h-8 w-8 text-blue-600" />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="absolute -top-1 -right-1"
+              >
+                <Sparkles className="h-4 w-4 text-yellow-500" />
+              </motion.div>
+            </div>
             AI 유저 등록
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            스크린샷 이미지로 간편하게 여러 유저를 한 번에 등록하세요
-          </p>
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="text-muted-foreground mt-2"
+          >
+            스크린샷 이미지로 간편하게 여러 유저를 한 번에 등록하세요. AI가 자동으로 정보를 추출합니다.
+          </motion.p>
         </div>
-      </div>
+      </motion.div>
 
       {/* 진행률 표시 */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">진행 상황</h3>
-              <Badge variant="outline">
-                {Math.round(getStepProgress(currentStep))}% 완료
-              </Badge>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.5 }}
+      >
+        <Card className="overflow-hidden">
+          <CardContent className="p-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-blue-600" />
+                  진행 상황
+                </h3>
+                <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+                  {Math.round(getStepProgress(currentStep))}% 완료
+                </Badge>
+              </div>
+              
+              <div className="relative">
+                <Progress 
+                  value={getStepProgress(currentStep)} 
+                  className="w-full h-3" 
+                />
+                <motion.div
+                  className="absolute top-0 left-0 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${getStepProgress(currentStep)}%` }}
+                  transition={{ duration: 1, ease: "easeInOut" }}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                {Object.entries(stepInfo).map(([step, info], index) => {
+                  const Icon = info.icon
+                  const isActive = currentStep === step
+                  const isCompleted = Object.keys(stepInfo).indexOf(currentStep) > index
+                  
+                  return (
+                    <motion.div
+                      key={step}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.8 + index * 0.1, duration: 0.3 }}
+                      className={`
+                        relative p-4 rounded-lg border-2 transition-all duration-300
+                        ${isActive 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-md scale-105' 
+                          : isCompleted
+                          ? 'border-green-300 bg-green-50 dark:bg-green-950/30'
+                          : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
+                        }
+                      `}
+                    >
+                      <div className="flex flex-col items-center text-center space-y-2">
+                        <div className={`
+                          p-2 rounded-full transition-colors
+                          ${isActive 
+                            ? 'bg-blue-500 text-white' 
+                            : isCompleted
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                          }
+                        `}>
+                          {isCompleted ? (
+                            <CheckCircle className="h-5 w-5" />
+                          ) : (
+                            <Icon className="h-5 w-5" />
+                          )}
+                        </div>
+                        <div>
+                          <div className={`text-sm font-medium ${
+                            isActive ? 'text-blue-700 dark:text-blue-300' : 
+                            isCompleted ? 'text-green-700 dark:text-green-300' :
+                            'text-gray-600 dark:text-gray-400'
+                          }`}>
+                            {index + 1}. {info.title}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1 hidden lg:block">
+                            {info.description}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {isActive && (
+                        <motion.div
+                          className="absolute inset-0 rounded-lg border-2 border-blue-400"
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                      )}
+                    </motion.div>
+                  )
+                })}
+              </div>
             </div>
-            <Progress value={getStepProgress(currentStep)} className="w-full" />
-            
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
-              <div className={`text-center p-2 rounded ${currentStep === 'grade-selection' ? 'bg-blue-100 dark:bg-blue-950' : ''}`}>
-                1. 등급 선택
-              </div>
-              <div className={`text-center p-2 rounded ${currentStep === 'image-upload' ? 'bg-blue-100 dark:bg-blue-950' : ''}`}>
-                2. 이미지 업로드
-              </div>
-              <div className={`text-center p-2 rounded ${currentStep === 'ocr-processing' ? 'bg-blue-100 dark:bg-blue-950' : ''}`}>
-                3. AI 분석
-              </div>
-              <div className={`text-center p-2 rounded ${currentStep === 'validation-editing' ? 'bg-blue-100 dark:bg-blue-950' : ''}`}>
-                4. 정보 확인
-              </div>
-              <div className={`text-center p-2 rounded ${currentStep === 'final-registration' ? 'bg-blue-100 dark:bg-blue-950' : ''}`}>
-                5. 등록 완료
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* OCR 진행 상태 */}
-      {currentStep === 'ocr-processing' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold flex items-center gap-3">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              AI 분석 진행 중...
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>진행률</span>
-                <span>{ocrProgress.processed} / {ocrProgress.total}</span>
-              </div>
-              <Progress 
-                value={(ocrProgress.processed / ocrProgress.total) * 100} 
-                className="w-full" 
-              />
-            </div>
-            
-            {ocrProgress.currentImage && (
-              <div className="text-sm text-muted-foreground">
-                현재 처리 중: <span className="font-medium">{ocrProgress.currentImage}</span>
-              </div>
-            )}
-
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                AI가 이미지를 분석하고 있습니다. 잠시만 기다려 주세요. 
-                이 과정은 이미지 수와 크기에 따라 1-3분 정도 소요될 수 있습니다.
-              </AlertDescription>
-            </Alert>
           </CardContent>
         </Card>
-      )}
+      </motion.div>
 
-      {/* 최종 등록 중 */}
-      {currentStep === 'final-registration' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold flex items-center gap-3">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              유저 등록 중...
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                유저 정보를 서버에 등록하고 있습니다. 잠시만 기다려 주세요.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      )}
+      {/* AI 처리 진행 상태 */}
+      <AnimatePresence>
+        {currentStep === 'ai-processing' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/50 dark:to-blue-950/50">
+                <CardTitle className="text-2xl font-bold flex items-center gap-3">
+                  <div className="relative">
+                    <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-purple-300"
+                      animate={{ rotate: -360, scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </div>
+                  <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                    AI 분석 진행 중...
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6 p-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-medium">진행률</span>
+                    <Badge variant="secondary" className="text-lg px-3 py-1">
+                      {aiProgress.processed} / {aiProgress.total}
+                    </Badge>
+                  </div>
+                  
+                  <div className="relative">
+                    <Progress 
+                      value={(aiProgress.processed / aiProgress.total) * 100} 
+                      className="w-full h-4" 
+                    />
+                    <motion.div
+                      className="absolute top-0 left-0 h-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(aiProgress.processed / aiProgress.total) * 100}%` }}
+                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                    />
+                  </div>
+                </div>
+                
+                {aiProgress.currentImage && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-purple-200 dark:border-purple-800"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Search className="h-5 w-5 text-purple-600 animate-pulse" />
+                      <div>
+                        <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                          현재 처리 중
+                        </div>
+                        <div className="text-lg font-semibold">{aiProgress.currentImage}</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                <Alert className="border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Bot className="h-4 w-4 text-blue-600" />
+                    </motion.div>
+                    <Sparkles className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <AlertDescription className="mt-2">
+                    <div className="space-y-2">
+                      <p className="font-medium text-blue-700 dark:text-blue-300">
+                        AI가 이미지에서 유저 정보를 정밀하게 분석하고 있습니다
+                      </p>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• 닉네임, 레벨, 전투력 정보를 추출합니다</li>
+                        <li>• 이미지 품질에 따라 1-3분 정도 소요됩니다</li>
+                        <li>• 잠시만 기다려 주세요</li>
+                      </ul>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 최종 등록 진행 상태 */}
+      <AnimatePresence>
+        {currentStep === 'final-registration' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/50 dark:to-green-950/50">
+                <CardTitle className="text-2xl font-bold flex items-center gap-3">
+                  <div className="relative">
+                    <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                    <motion.div
+                      className="absolute inset-0"
+                      animate={{ rotate: 360, scale: [1, 1.1, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <UserPlus className="h-6 w-6 text-emerald-400" />
+                    </motion.div>
+                  </div>
+                  <span className="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                    유저 등록 중...
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Alert className="border-emerald-200 dark:border-emerald-800">
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <CheckCircle className="h-4 w-4 text-emerald-600" />
+                      </motion.div>
+                      <UserPlus className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <AlertDescription className="mt-2">
+                      <div className="space-y-2">
+                        <p className="font-medium text-emerald-700 dark:text-emerald-300">
+                          검증된 유저 정보를 서버에 등록하고 있습니다
+                        </p>
+                        <div className="text-sm text-muted-foreground">
+                          잠시만 기다려 주세요. 곧 완료됩니다.
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 단계별 컴포넌트 렌더링 */}
-      {currentStep === 'grade-selection' && (
-        <UserGradeSelector
-          selectedGrade={selectedGrade}
-          onGradeSelect={setSelectedGrade}
-          onNext={goToNextStep}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {currentStep === 'grade-selection' && (
+          <motion.div
+            key="grade-selection"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <UserGradeSelector
+              selectedGrade={selectedGrade}
+              onGradeSelect={setSelectedGrade}
+              onNext={goToNextStep}
+            />
+          </motion.div>
+        )}
 
-      {currentStep === 'image-upload' && (
-        <ImageUploadZone
-          images={images}
-          onImagesAdd={handleImagesAdd}
-          onImageRemove={handleImageRemove}
-          onNext={goToNextStep}
-          onBack={goToPreviousStep}
-          isProcessing={ocrProgress.status === 'processing'}
-        />
-      )}
+        {currentStep === 'image-upload' && (
+          <motion.div
+            key="image-upload"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ImageUploadZone
+              images={images}
+              onImagesAdd={handleImagesAdd}
+              onImageRemove={handleImageRemove}
+              onNext={goToNextStep}
+              onBack={goToPreviousStep}
+              isProcessing={aiProgress.status === 'processing'}
+            />
+          </motion.div>
+        )}
 
-      {currentStep === 'validation-editing' && (
-        <OCRResultEditor
-          players={extractedPlayers}
-          images={images}
-          onPlayersUpdate={setExtractedPlayers}
-          onNext={goToNextStep}
-          onBack={goToPreviousStep}
-          selectedGrade={selectedGrade!}
-        />
-      )}
+        {currentStep === 'validation-editing' && (
+          <motion.div
+            key="validation-editing"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <AIResultEditor
+              players={extractedPlayers}
+              images={images}
+              onPlayersUpdate={setExtractedPlayers}
+              onNext={goToNextStep}
+              onBack={goToPreviousStep}
+              selectedGrade={selectedGrade!}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -1,9 +1,9 @@
 "use client"
 
 import { GoogleGenerativeAI } from "@google/generative-ai"
-import type { GeminiOCRResponse, ExtractedPlayerInfo } from "@/types/ai-user-types"
+import type { GeminiAIResponse, ExtractedPlayerInfo } from "@/types/ai-user-types"
 
-export class GeminiOCRService {
+export class GeminiAIService {
   private genAI: GoogleGenerativeAI
   private model: any
 
@@ -17,7 +17,7 @@ export class GeminiOCRService {
     this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
   }
 
-  async extractPlayerInfo(file: File, imageIndex: number): Promise<GeminiOCRResponse> {
+  async extractPlayerInfo(file: File, imageIndex: number): Promise<GeminiAIResponse> {
     try {
       // 파일을 base64로 변환
       const arrayBuffer = await file.arrayBuffer()
@@ -64,11 +64,11 @@ export class GeminiOCRService {
         players
       }
     } catch (error) {
-      console.error("Gemini OCR 처리 실패:", error)
+      console.error("Gemini AI 처리 실패:", error)
       return {
         success: false,
         players: [],
-        error: error instanceof Error ? error.message : "OCR 처리 중 오류가 발생했습니다."
+        error: error instanceof Error ? error.message : "AI 처리 중 오류가 발생했습니다."
       }
     }
   }
