@@ -81,7 +81,20 @@ export const authAPI = {
     if (state) params.append('state', state)
     
     const url = params.toString() ? `/auth/kakao/login-url?${params}` : '/auth/kakao/login-url'
-    return fetchFromAPI<KakaoLoginUrlResponse>(url)
+    
+    // 직접 fetch 사용 (인증 불필요한 API이므로 토큰 포함하지 않음)
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.chunsik.site"
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`카카오 로그인 URL 조회 실패: ${response.status}`)
+    }
+    
+    return response.json()
   },
 
   /**
@@ -164,10 +177,22 @@ export const authAPI = {
    * 회원가입
    */
   async signup(request: SignupRequest): Promise<SignupResponse> {
-    return fetchFromAPI<SignupResponse>('/auth/signup', {
+    // 직접 fetch 사용 (인증 불필요한 API이므로 토큰 포함하지 않음)
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.chunsik.site"
+    const response = await fetch(`${API_BASE_URL}/auth/signup`, {
       method: 'POST',
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(request)
     })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `회원가입 실패: ${response.status}`)
+    }
+    
+    return response.json()
   },
 
   /**
