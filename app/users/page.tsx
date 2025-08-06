@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { OptimizedTouchButton } from "@/components/ui/optimized-touch-button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, FileDown, FileUp, Download } from "lucide-react"
+import { Plus, FileDown, FileUp, Download, Bot } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -633,7 +634,7 @@ export default function UsersPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                     <DialogTrigger asChild>
                       <OptimizedTouchButton 
@@ -651,6 +652,17 @@ export default function UsersPage() {
                       <UserForm mode="create" onSuccess={handleAddSuccess} onCancel={() => setIsAddDialogOpen(false)} />
                     </DialogContent>
                   </Dialog>
+                  
+                  <Link href="/users/ai-add">
+                    <OptimizedTouchButton 
+                      size="mobile-default" 
+                      variant="outline"
+                      className="flex-1 sm:flex-auto w-full border-blue-500 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/20 shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      <Bot className="mr-2 h-4 w-4" />
+                      AI 유저 등록
+                    </OptimizedTouchButton>
+                  </Link>
                 </div>
 
                 <div className="flex gap-2">
