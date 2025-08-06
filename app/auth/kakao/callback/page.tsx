@@ -56,19 +56,14 @@ export default function KakaoCallbackPage() {
           return
         }
 
-        // NextAuth signIn을 통해 백엔드 로그인 (중복 호출 방지)
+        // NextAuth signIn을 통해 백엔드 로그인
         const redirectUri = authUtils.generateRedirectUri()
-        console.log('[Callback] NextAuth signIn 호출 시작')
         
         const signInResult = await signIn('kakao', {
           code,
           redirectUri,
           redirect: false
         })
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[Callback] NextAuth signIn 결과:', signInResult)
-        }
         
         if (!signInResult?.ok) {
           throw new Error('NextAuth 세션 생성 실패: ' + (signInResult?.error || '알 수 없는 오류'))
@@ -77,9 +72,6 @@ export default function KakaoCallbackPage() {
         // NextAuth 세션에서 사용자 정보 조회
         const { getSession } = await import("next-auth/react")
         const session = await getSession()
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[Callback] NextAuth 세션:', session)
-        }
         
         if (!session?.user) {
           throw new Error('NextAuth 세션 생성되었지만 사용자 정보 없음')
@@ -102,17 +94,8 @@ export default function KakaoCallbackPage() {
           message: session.user.requiresSignup ? '회원가입이 필요합니다' : '로그인 성공'
         }
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[FRONTEND] 카카오 로그인 API 응답:', loginResponse)
-          console.log('[FRONTEND] 사용자 정보:', loginResponse.user)
-        }
-
         // 로그인 상태에 따른 처리
         if (loginResponse.status === 'login') {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[Callback] 카카오 로그인 성공 - NextAuth 세션 생성됨')
-          }
-          
           setStatus('success')
           setMessage('로그인되었습니다!')
           
@@ -121,19 +104,13 @@ export default function KakaoCallbackPage() {
             description: `환영합니다, ${loginResponse.user?.nickname}님!`,
           })
           
-          // OAuth 로그인 성공 로그
-          
           router.push('/dashboard')
           
         } else if (loginResponse.status === 'signup_required') {
           // 회원가입 필요 - 사용자 정보를 안전하게 전달
           const userId = loginResponse.user?.userId
           if (userId && loginResponse.user) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('[Callback] 회원가입 페이지로 이동 - userId:', userId)
-            }
-            
-            // 방법 1: sessionStorage에 임시 저장 (새로고침 시 유지, 탭 닫으면 삭제)
+            // sessionStorage에 임시 저장 (새로고침 시 유지, 탭 닫으면 삭제)
             const tempUserData = {
               userId: loginResponse.user.userId,
               email: loginResponse.user.email,
@@ -143,12 +120,9 @@ export default function KakaoCallbackPage() {
             }
             sessionStorage.setItem('signup_user_data', JSON.stringify(tempUserData))
             
-            // 회원가입 처리 로그
-            
             // URL에 민감 정보 없이 이동
             router.push('/signup')
           } else {
-            console.error('[Callback] 사용자 ID가 없습니다')
             router.push('/login')
           }
           

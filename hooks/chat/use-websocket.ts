@@ -61,11 +61,6 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
 
     // 세션 및 인증 정보 검증
     if (!session?.user?.serverAllianceId) {
-      console.error("❌ WebSocket 연결 실패: 인증 정보가 부족합니다.", {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        hasServerAllianceId: !!session?.user?.serverAllianceId
-      })
       setLastError("인증 정보가 부족하여 실시간 채팅에 연결할 수 없습니다.")
       return
     }
@@ -78,7 +73,6 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
       const accessToken = session?.accessToken || authStorage.getAccessToken()
       
       if (!accessToken) {
-        console.error("❌ WebSocket 연결 실패: 액세스 토큰이 없습니다.")
         setLastError("인증 토큰이 없어 실시간 채팅에 연결할 수 없습니다.")
         setIsConnecting(false)
         return
@@ -99,17 +93,10 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
             'X-Server-Alliance-Id': session.user.serverAllianceId?.toString() || ''
           })
         },
-        debug: (str) => {
-          // WebSocket 연결 상태 디버깅
-          if (str.includes('CONNECTED') || str.includes('ERROR') || str.includes('MESSAGE')) {
-            console.log('🔗 STOMP:', str)
-          }
-        },
         reconnectDelay: reconnectInterval,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         onConnect: (frame: Frame) => {
-          console.log("STOMP 연결 성공:", frame)
           setIsConnected(true)
           setIsConnecting(false)
           reconnectAttempts.current = 0
@@ -139,12 +126,9 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
                 // 다른 채팅방은 서버연맹별 격리
                 topicPath = `/topic/chat/${serverAllianceId}/${roomType.toLowerCase()}`;
               }
-              console.log('🔔 채팅방 구독 경로:', topicPath)
-              
               const subscription = stompClientRef.current!.subscribe(
                 topicPath,
                 (message: IMessage) => {
-                  console.log('📩 WebSocket 메시지 수신:', message.body)
                   try {
                     const realtimeEvent: RealtimeEvent = JSON.parse(message.body)
                     handleIncomingEvent(realtimeEvent)
@@ -155,7 +139,6 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
               )
 
               subscriptionRef.current = subscription
-              console.log(`채팅방 구독 완료: ${roomType}`)
 
               // 입장 알림
               stompClientRef.current!.publish({
@@ -172,12 +155,10 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
           }
         },
         onStompError: (frame: Frame) => {
-          console.error("STOMP 오류:", frame)
           setLastError(`STOMP 오류: ${frame.headers['message']}`)
           setIsConnecting(false)
         },
         onWebSocketClose: (event) => {
-          console.log("WebSocket 연결 종료:", event)
           setIsConnected(false)
           setIsConnecting(false)
           
@@ -187,7 +168,6 @@ export function useWebSocket(roomType: "GLOBAL" | "INQUIRY" | null) {
           }
         },
         onWebSocketError: (error) => {
-          console.error("WebSocket 오류:", error)
           setLastError("WebSocket 연결 오류가 발생했습니다.")
           setIsConnecting(false)
         }

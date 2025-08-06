@@ -19,7 +19,6 @@ import { createLogger } from "@/lib/logger"
 import SponsorButton from "@/components/ui/sponsor-button"
 import { useIsAdmin } from "@/lib/auth-utils"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { SimpleActiveUsersCounter } from "@/components/admin/active-users-monitor"
 
 const logger = createLogger('Sidebar')
 
@@ -300,19 +299,6 @@ export default function Sidebar() {
           
           {/* 구분선 */}
           {!isSidebarCollapsed && <div className="h-px bg-border" />}
-          
-          {/* 활성 사용자 수 */}
-          <div className={cn(
-            "flex items-center gap-2",
-            isSidebarCollapsed ? "justify-center" : "justify-between"
-          )}>
-            {!isSidebarCollapsed && (
-              <span className="text-sm text-muted-foreground font-medium">
-                접속 현황
-              </span>
-            )}
-            <SimpleActiveUsersCounter />
-          </div>
           
           {/* 후원 버튼 */}
           <SponsorButton collapsed={isSidebarCollapsed} />
