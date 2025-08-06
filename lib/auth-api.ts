@@ -1,7 +1,6 @@
 import { fetchFromAPI } from './api-service'
 import { signIn, signOut, getSession } from "next-auth/react"
 import { createLogger } from './logger'
-import { monitoringAPI } from './monitoring-api'
 
 const logger = createLogger('authAPI')
 
@@ -141,17 +140,7 @@ export const authAPI = {
               message: '회원가입이 필요합니다'
             }
           } else {
-            // 정상 로그인 사용자 - 모니터링 세션 상태 확인
-            try {
-              const sessionInfo = await monitoringAPI.getMySessionInfo()
-              if (sessionInfo) {
-                logger.debug(`[Monitoring] 사용자 로그인 확인: ${sessionInfo.nickname} (세션: ${sessionInfo.sessionId})`)
-              }
-            } catch (error) {
-              // 모니터링 세션 확인 실패해도 로그인은 성공으로 처리
-              logger.warn('[Monitoring] 로그인 후 모니터링 세션 확인 실패:', error)
-            }
-            
+            // 정상 로그인 사용자 - JWT 기반 stateless 인증
             return {
               status: 'login',
               user: {
@@ -243,17 +232,7 @@ export const authAPI = {
         console.log('[authAPI] NextAuth signIn 결과:', signInResult)
         
         if (signInResult?.ok) {
-          // 테스트 로그인 성공 후 모니터링 세션 상태 확인
-          try {
-            const sessionInfo = await monitoringAPI.getMySessionInfo()
-            if (sessionInfo) {
-              logger.debug(`[Monitoring] 테스트 로그인 확인: ${sessionInfo.nickname} (세션: ${sessionInfo.sessionId})`)
-            }
-          } catch (error) {
-            // 모니터링 세션 확인 실패해도 로그인은 성공으로 처리
-            logger.warn('[Monitoring] 테스트 로그인 후 모니터링 세션 확인 실패:', error)
-          }
-          
+          // 테스트 로그인 성공 - JWT 기반 stateless 인증
           return {
             status: 'login',
             user: {
@@ -350,23 +329,6 @@ export const authAPI = {
     
     // 3. 로컬 저장소 정리
     authStorage.clearAll()
-    
-    // 4. 모니터링 세션 무효화 확인 (선택적)
-    try {
-      const sessionInfo = await monitoringAPI.getMySessionInfo()
-      if (!sessionInfo) {
-        logger.debug('[Monitoring] 모니터링 세션 정상 무효화됨')
-      } else {
-        logger.warn('[Monitoring] 모니터링 세션이 아직 활성 상태임:', sessionInfo)
-      }
-    } catch (error) {
-      // 404 오류는 정상 (세션 없음)
-      if (error instanceof Error && 'status' in error && (error as any).status === 404) {
-        logger.debug('[Monitoring] 모니터링 세션 정상 무효화됨')
-      } else {
-        logger.warn('[Monitoring] 로그아웃 후 모니터링 세션 확인 실패:', error)
-      }
-    }
     
     return { success: true, message: '로그아웃 되었습니다' }
   },
