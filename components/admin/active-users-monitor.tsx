@@ -115,7 +115,7 @@ export function ActiveUsersMonitor({
   }, [autoRefresh, refreshInterval, showDetailedView, isMaster])
 
   // 로딩 상태
-  if (loading) {
+  if (loading || !activeUsers) {
     return (
       <Card>
         <CardHeader>
@@ -127,9 +127,18 @@ export function ActiveUsersMonitor({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-3xl font-bold text-primary">-</div>
+              <div className="text-sm text-muted-foreground">총 접속자</div>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-3xl font-bold text-green-600">-</div>
+              <div className="text-sm text-muted-foreground">활성 테넌트</div>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">- 분</div>
+              <div className="text-sm text-muted-foreground">세션 타임아웃</div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -196,33 +205,33 @@ export function ActiveUsersMonitor({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-4 border rounded-lg">
                   <div className="text-3xl font-bold text-primary">
-                    {activeUsers.totalActiveUsers}
+                    {activeUsers?.totalActiveUsers || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">총 접속자</div>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <div className="text-3xl font-bold text-green-600">
-                    {Object.keys(activeUsers.activeUsersByTenant).length}
+                    {Object.keys(activeUsers?.activeUsersByTenant || {}).length}
                   </div>
                   <div className="text-sm text-muted-foreground">활성 테넌트</div>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">
-                    {Math.floor(activeUsers.systemInfo.sessionTimeout / 60)}분
+                    {Math.floor((activeUsers?.systemInfo?.sessionTimeout || 30) / 60)}분
                   </div>
                   <div className="text-sm text-muted-foreground">세션 타임아웃</div>
                 </div>
               </div>
 
               {/* 테넌트별 통계 */}
-              {Object.keys(activeUsers.activeUsersByTenant).length > 0 && (
+              {Object.keys(activeUsers?.activeUsersByTenant || {}).length > 0 && (
                 <div>
                   <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
                     <Activity className="h-4 w-4" />
                     테넌트별 접속 현황
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {Object.entries(activeUsers.activeUsersByTenant).map(([tenantId, userCount]) => (
+                    {Object.entries(activeUsers?.activeUsersByTenant || {}).map(([tenantId, userCount]) => (
                       <div key={tenantId} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <div className="font-medium">테넌트 {tenantId}</div>
