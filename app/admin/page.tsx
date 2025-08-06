@@ -16,8 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Shield, RotateCcw, AlertTriangle, Clock, User, Database, Calendar, ChevronRight, Loader2 } from "lucide-react"
+import { Shield, RotateCcw, AlertTriangle, Clock, User, Database, Calendar, ChevronRight, Loader2, Activity } from "lucide-react"
 import { useIsAdmin } from "@/lib/auth-utils"
+import { ActiveUsersMonitor } from "@/components/admin/active-users-monitor"
 import {
   revertSingleAction,
   revertByServerAndTimeRange,
@@ -370,6 +371,13 @@ export default function AdminPage() {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* 실시간 사용자 모니터링 */}
+      <ActiveUsersMonitor 
+        autoRefresh={true}
+        refreshInterval={30000}
+        showDetailedView={true}
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* 단일 액션 롤백 */}
