@@ -444,6 +444,9 @@ export async function completeAIUsageTracking(request: {
   extractedUsersCount: number
   estimatedCostUsd?: number
   errorMessage?: string
+  inputTokens?: number
+  outputTokens?: number
+  processingTimeSeconds?: number
 }) {
   return fetchFromAPI('/ai/usage/complete', {
     method: 'POST',

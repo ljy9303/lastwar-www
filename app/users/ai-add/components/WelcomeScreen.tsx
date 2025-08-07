@@ -17,7 +17,10 @@ import {
   ArrowRight,
   CheckCircle,
   Clock,
-  Lightbulb
+  Lightbulb,
+  RefreshCw,
+  Star,
+  Info
 } from "lucide-react"
 
 interface WelcomeScreenProps {
@@ -27,9 +30,10 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
   return (
     <div className="min-h-[60vh] flex items-center justify-center animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-      {/* 간단한 시작 버튼만 표시 */}
-      <div className="text-center space-y-8">
-        {/* AI 연맹원 등록 시작하기 버튼 */}
+      <div className="text-center space-y-8 max-w-2xl mx-auto px-6">
+
+
+        {/* 시작 버튼 */}
         <Button
           onClick={onGetStarted}
           size="lg"

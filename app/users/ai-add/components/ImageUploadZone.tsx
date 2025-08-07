@@ -47,7 +47,7 @@ export function ImageUploadZone({
   onNext,
   onBack,
   isProcessing,
-  maxImages = 10,
+  maxImages = 5,
   maxSizeMB = 5
 }: ImageUploadZoneProps) {
   const { toast } = useToast()

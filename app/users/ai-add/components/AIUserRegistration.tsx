@@ -19,13 +19,13 @@ import {
   Search,
   UserPlus,
   CheckSquare,
-  BarChart3,
-  DollarSign
+  Monitor,
+  Smartphone
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { GeminiAIService } from "@/lib/gemini-ai"
 import { ImageProcessingService } from "@/lib/image-processing"
-import { autoUpsertUsers, getAIUsageStats } from "@/lib/api-service"
+import { autoUpsertUsers } from "@/lib/api-service"
 import { UserGradeSelector } from "./UserGradeSelector"
 import { ImageUploadZone } from "./ImageUploadZone"
 import { AIResultEditor } from "./AIResultEditor"
@@ -35,13 +35,15 @@ import type {
   RegistrationStep, 
   ProcessedImage, 
   ValidatedPlayerInfo,
-  AIProgress,
-  AIUsageStatsResponse
+  AIProgress
 } from "@/types/ai-user-types"
 
 export function AIUserRegistration() {
   const router = useRouter()
   const { toast } = useToast()
+  
+  // 모바일 감지
+  const [isMobile, setIsMobile] = useState(false)
   
   // 단계 관리
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('welcome')
@@ -64,9 +66,6 @@ export function AIUserRegistration() {
     failedCount: number
   } | null>(null)
   
-  // AI 사용량 통계 상태 (선택적 표시)
-  const [aiUsageStats, setAiUsageStats] = useState<AIUsageStatsResponse | null>(null)
-  const [showUsageStats, setShowUsageStats] = useState(false)
 
   // 서비스 인스턴스
   const [aiService] = useState(() => {
@@ -82,6 +81,23 @@ export function AIUserRegistration() {
       return null
     }
   })
+
+  // 모바일 감지
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase()
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+      const isSmallScreen = window.innerWidth < 768
+      setIsMobile(isMobileDevice || isSmallScreen)
+    }
+
+    checkIfMobile()
+    window.addEventListener('resize', checkIfMobile)
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile)
+    }
+  }, [])
 
   // 단계별 진행률 계산 (welcome 단계 제외)
   const getStepProgress = (step: RegistrationStep): number => {
@@ -197,100 +213,141 @@ export function AIUserRegistration() {
 
     const allPlayers: ValidatedPlayerInfo[] = []
 
-    for (let i = 0; i < images.length; i++) {
-      const image = images[i]
+    // 개별 처리 시작
+    setAiProgress(prev => ({
+      ...prev,
+      processed: 0,
+      currentImage: '이미지 분석 중...'
+    }))
+
+    // 모든 이미지를 processing 상태로 변경
+    setImages(prev => prev.map(img => ({ ...img, status: 'processing' })))
+
+    try {
+      const files = images.map(img => img.file)
+      const allResults: ValidatedPlayerInfo[] = []
       
-      // 이미지 상태 업데이트
-      setImages(prev => prev.map(img => 
-        img.id === image.id 
-          ? { ...img, status: 'processing' }
-          : img
-      ))
-
-      setAiProgress(prev => ({
-        ...prev,
-        processed: i,
-        currentImage: image.file.name
-      }))
-
-      try {
-        const result = await aiService.extractPlayerInfo(image.file, i)
+      // 개별 파일 처리 (파일별 진행 상황 표시)
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
         
-        if (result.success && result.players.length > 0) {
-          // 플레이어 정보를 ValidatedPlayerInfo로 변환
-          const validatedPlayers: ValidatedPlayerInfo[] = result.players.map(player => ({
-            ...player,
-            isValid: true,
-            errors: [],
-            isDuplicate: false
-          }))
-
-          allPlayers.push(...validatedPlayers)
-
-          // 이미지 상태 업데이트
-          setImages(prev => prev.map(img => 
-            img.id === image.id 
-              ? { 
-                  ...img, 
-                  status: 'completed',
-                  players: result.players
-                }
-              : img
+        // 현재 처리 중인 파일 정보 업데이트
+        setAiProgress(prev => ({
+          ...prev,
+          processed: i,
+          currentImage: `${file.name} 처리 중...`
+        }))
+        
+        // 현재 이미지만 processing 상태로, 나머지는 pending/completed 유지
+        setImages(prev => prev.map((img, index) => {
+          if (index === i) return { ...img, status: 'processing' }
+          if (index < i) return { ...img, status: 'completed' }
+          return { ...img, status: 'pending' }
+        }))
+        
+        try {
+          console.log(`이미지 ${i + 1}/${files.length} 처리 시작: ${file.name}`)
+          
+          // 기존 검증된 extractPlayerInfo 메서드를 직접 호출
+          const result = await aiService.extractPlayerInfo(file, i)
+          
+          if (result.success && result.players.length > 0) {
+            // ValidatedPlayerInfo로 변환
+            const validatedPlayers: ValidatedPlayerInfo[] = result.players.map(player => ({
+              ...player,
+              isValid: true,
+              errors: [],
+              isDuplicate: false
+            }))
+            
+            allResults.push(...validatedPlayers)
+            console.log(`이미지 ${i + 1} 처리 완료: ${result.players.length}명 추출`)
+            
+            // 현재 이미지를 완료 상태로 업데이트
+            setImages(prev => prev.map((img, index) => 
+              index === i ? { ...img, status: 'completed' } : img
+            ))
+            
+          } else {
+            console.warn(`이미지 ${i + 1} 처리 실패:`, result.error || '알 수 없는 오류')
+            
+            // 현재 이미지를 에러 상태로 업데이트
+            setImages(prev => prev.map((img, index) => 
+              index === i ? { ...img, status: 'error', error: result.error || 'AI 분석 실패' } : img
+            ))
+            
+            // 429/503 에러인 경우 처리 중단
+            if (result.error?.includes("429") || result.error?.includes("할당량") || 
+                result.error?.includes("503") || result.error?.includes("과부하")) {
+              console.warn(`API 서버 문제로 인해 ${files.length - i - 1}개 파일 처리 중단`)
+              break
+            }
+          }
+          
+          // API 제한을 고려하여 지연 (503 서버 과부하 방지를 위해 더 긴 지연)
+          if (i < files.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000)) // 2초 지연으로 증가
+          }
+          
+        } catch (error) {
+          console.error(`이미지 ${i + 1} 처리 중 예외 발생:`, error)
+          
+          // 현재 이미지를 에러 상태로 업데이트
+          setImages(prev => prev.map((img, index) => 
+            index === i ? { 
+              ...img, 
+              status: 'error', 
+              error: error instanceof Error ? error.message : "알 수 없는 오류" 
+            } : img
           ))
-
-          toast({
-            title: `이미지 ${i + 1} 처리 완료`,
-            description: `${result.players.length}명의 연맹원 정보를 인식했습니다.`,
-          })
-        } else {
-          // 처리 실패
-          setImages(prev => prev.map(img => 
-            img.id === image.id 
-              ? { 
-                  ...img, 
-                  status: 'failed',
-                  error: result.error || "연맹원 정보를 인식할 수 없습니다."
-                }
-              : img
-          ))
-
-          toast({
-            title: `이미지 ${i + 1} 처리 실패`,
-            description: result.error || "AI 처리 중 오류가 발생했습니다.",
-            variant: "destructive"
-          })
+          
+          // 429/503 에러인 경우 처리 중단
+          if (error instanceof Error && (error.message.includes("429") || error.message.includes("quota") ||
+                                         error.message.includes("503") || error.message.includes("overloaded"))) {
+            console.warn(`API 서버 문제로 인해 ${files.length - i - 1}개 파일 처리 중단`)
+            break
+          }
         }
-      } catch (error) {
-        console.error(`이미지 ${i + 1} AI 처리 실패:`, error)
-        
-        setImages(prev => prev.map(img => 
-          img.id === image.id 
-            ? { 
-                ...img, 
-                status: 'failed',
-                error: error instanceof Error ? error.message : "알 수 없는 오류"
-              }
-            : img
-        ))
+      }
+      
+      // 최종 결과 처리
+      if (allResults.length > 0) {
+        allPlayers.push(...allResults)
 
         toast({
-          title: `이미지 ${i + 1} 처리 실패`,
-          description: "AI 처리 중 오류가 발생했습니다.",
+          title: `AI 처리 완료`,
+          description: `${allResults.length}명의 연맹원 정보를 인식했습니다.`,
+        })
+      } else {
+        toast({
+          title: `AI 처리 완료`,
+          description: "인식된 연맹원 정보가 없습니다. 이미지를 확인해주세요.",
           variant: "destructive"
         })
       }
+    } catch (error) {
+      console.error(`AI 처리 실패:`, error)
+      
+      // 모든 이미지를 실패 상태로 업데이트
+      setImages(prev => prev.map(img => ({ 
+        ...img, 
+        status: 'error',
+        error: error instanceof Error ? error.message : "알 수 없는 오류"
+      })))
 
-      // API 제한을 고려한 지연
-      if (i < images.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1500))
-      }
+      toast({
+        title: `AI 처리 실패`,
+        description: "AI 처리 중 오류가 발생했습니다.",
+        variant: "destructive"
+      })
     }
 
     // AI 처리 완료
     setAiProgress({
       total: images.length,
       processed: images.length,
-      status: 'completed'
+      status: 'completed',
+      currentImage: '처리 완료'
     })
 
     if (allPlayers.length > 0) {
@@ -570,18 +627,6 @@ export function AIUserRegistration() {
     setCurrentStep('grade-selection')
   }
 
-  // AI 사용량 통계 로드
-  const loadAIUsageStats = useCallback(async () => {
-    try {
-      const stats = await getAIUsageStats({
-        serviceType: 'GEMINI'
-      })
-      setAiUsageStats(stats)
-    } catch (error) {
-      console.warn('AI 사용량 통계 로드 실패:', error)
-      // 통계 로드 실패는 조용히 처리 (사용자에게 에러 표시 안함)
-    }
-  }, [])
 
   // 새로운 등록 시작
   const handleStartNewRegistration = () => {
@@ -596,17 +641,8 @@ export function AIUserRegistration() {
       processed: 0,
       status: 'idle'
     })
-    setShowUsageStats(false)
-    setAiUsageStats(null)
   }
 
-  // 사용량 통계 토글 핸들러
-  const toggleUsageStats = async () => {
-    if (!showUsageStats && !aiUsageStats) {
-      await loadAIUsageStats()
-    }
-    setShowUsageStats(!showUsageStats)
-  }
 
   if (!aiService) {
     return (
@@ -624,6 +660,60 @@ export function AIUserRegistration() {
   // 헤더 조건부 렌더링 상태 (welcome에서만 전체 헤더 표시)
   const isInitialStep = currentStep === 'welcome'
   const showMinimalHeader = !isInitialStep
+
+  // 모바일 접근 시 PC 전용 안내 표시
+  if (isMobile) {
+    return (
+      <div className="container mx-auto py-8 space-y-8">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-8 text-center space-y-6">
+              <div className="flex justify-center items-center gap-4">
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                  <Smartphone className="h-8 w-8 text-red-600" />
+                </div>
+                <div className="text-2xl">→</div>
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                  <Monitor className="h-8 w-8 text-blue-600" />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  PC 전용 기능
+                </h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>해당 기능은 PC에서 지원하는 기능입니다.</strong>
+                  <br />
+                  더 나은 사용 경험을 위해 데스크톱 환경에서 이용해주세요.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
+                  <Bot className="h-4 w-4 text-blue-500" />
+                  <span>AI 이미지 분석 및 대량 처리</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
+                  <Upload className="h-4 w-4 text-green-500" />
+                  <span>다중 파일 업로드 및 편집</span>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={() => router.push('/users')}
+                className="w-full"
+                variant="outline"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                연맹원 관리로 돌아가기
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto py-8 space-y-8">
@@ -721,6 +811,10 @@ export function AIUserRegistration() {
                         <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
                         <span>실시간 중복 검사</span>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+                        <span>기존 연맹원 업데이트</span>
+                      </div>
                     </div>
                   </div>
                   
@@ -806,17 +900,6 @@ export function AIUserRegistration() {
                       </div>
                     )}
                     
-                    {/* AI 사용량 정보 토글 버튼 */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={toggleUsageStats}
-                      className="flex items-center gap-1.5 h-8 px-2 text-xs"
-                      title="AI 사용량 통계 보기"
-                    >
-                      <BarChart3 className="h-3 w-3" />
-                      <span className="hidden sm:inline">사용량</span>
-                    </Button>
                     
                     <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
                       <span className="font-medium">진행률</span>
@@ -846,84 +929,6 @@ export function AIUserRegistration() {
         </div>
       </div>
 
-      {/* AI 사용량 통계 패널 (조건부 표시) */}
-      {showUsageStats && aiUsageStats && (
-        <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
-                <span>AI 사용량 통계</span>
-              </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowUsageStats(false)}
-                className="h-8 w-8 p-0"
-              >
-                ✕
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {/* 월간 요청 수 */}
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-muted-foreground">월간 요청</div>
-                <div className="text-xl font-bold text-blue-600">
-                  {aiUsageStats.user.monthlyRequestsCount}
-                </div>
-              </div>
-              
-              {/* 월간 이미지 수 */}
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-muted-foreground">월간 이미지</div>
-                <div className="text-xl font-bold text-green-600">
-                  {aiUsageStats.user.monthlyImagesCount}
-                </div>
-              </div>
-              
-              {/* 월간 비용 */}
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-muted-foreground">월간 비용</div>
-                <div className="text-xl font-bold text-orange-600 flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" />
-                  {aiUsageStats.user.monthlyTotalCostUsd.toFixed(2)}
-                </div>
-              </div>
-              
-              {/* 전체 성공률 */}
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-muted-foreground">성공률</div>
-                <div className="text-xl font-bold text-purple-600">
-                  {(aiUsageStats.overall.averageSuccessRate * 100).toFixed(1)}%
-                </div>
-              </div>
-            </div>
-            
-            {/* 서비스별 통계 (Gemini만) */}
-            {aiUsageStats.services.filter(s => s.serviceType === 'GEMINI').map((service) => (
-              <div key={service.serviceType} className="mt-4 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                <div className="text-sm font-medium mb-2">Gemini AI 통계</div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">총 요청: </span>
-                    <span className="font-medium">{service.requestCount}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">처리 이미지: </span>
-                    <span className="font-medium">{service.totalImages}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">총 비용: </span>
-                    <span className="font-medium">${service.totalCost.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
       {/* AI 처리 진행 상태 */}
       <>

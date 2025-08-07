@@ -285,6 +285,13 @@ export function AIResultEditor({
     }
   }
 
+  // 전투력에서 단위 제거하여 숫자만 추출
+  const extractPowerNumber = (powerStr: string): string => {
+    // 숫자와 소수점만 추출 (단위 제거)
+    const cleanStr = powerStr.replace(/[^0-9.]/g, '')
+    return cleanStr || '0'
+  }
+
   // 플레이어 유효성 검사
   const validatePlayer = (player: ValidatedPlayerInfo): ValidatedPlayerInfo => {
     const errors: string[] = []
@@ -737,10 +744,10 @@ export function AIResultEditor({
                       <TableCell>
                         {isEditing ? (
                           <Input
-                            value={displayPower}
+                            value={extractPowerNumber(displayPower)}
                             onChange={(e) => updatePlayer(index, { editedPower: e.target.value })}
                             className="w-full"
-                            placeholder="예: 30.5M"
+                            placeholder="예: 30.5 (단위 제외)"
                           />
                         ) : (
                           <span>{displayPower}</span>
