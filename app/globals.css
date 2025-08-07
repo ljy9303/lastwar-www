@@ -1090,4 +1090,329 @@ html.theme-transitioning *::after {
   .dark .focus-ring-primary {
     @apply dark:focus:ring-primary/30;
   }
+
+  /* AI 사용자 등록 시스템 전용 애니메이션 */
+  .ai-fade-in {
+    @apply animate-in fade-in-0 duration-300;
+  }
+  
+  .ai-fade-in-delay {
+    animation: fadeInDelay 0.6s ease-out forwards;
+  }
+  
+  .ai-slide-up {
+    animation: slideUp 0.4s ease-out forwards;
+  }
+  
+  .ai-pulse-glow {
+    animation: pulseGlow 2s ease-in-out infinite;
+  }
+  
+  .ai-bounce-gentle {
+    animation: bounceGentle 1s ease-in-out infinite;
+  }
+  
+  .ai-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+  }
+  
+  .ai-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .ai-rotate-slow {
+    animation: rotateSlow 8s linear infinite;
+  }
+  
+  .ai-scale-hover {
+    @apply transition-transform duration-200 hover:scale-102 active:scale-98;
+  }
+}
+
+/* AI 사용자 등록 시스템 키프레임 정의 */
+@keyframes fadeInDelay {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes bounceGentle {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes rotateSlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* AIResultEditor 전용 애니메이션 */
+@keyframes ai-gentle-wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(5deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes ai-scale-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ai-gentle-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes ai-gentle-shake {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-10deg);
+  }
+  75% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes ai-gentle-sway {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes ai-hover-lift {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    transform: translateY(-2px) scale(1.05);
+  }
+}
+
+@keyframes ai-hover-scale {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.05);
+  }
+}
+
+/* 기본 키프레임 애니메이션 */
+@keyframes fadeInDelay {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
+  }
+}
+
+/* AI 애니메이션 클래스 */
+.ai-fade-in {
+  animation: fadeInDelay 0.5s ease-out forwards;
+}
+
+.ai-slide-up {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+.ai-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.ai-gentle-wiggle {
+  animation: ai-gentle-wiggle 2s ease-in-out infinite;
+}
+
+.ai-scale-in {
+  animation: ai-scale-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+  transform: scale(0);
+}
+
+.ai-gentle-bounce {
+  animation: ai-gentle-bounce 1.5s ease-in-out infinite;
+}
+
+.ai-gentle-shake {
+  animation: ai-gentle-shake 2s ease-in-out infinite;
+}
+
+.ai-gentle-sway {
+  animation: ai-gentle-sway 2s ease-in-out infinite;
+}
+
+.ai-hover-lift:hover {
+  animation: ai-hover-lift 0.3s ease-out forwards;
+}
+
+.ai-hover-scale:hover {
+  animation: ai-hover-scale 0.3s ease-out forwards;
+}
+
+/* AI Registration Prompt Animations */
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes gradient-text {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-reverse-slow {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.4); }
+}
+
+.animate-gradient-x {
+  background-size: 400% 400%;
+  animation: gradient-x 6s ease infinite;
+}
+
+.animate-gradient-text {
+  background-size: 400% 400%;
+  animation: gradient-text 4s ease infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+.animate-spin-reverse-slow {
+  animation: spin-reverse-slow 10s linear infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }

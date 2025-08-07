@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Users, CalendarDays, AlertCircle, RefreshCw } from "lucide-react"
+import { Users, CalendarDays, AlertCircle, RefreshCw, Bot, Sparkles, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { getDashboardStats, refreshDashboardStats } from "@/lib/api-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { EmptyState } from "@/components/ui/empty-state"
+import { AIRegistrationPrompt } from "@/components/ui/ai-registration-prompt"
 
 // 전투력 포맷팅 함수 (1 = 1백만)
 const formatPower = (power: number): string => {
@@ -182,6 +183,13 @@ export default function HomePage() {
           {refreshing ? '새로고침 중...' : '새로고침'}
         </Button>
       </div>
+
+      {/* AI 등록 프롬프트 - 전체 유저가 0명일 때만 표시 */}
+      {!loading && stats.totalUsers === 0 && (
+        <div className="mb-8">
+          <AIRegistrationPrompt />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <Card>

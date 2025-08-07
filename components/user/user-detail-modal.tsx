@@ -61,7 +61,7 @@ export default function UserDetailModal({ isOpen, onClose, userSeq }: UserDetail
       const data = await getUserDetail(userSeq)
       setUserDetail(data)
     } catch (error) {
-      console.error("유저 상세정보 로드 실패:", error)
+      console.error("연맹원 상세정보 로드 실패:", error)
     } finally {
       setLoading(false)
     }
@@ -75,7 +75,7 @@ export default function UserDetailModal({ isOpen, onClose, userSeq }: UserDetail
       const data = await getUserHistory(userSeq, page, pageSize)
       setHistoryData(data)
     } catch (error) {
-      console.error("유저 히스토리 로드 실패:", error)
+      console.error("연맹원 히스토리 로드 실패:", error)
     } finally {
       setHistoryLoading(false)
     }
@@ -185,7 +185,7 @@ export default function UserDetailModal({ isOpen, onClose, userSeq }: UserDetail
       <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>
-            유저 상세정보 {userDetail?.user.name && `- ${userDetail.user.name}`}
+            연맹원 상세정보 {userDetail?.user.name && `- ${userDetail.user.name}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -473,7 +473,7 @@ export default function UserDetailModal({ isOpen, onClose, userSeq }: UserDetail
           </Tabs>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-gray-500">유저 정보를 불러올 수 없습니다.</p>
+            <p className="text-gray-500">연맹원 정보를 불러올 수 없습니다.</p>
           </div>
         )}
       </DialogContent>

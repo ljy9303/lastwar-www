@@ -348,7 +348,7 @@ export default function SignupPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
                   • 게임 접속 시 확인할 수 있는 서버 번호 (1~9999)
                   <br />
-                  • 잘못 입력하면 같은 서버 유저들과 매칭되지 않을 수 있습니다
+                  • 잘못 입력하면 같은 서버 연맹원들과 매칭되지 않을 수 있습니다
                 </p>
               </div>
 

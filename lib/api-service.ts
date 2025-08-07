@@ -242,6 +242,14 @@ export async function autoUpsertUsers(users: any[]) {
   })
 }
 
+// User existence check  
+export async function checkUserExistence(users: Array<{ name: string; level: number; power: number; userGrade?: string }>) {
+  return fetchFromAPI('/user/check-existence', {
+    method: 'POST',
+    body: JSON.stringify({ members: users })
+  })
+}
+
 // Dashboard API functions - 통합 통계 API
 export async function getDashboardStats() {
   return fetchFromAPI('/dashboard/stats')
@@ -414,6 +422,45 @@ export async function getUserStats() {
 export async function getDesertStats() {
   console.warn('[DEPRECATED] getDesertStats()는 deprecated되었습니다. getDashboardStats()를 사용하세요.')
   return fetchFromAPI('/desert/stats')
+}
+
+// AI Usage Tracking API functions
+export async function startAIUsageTracking(request: {
+  serviceType: string
+  modelName: string
+  requestType: string
+  imageCount: number
+}) {
+  return fetchFromAPI('/ai/usage/start', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  })
+}
+
+export async function completeAIUsageTracking(request: {
+  trackingId: number
+  successCount: number
+  failedCount: number
+  extractedUsersCount: number
+  estimatedCostUsd?: number
+  errorMessage?: string
+  inputTokens?: number
+  outputTokens?: number
+  processingTimeSeconds?: number
+}) {
+  return fetchFromAPI('/ai/usage/complete', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  })
+}
+
+export async function getAIUsageStats(params?: {
+  startDate?: string
+  endDate?: string
+  serviceType?: string
+}) {
+  const queryString = params ? buildQueryString(params) : ''
+  return fetchFromAPI(`/ai/usage/stats${queryString}`)
 }
 
 // Chat API functions (실시간 채팅만 지원)

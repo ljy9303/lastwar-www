@@ -39,13 +39,16 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     }
   }, [pathname, isAuthenticated, isLoading, session?.user])
 
-  // 안전한 리다이렉트 처리
+  // 안전한 리다이렉트 처리 - 딜레이 추가로 안정성 확보
   useEffect(() => {
     if (isLoading || redirectedRef.current) return
 
     if (!isAuthenticated && !NO_SIDEBAR_ROUTES.includes(pathname)) {
       redirectedRef.current = true
-      router.push('/login')
+      // 짧은 딜레이를 추가하여 렌더링 충돌 방지
+      setTimeout(() => {
+        router.push('/login')
+      }, 100)
     }
   }, [isLoading, isAuthenticated, pathname, router])
 

@@ -268,7 +268,7 @@ export default function SquadsPage() {
     loadData()
   }, [eventId, sortPowerDirection, sortByGrade])
 
-  // 유저 히스토리 조회 함수
+  // 연맹원 히스토리 조회 함수
   const fetchUserHistory = async (userSeq: number) => {
     if (!eventId || loadingHistories[userSeq] || userHistories[userSeq]) return
 
@@ -278,10 +278,10 @@ export default function SquadsPage() {
       const historyData: UserHistory = await fetchFromAPI(`/user/desert/history/${userSeq}?desertSeq=${eventId}`)
       setUserHistories((prev) => ({ ...prev, [userSeq]: historyData }))
     } catch (error) {
-      console.error("유저 히스토리 조회 실패:", error)
+      console.error("연맹원 히스토리 조회 실패:", error)
       toast({
         title: "히스토리 조회 실패",
-        description: "유저 히스토리를 불러오는 중 오류가 발생했습니다.",
+        description: "연맹원 히스토리를 불러오는 중 오류가 발생했습니다.",
         variant: "destructive"
       })
     } finally {
@@ -289,7 +289,7 @@ export default function SquadsPage() {
     }
   }
 
-  // 유저 정보 동기화 함수
+  // 연맹원 정보 동기화 함수
   const syncUserData = async () => {
     if (!eventId || isSyncing) return
 
@@ -319,13 +319,13 @@ export default function SquadsPage() {
 
       toast({
         title: "동기화 완료",
-        description: "유저 정보가 성공적으로 동기화되었습니다."
+        description: "연맹원 정보가 성공적으로 동기화되었습니다."
       })
     } catch (error) {
-      console.error("유저 정보 동기화 실패:", error)
+      console.error("연맹원 정보 동기화 실패:", error)
       toast({
         title: "동기화 실패",
-        description: "유저 정보 동기화 중 오류가 발생했습니다.",
+        description: "연맹원 정보 동기화 중 오류가 발생했습니다.",
         variant: "destructive"
       })
     } finally {
@@ -709,7 +709,7 @@ export default function SquadsPage() {
     // AB 가능 인원 목록 초기화
     newSquadMembers.AB_POSSIBLE = []
     
-    // 각 유저를 A팀/B팀에 균등하게 배분 (전투력을 고려하여 교대로 배치)
+    // 각 연맹원를 A팀/B팀에 균등하게 배분 (전투력을 고려하여 교대로 배치)
     abUsers.forEach((user, index) => {
       // A팀과 B팀의 현재 인원 수를 고려하여 배정
       const currentACount = newSquadMembers.A_TEAM.length
@@ -726,7 +726,7 @@ export default function SquadsPage() {
         targetTeam = index % 2 === 0 ? TEAM.A_TEAM : TEAM.B_TEAM
       }
       
-      // 해당 팀에 유저 추가 및 정렬
+      // 해당 팀에 연맹원 추가 및 정렬
       const teamKey = targetTeam as keyof GroupedSquadResponse
       newSquadMembers[teamKey] = sortUsers([...newSquadMembers[teamKey], user], sortPowerDirection, sortByGrade)
       
@@ -781,7 +781,7 @@ export default function SquadsPage() {
     }
   }
 
-  // 필터링된 유저 목록
+  // 필터링된 연맹원 목록
   const getFilteredUsers = (team: keyof GroupedSquadResponse) => {
     return squadMembers[team].filter((user) => user.userName.toLowerCase().includes(searchTerm.toLowerCase()))
   }
@@ -1215,7 +1215,7 @@ export default function SquadsPage() {
             </div>
           </div>
 
-          {/* 유저 정보 동기화 버튼 */}
+          {/* 연맹원 정보 동기화 버튼 */}
           <div className="relative">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1224,8 +1224,8 @@ export default function SquadsPage() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>유저 정보 동기화</p>
-                <p>유저 관리 기준으로 최신 레벨, 전투력,</p>
+                <p>연맹원 정보 동기화</p>
+                <p>연맹원 관리 기준으로 최신 레벨, 전투력,</p>
                 <p>연맹등급 정보를 가져옵니다</p>
               </TooltipContent>
             </Tooltip>
@@ -1303,7 +1303,7 @@ export default function SquadsPage() {
                 팀 구성 확정을 위해 "{squadMembers.AB_POSSIBLE.length}명"의 AB 가능 인원을 구체적인 팀으로 배정해주세요.
               </div>
               <div className="text-sm text-amber-700 dark:text-amber-300">
-                • 임시 저장: 현재 변경사항만 저장 (개별 유저의 desert_type 변경)
+                • 임시 저장: 현재 변경사항만 저장 (개별 연맹원의 desert_type 변경)
               </div>
               <div className="text-sm text-amber-700 dark:text-amber-300">
                 • 팀 구성 확정: 모든 팀원의 최종 팀 배정 완료 (AB 가능 인원이 없어야 실행 가능)
@@ -1318,7 +1318,7 @@ export default function SquadsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-background p-6 rounded-lg shadow-lg flex flex-col items-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-            <p className="text-lg font-medium">유저 정보 동기화 중...</p>
+            <p className="text-lg font-medium">연맹원 정보 동기화 중...</p>
           </div>
         </div>
       )}
@@ -1373,7 +1373,7 @@ export default function SquadsPage() {
                 renderUserCard(user, TEAM.A_TEAM),
               )
             ) : (
-              <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
+              <div className="text-center py-4 text-muted-foreground">배정된 연맹원가 없습니다.</div>
             )}
           </CardContent>
         </Card>
@@ -1415,7 +1415,7 @@ export default function SquadsPage() {
                   renderUserCard(user, TEAM.B_TEAM),
                 )
               ) : (
-                <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
+                <div className="text-center py-4 text-muted-foreground">배정된 연맹원가 없습니다.</div>
               )}
             </CardContent>
           </Card>
@@ -1448,7 +1448,7 @@ export default function SquadsPage() {
                 renderUserCard(user, TEAM.A_RESERVE),
               )
             ) : (
-              <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
+              <div className="text-center py-4 text-muted-foreground">배정된 연맹원가 없습니다.</div>
             )}
           </CardContent>
         </Card>
@@ -1481,7 +1481,7 @@ export default function SquadsPage() {
                   renderUserCard(user, TEAM.B_RESERVE),
                 )
               ) : (
-                <div className="text-center py-4 text-muted-foreground">배정된 유저가 없습니다.</div>
+                <div className="text-center py-4 text-muted-foreground">배정된 연맹원가 없습니다.</div>
               )}
             </CardContent>
           </Card>
@@ -1514,7 +1514,7 @@ export default function SquadsPage() {
                   renderUserCard(user, TEAM.AB_POSSIBLE),
                 )
               ) : (
-                <div className="text-center py-4 text-muted-foreground">AB 가능 유저가 없습니다.</div>
+                <div className="text-center py-4 text-muted-foreground">AB 가능 연맹원가 없습니다.</div>
               )}
             </CardContent>
           </Card>
@@ -1542,7 +1542,7 @@ export default function SquadsPage() {
             {getFilteredUsers(TEAM.NONE as keyof GroupedSquadResponse).length > 0 ? (
               getFilteredUsers(TEAM.NONE as keyof GroupedSquadResponse).map((user) => renderUserCard(user, TEAM.NONE))
             ) : (
-              <div className="text-center py-4 text-muted-foreground">미배정 유저가 없습니다.</div>
+              <div className="text-center py-4 text-muted-foreground">미배정 연맹원가 없습니다.</div>
             )}
           </CardContent>
         </Card>
@@ -1580,7 +1580,7 @@ export default function SquadsPage() {
                         size="sm"
                         onClick={() => {
                           setIsTeamMembersDialogOpen(false)
-                          // 테이블에서 해당 유저로 스크롤
+                          // 테이블에서 해당 연맹원로 스크롤
                           const userRow = document.getElementById(`user-${member.userSeq}`)
                           if (userRow) {
                             userRow.scrollIntoView({ behavior: "smooth", block: "center" })

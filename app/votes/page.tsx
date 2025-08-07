@@ -21,7 +21,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { EmptyState } from "@/components/ui/empty-state"
 
-// 임시 유저 데이터
+// 임시 연맹원 데이터
 const initialUsers = [
   { id: 1, nickname: "용사1", level: 30, power: 1500000, isLeft: false },
   { id: 2, nickname: "용사2", level: 28, power: 1350000, isLeft: false },
@@ -74,11 +74,11 @@ export default function VotesPage() {
 
   // 투표 추가 함수
   const handleAddVote = () => {
-    // 이미 투표한 유저인지 확인
+    // 이미 투표한 연맹원인지 확인
     const existingVote = votes.find((v) => v.userId === Number.parseInt(newVote.userId))
 
     if (existingVote) {
-      alert("이미 투표한 유저입니다. 수정을 이용해주세요.")
+      alert("이미 투표한 연맹원입니다. 수정을 이용해주세요.")
       return
     }
 
@@ -127,15 +127,15 @@ export default function VotesPage() {
     return option ? option.label : preference
   }
 
-  // 유저 이름 가져오기
+  // 연맹원 이름 가져오기
   const getUserName = (userId) => {
     const user = users.find((u) => u.id === userId)
-    return user ? user.nickname : `유저 #${userId}`
+    return user ? user.nickname : `연맹원 #${userId}`
   }
 
   // CSV 내보내기
   const exportToCsv = () => {
-    const headers = ["ID", "유저", "희망"]
+    const headers = ["ID", "연맹원", "희망"]
     const csvContent = [
       headers.join(","),
       ...votes.map((vote) => [vote.id, getUserName(vote.userId), getPreferenceLabel(vote.preference)].join(",")),
@@ -159,7 +159,7 @@ export default function VotesPage() {
       <Card>
         <CardHeader>
           <CardTitle>투표 목록</CardTitle>
-          <CardDescription>유저의 사막전 팀 희망 투표를 관리합니다.</CardDescription>
+          <CardDescription>연맹원의 사막전 팀 희망 투표를 관리합니다.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -181,17 +181,17 @@ export default function VotesPage() {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>새 투표 등록</DialogTitle>
-                    <DialogDescription>유저의 사막전 팀 희망 투표를 등록하세요.</DialogDescription>
+                    <DialogDescription>연맹원의 사막전 팀 희망 투표를 등록하세요.</DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="userId">유저 선택</Label>
+                      <Label htmlFor="userId">연맹원 선택</Label>
                       <Select
                         value={newVote.userId.toString()}
                         onValueChange={(value) => setNewVote({ ...newVote, userId: value })}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="유저 선택" />
+                          <SelectValue placeholder="연맹원 선택" />
                         </SelectTrigger>
                         <SelectContent>
                           {users
@@ -255,7 +255,7 @@ export default function VotesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>유저</TableHead>
+                    <TableHead>연맹원</TableHead>
                     <TableHead>희망</TableHead>
                     <TableHead className="text-right">관리</TableHead>
                   </TableRow>

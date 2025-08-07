@@ -41,7 +41,7 @@ export function CsvImportExplanationDialog({
                 <div>
                   <h3 className="font-medium text-blue-900 mb-1">자동 처리 방식</h3>
                   <p className="text-sm text-blue-800">
-                    CSV 또는 Excel 파일의 유저 정보를 자동으로 분석하여 신규 생성 또는 기존 정보 업데이트를 진행합니다.
+                    CSV 또는 Excel 파일의 연맹원 정보를 자동으로 분석하여 신규 생성 또는 기존 정보 업데이트를 진행합니다.
                   </p>
                 </div>
               </div>
@@ -50,7 +50,7 @@ export function CsvImportExplanationDialog({
 
           {/* 처리 방식 설명 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 신규 유저 생성 */}
+            {/* 신규 연맹원 생성 */}
             <Card className="border-green-200">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -58,7 +58,7 @@ export function CsvImportExplanationDialog({
                     <UserPlus className="h-4 w-4 text-green-600" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-green-900 mb-2">신규 유저 생성</h4>
+                    <h4 className="font-medium text-green-900 mb-2">신규 연맹원 생성</h4>
                     <div className="space-y-1 text-sm text-green-800">
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-3 w-3" />
@@ -66,7 +66,7 @@ export function CsvImportExplanationDialog({
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-3 w-3" />
-                        <span>새로운 유저로 등록</span>
+                        <span>새로운 연맹원으로 등록</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-3 w-3" />
@@ -78,7 +78,7 @@ export function CsvImportExplanationDialog({
               </CardContent>
             </Card>
 
-            {/* 기존 유저 업데이트 */}
+            {/* 기존 연맹원 업데이트 */}
             <Card className="border-orange-200">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -86,7 +86,7 @@ export function CsvImportExplanationDialog({
                     <UserCheck className="h-4 w-4 text-orange-600" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-orange-900 mb-2">기존 유저 업데이트</h4>
+                    <h4 className="font-medium text-orange-900 mb-2">기존 연맹원 업데이트</h4>
                     <div className="space-y-1 text-sm text-orange-800">
                       <div className="flex items-center gap-2">
                         <RefreshCw className="h-3 w-3" />
@@ -129,7 +129,7 @@ export function CsvImportExplanationDialog({
             <CardContent className="p-4">
               <h4 className="font-medium text-yellow-900 mb-2">⚠️ 주의사항</h4>
               <div className="space-y-1 text-sm text-yellow-800">
-                <p>• 닉네임이 정확히 일치하는 경우 기존 유저 정보가 업데이트됩니다</p>
+                <p>• 닉네임이 정확히 일치하는 경우 기존 연맹원 정보가 업데이트됩니다</p>
                 <p>• 업데이트된 정보는 변경 히스토리에 자동으로 기록됩니다</p>
                 <p>• 잘못된 형식의 데이터는 건너뛰고 오류 보고서를 제공합니다</p>
               </div>

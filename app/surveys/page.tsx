@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Search, Pencil, Loader2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { Search, Pencil, Loader2, AlertTriangle, ArrowUpDown, ArrowUp, ArrowDown, Bot, Sparkles, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getRosters, updateRoster, saveRosters, type Roster } from "@/app/actions/roster-actions"
@@ -560,7 +560,7 @@ export default function SurveysPage() {
                     </div>
                   </TableHead>
                   <TableHead className="hidden sm:table-cell">
-                    유저 등급
+                    연맹원 등급
                   </TableHead>
                   <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => requestSort("intentType")}>
                     <div className="flex items-center">
@@ -640,8 +640,39 @@ export default function SurveysPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
-                      {searchTerm ? "검색 결과가 없습니다." : "사전조사 데이터가 없습니다."}
+                    <TableCell colSpan={7} className="text-center py-8">
+                      {searchTerm ? (
+                        <div className="flex flex-col items-center">
+                          <Search className="h-8 w-8 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center space-y-4">
+                          <AlertTriangle className="h-8 w-8 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground mb-4">사전조사 데이터가 없습니다.</p>
+                          
+                          {/* 사전조사 데이터가 없을 때 AI 연맹원 등록 유도 */}
+                          <div className="bg-gradient-to-r from-orange-50 via-red-50 to-pink-50 dark:from-orange-950/20 dark:via-red-950/20 dark:to-pink-950/20 rounded-xl p-4 border-2 border-dashed border-orange-300 dark:border-orange-700 max-w-md">
+                            <div className="flex flex-col items-center space-y-3">
+                              <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                                <Bot className="h-5 w-5 animate-pulse" />
+                                <span className="text-sm font-medium">연맹원이 등록되지 않았습니다</span>
+                              </div>
+                              <Button 
+                                asChild 
+                                size="sm" 
+                                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                              >
+                                <Link href="/users/ai-add" className="flex items-center gap-2">
+                                  <Sparkles className="h-4 w-4" />
+                                  AI 연맹원 등록하러가기
+                                  <ArrowRight className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 )}
@@ -655,7 +686,7 @@ export default function SurveysPage() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>유저 정보 수정</DialogTitle>
+              <DialogTitle>연맹원 정보 수정</DialogTitle>
               <DialogDescription>{currentRoster.userName}님의 정보를 수정하세요.</DialogDescription>
             </DialogHeader>
             <UserForm
