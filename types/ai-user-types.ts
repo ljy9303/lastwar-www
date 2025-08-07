@@ -68,6 +68,7 @@ export interface GradeSlotInfo {
 
 // AI 연맹원 등록 단계
 export type RegistrationStep = 
+  | 'welcome'
   | 'grade-selection'
   | 'image-upload'
   | 'ai-processing' 

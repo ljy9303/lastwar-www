@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import React, { useState, useMemo, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -692,8 +692,8 @@ export function AIResultEditor({
                   const isDetailExpanded = expandedDetails.has(index)
 
                   return (
-                    <>
-                      <TableRow key={index} className={
+                    <React.Fragment key={index}>
+                      <TableRow className={
                         !player.isValid 
                           ? "bg-red-50 dark:bg-red-950/20" 
                           : player.existenceStatus?.result?.exists
@@ -956,7 +956,7 @@ export function AIResultEditor({
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </React.Fragment>
                   )
                 })}
               </TableBody>

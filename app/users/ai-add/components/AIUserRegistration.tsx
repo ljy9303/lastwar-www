@@ -27,6 +27,7 @@ import { autoUpsertUsers } from "@/lib/api-service"
 import { UserGradeSelector } from "./UserGradeSelector"
 import { ImageUploadZone } from "./ImageUploadZone"
 import { AIResultEditor } from "./AIResultEditor"
+import { WelcomeScreen } from "./WelcomeScreen"
 import type { 
   RegistrationStep, 
   ProcessedImage, 
@@ -39,7 +40,7 @@ export function AIUserRegistration() {
   const { toast } = useToast()
   
   // 단계 관리
-  const [currentStep, setCurrentStep] = useState<RegistrationStep>('grade-selection')
+  const [currentStep, setCurrentStep] = useState<RegistrationStep>('welcome')
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null)
   
   // 이미지 및 AI 상태
@@ -68,12 +69,18 @@ export function AIUserRegistration() {
 
   // 단계별 진행률 계산
   const getStepProgress = (step: RegistrationStep): number => {
-    const steps = ['grade-selection', 'image-upload', 'ai-processing', 'validation-editing', 'final-registration']
+    const steps = ['welcome', 'grade-selection', 'image-upload', 'ai-processing', 'validation-editing', 'final-registration']
     return ((steps.indexOf(step) + 1) / steps.length) * 100
   }
 
   // 단계별 정보 정의
   const stepInfo = {
+    'welcome': {
+      icon: Sparkles,
+      title: '시작하기',
+      description: 'AI 연맹원 등록 과정을 시작합니다',
+      color: 'text-purple-600'
+    },
     'grade-selection': {
       icon: Shield,
       title: '등급 선택',
@@ -449,6 +456,9 @@ export function AIUserRegistration() {
   // 이전 단계로 이동
   const goToPreviousStep = () => {
     switch (currentStep) {
+      case 'grade-selection':
+        setCurrentStep('welcome')
+        break
       case 'image-upload':
         setCurrentStep('grade-selection')
         break
@@ -467,6 +477,9 @@ export function AIUserRegistration() {
   // 다음 단계로 이동
   const goToNextStep = () => {
     switch (currentStep) {
+      case 'welcome':
+        setCurrentStep('grade-selection')
+        break
       case 'grade-selection':
         if (selectedGrade) {
           setCurrentStep('image-upload')
@@ -483,6 +496,11 @@ export function AIUserRegistration() {
     }
   }
 
+  // 시작하기 버튼 핸들러
+  const handleGetStarted = () => {
+    setCurrentStep('grade-selection')
+  }
+
   if (!aiService) {
     return (
       <div className="container mx-auto py-8">
@@ -497,7 +515,7 @@ export function AIUserRegistration() {
   }
 
   // 헤더 조건부 렌더링 상태
-  const isInitialStep = currentStep === 'grade-selection'
+  const isInitialStep = currentStep === 'welcome' || currentStep === 'grade-selection'
   const showMinimalHeader = !isInitialStep
 
   return (
@@ -963,6 +981,14 @@ export function AIUserRegistration() {
 
       {/* 단계별 컴포넌트 렌더링 */}
       <div>
+        {currentStep === 'welcome' && (
+          <div
+            key="welcome"
+          >
+            <WelcomeScreen onGetStarted={handleGetStarted} />
+          </div>
+        )}
+
         {currentStep === 'grade-selection' && (
           <div
             key="grade-selection"
