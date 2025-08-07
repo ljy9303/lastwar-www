@@ -18,12 +18,14 @@ import {
   Upload,
   Search,
   UserPlus,
-  CheckSquare
+  CheckSquare,
+  BarChart3,
+  DollarSign
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { GeminiAIService } from "@/lib/gemini-ai"
 import { ImageProcessingService } from "@/lib/image-processing"
-import { autoUpsertUsers } from "@/lib/api-service"
+import { autoUpsertUsers, getAIUsageStats } from "@/lib/api-service"
 import { UserGradeSelector } from "./UserGradeSelector"
 import { ImageUploadZone } from "./ImageUploadZone"
 import { AIResultEditor } from "./AIResultEditor"
@@ -33,7 +35,8 @@ import type {
   RegistrationStep, 
   ProcessedImage, 
   ValidatedPlayerInfo,
-  AIProgress 
+  AIProgress,
+  AIUsageStatsResponse
 } from "@/types/ai-user-types"
 
 export function AIUserRegistration() {
@@ -60,6 +63,10 @@ export function AIUserRegistration() {
     rejoinedCount: number
     failedCount: number
   } | null>(null)
+  
+  // AI 사용량 통계 상태 (선택적 표시)
+  const [aiUsageStats, setAiUsageStats] = useState<AIUsageStatsResponse | null>(null)
+  const [showUsageStats, setShowUsageStats] = useState(false)
 
   // 서비스 인스턴스
   const [aiService] = useState(() => {
@@ -563,6 +570,19 @@ export function AIUserRegistration() {
     setCurrentStep('grade-selection')
   }
 
+  // AI 사용량 통계 로드
+  const loadAIUsageStats = useCallback(async () => {
+    try {
+      const stats = await getAIUsageStats({
+        serviceType: 'GEMINI'
+      })
+      setAiUsageStats(stats)
+    } catch (error) {
+      console.warn('AI 사용량 통계 로드 실패:', error)
+      // 통계 로드 실패는 조용히 처리 (사용자에게 에러 표시 안함)
+    }
+  }, [])
+
   // 새로운 등록 시작
   const handleStartNewRegistration = () => {
     // 모든 상태 초기화
@@ -576,6 +596,16 @@ export function AIUserRegistration() {
       processed: 0,
       status: 'idle'
     })
+    setShowUsageStats(false)
+    setAiUsageStats(null)
+  }
+
+  // 사용량 통계 토글 핸들러
+  const toggleUsageStats = async () => {
+    if (!showUsageStats && !aiUsageStats) {
+      await loadAIUsageStats()
+    }
+    setShowUsageStats(!showUsageStats)
   }
 
   if (!aiService) {
@@ -776,6 +806,18 @@ export function AIUserRegistration() {
                       </div>
                     )}
                     
+                    {/* AI 사용량 정보 토글 버튼 */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleUsageStats}
+                      className="flex items-center gap-1.5 h-8 px-2 text-xs"
+                      title="AI 사용량 통계 보기"
+                    >
+                      <BarChart3 className="h-3 w-3" />
+                      <span className="hidden sm:inline">사용량</span>
+                    </Button>
+                    
                     <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
                       <span className="font-medium">진행률</span>
                       <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 text-xs px-2 py-0.5">
@@ -804,6 +846,84 @@ export function AIUserRegistration() {
         </div>
       </div>
 
+      {/* AI 사용량 통계 패널 (조건부 표시) */}
+      {showUsageStats && aiUsageStats && (
+        <Card className="bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200/50">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <span>AI 사용량 통계</span>
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowUsageStats(false)}
+                className="h-8 w-8 p-0"
+              >
+                ✕
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {/* 월간 요청 수 */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground">월간 요청</div>
+                <div className="text-xl font-bold text-blue-600">
+                  {aiUsageStats.user.monthlyRequestsCount}
+                </div>
+              </div>
+              
+              {/* 월간 이미지 수 */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground">월간 이미지</div>
+                <div className="text-xl font-bold text-green-600">
+                  {aiUsageStats.user.monthlyImagesCount}
+                </div>
+              </div>
+              
+              {/* 월간 비용 */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground">월간 비용</div>
+                <div className="text-xl font-bold text-orange-600 flex items-center gap-1">
+                  <DollarSign className="h-4 w-4" />
+                  {aiUsageStats.user.monthlyTotalCostUsd.toFixed(2)}
+                </div>
+              </div>
+              
+              {/* 전체 성공률 */}
+              <div className="space-y-1">
+                <div className="text-xs font-medium text-muted-foreground">성공률</div>
+                <div className="text-xl font-bold text-purple-600">
+                  {(aiUsageStats.overall.averageSuccessRate * 100).toFixed(1)}%
+                </div>
+              </div>
+            </div>
+            
+            {/* 서비스별 통계 (Gemini만) */}
+            {aiUsageStats.services.filter(s => s.serviceType === 'GEMINI').map((service) => (
+              <div key={service.serviceType} className="mt-4 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                <div className="text-sm font-medium mb-2">Gemini AI 통계</div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">총 요청: </span>
+                    <span className="font-medium">{service.requestCount}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">처리 이미지: </span>
+                    <span className="font-medium">{service.totalImages}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">총 비용: </span>
+                    <span className="font-medium">${service.totalCost.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* AI 처리 진행 상태 */}
       <>

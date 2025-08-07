@@ -1,7 +1,12 @@
 "use client"
 
 import { GoogleGenerativeAI } from "@google/generative-ai"
-import type { GeminiAIResponse, ExtractedPlayerInfo } from "@/types/ai-user-types"
+import type { 
+  GeminiAIResponse, 
+  ExtractedPlayerInfo,
+  AIUsageTracking
+} from "@/types/ai-user-types"
+import { startAIUsageTracking, completeAIUsageTracking } from "@/lib/api-service"
 
 export class GeminiAIService {
   private genAI: GoogleGenerativeAI
@@ -18,6 +23,41 @@ export class GeminiAIService {
   }
 
   async extractPlayerInfo(file: File, imageIndex: number): Promise<GeminiAIResponse> {
+    // AI 사용량 추적 시작
+    let trackingId: number | undefined
+    let tracking: AIUsageTracking = {
+      serviceType: 'GEMINI',
+      modelName: 'gemini-2.0-flash-lite', 
+      requestType: 'IMAGE_ANALYSIS',
+      imageCount: 1,
+      sessionId: `session-${Date.now()}`,
+      status: 'pending'
+    }
+    
+    try {
+      // AI 사용량 추적 시작 API 호출
+      const trackingResponse = await startAIUsageTracking({
+        serviceType: tracking.serviceType,
+        modelName: tracking.modelName,
+        requestType: tracking.requestType,
+        imageCount: tracking.imageCount,
+        sessionId: tracking.sessionId
+      })
+      
+      trackingId = trackingResponse.id
+      tracking = {
+        ...tracking,
+        trackingId,
+        status: 'processing',
+        startedAt: new Date().toISOString()
+      }
+      
+      console.log(`AI 사용량 추적 시작: trackingId=${trackingId}`)
+    } catch (trackingError) {
+      console.warn('AI 사용량 추적 시작 실패:', trackingError)
+      // 추적 실패 시에도 AI 분석은 계속 진행
+    }
+
     try {
       // 파일을 base64로 변환
       const arrayBuffer = await file.arrayBuffer()
@@ -59,6 +99,22 @@ export class GeminiAIService {
       
       const players = this.parseGeminiResponse(responseText, imageIndex)
       
+      // AI 처리 성공 시 사용량 추적 완료
+      if (trackingId) {
+        try {
+          await completeAIUsageTracking({
+            trackingId,
+            successCount: 1,
+            failedCount: 0,
+            extractedUsersCount: players.length,
+            estimatedCostUsd: 0.01 // gemini-2.0-flash-lite의 대략적인 비용 (이미지 1장당)
+          })
+          console.log(`AI 사용량 추적 완료: trackingId=${trackingId}, 추출된 사용자=${players.length}명`)
+        } catch (trackingError) {
+          console.warn('AI 사용량 추적 완료 실패:', trackingError)
+        }
+      }
+      
       return {
         success: true,
         players
@@ -75,6 +131,22 @@ export class GeminiAIService {
           errorMessage = "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
         } else {
           errorMessage = error.message
+        }
+      }
+      
+      // AI 처리 실패 시 사용량 추적 완료 (실패로 기록)
+      if (trackingId) {
+        try {
+          await completeAIUsageTracking({
+            trackingId,
+            successCount: 0,
+            failedCount: 1,
+            extractedUsersCount: 0,
+            errorMessage
+          })
+          console.log(`AI 사용량 추적 완료 (실패): trackingId=${trackingId}`)
+        } catch (trackingError) {
+          console.warn('AI 사용량 추적 실패 기록 실패:', trackingError)
         }
       }
       
@@ -161,9 +233,31 @@ export class GeminiAIService {
     }
   }
 
-  // 배치 처리를 위한 메서드
+  // 배치 처리를 위한 메서드 (사용량 추적 포함)
   async extractPlayersFromImages(files: File[]): Promise<ExtractedPlayerInfo[]> {
     const allPlayers: ExtractedPlayerInfo[] = []
+    let batchTrackingId: number | undefined
+    
+    // 배치 처리 시작 시 전체 이미지 수에 대한 추적 시작
+    try {
+      const batchTrackingResponse = await startAIUsageTracking({
+        serviceType: 'GEMINI',
+        modelName: 'gemini-2.0-flash-lite',
+        requestType: 'BATCH_IMAGE_ANALYSIS',
+        imageCount: files.length,
+        sessionId: `batch-session-${Date.now()}`
+      })
+      
+      batchTrackingId = batchTrackingResponse.id
+      console.log(`배치 AI 사용량 추적 시작: trackingId=${batchTrackingId}, 이미지 수=${files.length}`)
+    } catch (trackingError) {
+      console.warn('배치 AI 사용량 추적 시작 실패:', trackingError)
+    }
+    
+    let successCount = 0
+    let failedCount = 0
+    let totalExtractedUsers = 0
+    let batchErrorMessage: string | undefined
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -173,10 +267,17 @@ export class GeminiAIService {
         
         if (result.success) {
           allPlayers.push(...result.players)
-        } else if (result.error?.includes("할당량")) {
-          // 할당량 초과 시 남은 파일들은 처리하지 않음
-          console.warn(`할당량 초과로 인해 ${files.length - i}개 파일 처리 중단`)
-          break
+          successCount++
+          totalExtractedUsers += result.players.length
+        } else {
+          failedCount++
+          if (result.error?.includes("할당량")) {
+            batchErrorMessage = result.error
+            // 할당량 초과 시 남은 파일들은 처리하지 않음
+            console.warn(`할당량 초과로 인해 ${files.length - i}개 파일 처리 중단`)
+            failedCount += (files.length - i - 1) // 나머지 파일들도 실패로 카운트
+            break
+          }
         }
         
         // API 제한을 고려하여 지연 (lite 모델은 더 짧은 지연)
@@ -185,15 +286,36 @@ export class GeminiAIService {
         }
       } catch (error) {
         console.error(`파일 ${i + 1} 처리 실패:`, error)
+        failedCount++
         
         // 429 에러인 경우 처리 중단
         if (error instanceof Error && (error.message.includes("429") || error.message.includes("quota"))) {
+          batchErrorMessage = error.message
           console.warn(`할당량 초과로 인해 ${files.length - i}개 파일 처리 중단`)
+          failedCount += (files.length - i - 1) // 나머지 파일들도 실패로 카운트
           break
         }
         
         // 다른 에러는 계속 진행
         continue
+      }
+    }
+    
+    // 배치 처리 완료 시 사용량 추적 완료
+    if (batchTrackingId) {
+      try {
+        const estimatedCostUsd = successCount * 0.01 // 성공한 이미지당 대략적인 비용
+        await completeAIUsageTracking({
+          trackingId: batchTrackingId,
+          successCount,
+          failedCount,
+          extractedUsersCount: totalExtractedUsers,
+          estimatedCostUsd,
+          errorMessage: batchErrorMessage
+        })
+        console.log(`배치 AI 사용량 추적 완료: trackingId=${batchTrackingId}, 성공=${successCount}, 실패=${failedCount}, 추출 사용자=${totalExtractedUsers}`)
+      } catch (trackingError) {
+        console.warn('배치 AI 사용량 추적 완료 실패:', trackingError)
       }
     }
     

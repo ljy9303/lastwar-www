@@ -147,3 +147,83 @@ export interface ExistenceCheckResponse {
     highConfidenceMatches: number
   }
 }
+
+// AI 사용량 추적 관련 타입들
+export interface AIUsageStartRequest {
+  serviceType: string
+  modelName: string
+  requestType: string
+  imageCount: number
+  sessionId?: string
+}
+
+export interface AIUsageCompleteRequest {
+  trackingId: number
+  successCount: number
+  failedCount: number
+  extractedUsersCount: number
+  estimatedCostUsd?: number
+  errorMessage?: string
+}
+
+export interface AIUsageResponse {
+  id: number
+  userId: number
+  serviceType: string
+  modelName: string
+  requestType: string
+  imageCount: number
+  successCount?: number
+  failedCount?: number
+  extractedUsersCount?: number
+  estimatedCostUsd?: number
+  successRate?: number
+  createdAt: string
+  completedAt?: string
+  processingTimeSeconds?: number
+  completed: boolean
+  errorMessage?: string
+}
+
+export interface AIUsageStatsResponse {
+  periodStart: string
+  periodEnd: string
+  overall: {
+    totalRequests: number
+    totalImages: number
+    totalSuccessImages: number
+    totalFailedImages: number
+    totalExtractedUsers: number
+    totalCostUsd: number
+    averageSuccessRate: number
+  }
+  user: {
+    dailyRequestsCount: number
+    dailyImagesCount: number
+    monthlyRequestsCount: number
+    monthlyImagesCount: number
+    monthlyTotalCostUsd: number
+  }
+  services: Array<{
+    serviceType: string
+    requestCount: number
+    totalImages: number
+    totalSuccess: number
+    totalCost: number
+    successRate: number
+  }>
+}
+
+// AI 사용량 추적 상태 관리
+export interface AIUsageTracking {
+  trackingId?: number
+  serviceType: string
+  modelName: string
+  requestType: string
+  imageCount: number
+  sessionId?: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  startedAt?: string
+  completedAt?: string
+  error?: string
+}

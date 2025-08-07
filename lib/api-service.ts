@@ -424,4 +424,41 @@ export async function getDesertStats() {
   return fetchFromAPI('/desert/stats')
 }
 
+// AI Usage Tracking API functions
+export async function startAIUsageTracking(request: {
+  serviceType: string
+  modelName: string
+  requestType: string
+  imageCount: number
+  sessionId?: string
+}) {
+  return fetchFromAPI('/ai/usage/start', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  })
+}
+
+export async function completeAIUsageTracking(request: {
+  trackingId: number
+  successCount: number
+  failedCount: number
+  extractedUsersCount: number
+  estimatedCostUsd?: number
+  errorMessage?: string
+}) {
+  return fetchFromAPI('/ai/usage/complete', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  })
+}
+
+export async function getAIUsageStats(params?: {
+  startDate?: string
+  endDate?: string
+  serviceType?: string
+}) {
+  const queryString = params ? buildQueryString(params) : ''
+  return fetchFromAPI(`/ai/usage/stats${queryString}`)
+}
+
 // Chat API functions (실시간 채팅만 지원)
