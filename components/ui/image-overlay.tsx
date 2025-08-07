@@ -131,19 +131,21 @@ export function ImageOverlay({ src, alt = '이미지', isOpen, onClose }: ImageO
           )}
 
           {/* 이미지 */}
-          <img
-            src={src}
-            alt={alt}
-            className="max-w-full max-h-full object-contain select-none"
-            style={{
-              transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
-              transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-              cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
-            }}
-            onLoad={() => setIsLoading(false)}
-            onError={() => setIsLoading(false)}
-            draggable={false}
-          />
+          {src && (
+            <img
+              src={src}
+              alt={alt}
+              className="max-w-full max-h-full object-contain select-none"
+              style={{
+                transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+                cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
+              }}
+              onLoad={() => setIsLoading(false)}
+              onError={() => setIsLoading(false)}
+              draggable={false}
+            />
+          )}
         </div>
 
         {/* 푸터 */}

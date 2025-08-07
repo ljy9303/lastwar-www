@@ -19,10 +19,14 @@ import {
   Camera,
   Download,
   Sparkles,
-  Users
+  Users,
+  ChevronDown,
+  ChevronRight,
+  ZoomIn
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ImageProcessingService } from "@/lib/image-processing"
+import { ImageOverlay } from "@/components/ui/image-overlay"
 import type { ProcessedImage } from "@/types/ai-user-types"
 
 interface ImageUploadZoneProps {
@@ -49,6 +53,9 @@ export function ImageUploadZone({
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [showExample, setShowExample] = useState(false)
+  const [imageViewerOpen, setImageViewerOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   
   // 파일 검증
   const validateFiles = useCallback((files: File[]): File[] => {
@@ -171,6 +178,12 @@ export function ImageUploadZone({
     }
   }, [handleFileSelect, toast])
 
+  // 이미지 뷰어 열기
+  const openImageViewer = useCallback((imageSrc: string) => {
+    setSelectedImage(imageSrc)
+    setImageViewerOpen(true)
+  }, [])
+
   // 키보드 단축키 (Ctrl+V)
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.ctrlKey && e.key === 'v') {
@@ -214,6 +227,143 @@ export function ImageUploadZone({
         </div>
       </CardHeader>
       <CardContent className="space-y-6 p-6">
+        {/* 접을 수 있는 예시 이미지 섹션 */}
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-xl border border-amber-200/50 dark:border-amber-800/50 overflow-hidden">
+          {/* 헤더 - 항상 표시 */}
+          <button
+            onClick={() => setShowExample(!showExample)}
+            className="w-full p-4 flex items-center justify-between hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors duration-200"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                <Camera className="h-4 w-4 text-amber-600" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                  📸 스크린샷 예시 보기
+                </h3>
+                <p className="text-xs text-amber-700/80 dark:text-amber-300/80">
+                  어떤 형태의 이미지를 업로드해야 하는지 확인하세요
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-amber-600 dark:text-amber-400">
+                {showExample ? '접기' : '펼치기'}
+              </span>
+              {showExample ? (
+                <ChevronDown className="h-4 w-4 text-amber-600 transition-transform" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-amber-600 transition-transform" />
+              )}
+            </div>
+          </button>
+
+          {/* 접을 수 있는 콘텐츠 */}
+          {showExample && (
+            <div className="px-4 pb-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+              {/* 예시 이미지들 - 작은 크기로 조정 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 첫 번째 예시 */}
+                <div className="relative bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer group"
+                     onClick={() => openImageViewer('/images/success.png')}>
+                  <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden" style={{ height: '180px' }}>
+                    <img
+                      src="/images/success.png"
+                      alt="LastWar 연맹원 목록 예시 스크린샷 1"
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                    />
+                    {/* 예시 라벨 */}
+                    <div className="absolute top-2 right-2 px-2 py-1 bg-green-500 text-white text-xs font-medium rounded-full shadow-lg">
+                      ✅ 예시 1
+                    </div>
+                    {/* 클릭 힌트 오버레이 */}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="bg-white/90 rounded-full p-2 shadow-lg">
+                        <ZoomIn className="h-4 w-4 text-gray-700" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-center">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <span className="font-medium">연맹원 목록 화면</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* 두 번째 예시 */}
+                <div className="relative bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer group"
+                     onClick={() => openImageViewer('/images/success2.png')}>
+                  <div className="relative bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden" style={{ height: '180px' }}>
+                    <img
+                      src="/images/success2.png"
+                      alt="LastWar 연맹원 목록 예시 스크린샷 2"
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                    />
+                    {/* 예시 라벨 */}
+                    <div className="absolute top-2 right-2 px-2 py-1 bg-blue-500 text-white text-xs font-medium rounded-full shadow-lg">
+                      ✅ 예시 2
+                    </div>
+                    {/* 클릭 힌트 오버레이 */}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="bg-white/90 rounded-full p-2 shadow-lg">
+                        <ZoomIn className="h-4 w-4 text-gray-700" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-center">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <span className="font-medium">다른 형태의 목록</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 공통 설명 */}
+              <div className="text-center space-y-2">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">✓ 선명한 화질</span> • 
+                  <span className="font-medium">✓ 닉네임 표시</span> • 
+                  <span className="font-medium">✓ 레벨 표시</span> • 
+                  <span className="font-medium">✓ 전투력 표시</span>
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1">
+                  <ZoomIn className="h-3 w-3" />
+                  <span className="font-medium">이미지를 클릭하면 크게 볼 수 있습니다</span>
+                </p>
+              </div>
+
+              {/* 간소화된 팁 */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-start gap-2">
+                  <div className="w-1 h-1 rounded-full bg-green-500 flex-shrink-0 mt-1.5" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    <span className="font-medium">선명한 화질</span> 필수
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1 h-1 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    <span className="font-medium">전체 정보</span> 포함
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1 h-1 rounded-full bg-purple-500 flex-shrink-0 mt-1.5" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    <span className="font-medium">{maxSizeMB}MB 이하</span> PNG/JPG
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1 h-1 rounded-full bg-orange-500 flex-shrink-0 mt-1.5" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    <span className="font-medium">어두운 배경</span> 권장
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 업로드 영역 */}
         <div
           className={`
@@ -469,6 +619,19 @@ export function ImageUploadZone({
           </div>
         </div>
       </CardContent>
+
+      {/* 이미지 뷰어 */}
+      {selectedImage && (
+        <ImageOverlay
+          src={selectedImage}
+          alt="LastWar 연맹원 목록 예시 스크린샷"
+          isOpen={imageViewerOpen}
+          onClose={() => {
+            setImageViewerOpen(false)
+            setSelectedImage(null)
+          }}
+        />
+      )}
     </Card>
   )
 }

@@ -546,18 +546,21 @@ export default function UsersPage() {
       console.log("자동 upsert 결과:", result)
       
       // 결과 토스트 표시
-      let message = ""
+      const messageParts = []
       if (result.insertedCount > 0) {
-        message += `신규 ${result.insertedCount}건`
+        messageParts.push(`신규 ${result.insertedCount}건`)
       }
       if (result.updatedCount > 0) {
-        if (message) message += ", "
-        message += `기존 ${result.updatedCount}건 업데이트`
+        messageParts.push(`기존 ${result.updatedCount}건 업데이트`)
+      }
+      if (result.rejoinedCount > 0) {
+        messageParts.push(`재가입 ${result.rejoinedCount}건`)
       }
       if (result.failedCount > 0) {
-        if (message) message += ", "
-        message += `실패 ${result.failedCount}건`
+        messageParts.push(`실패 ${result.failedCount}건`)
       }
+      
+      const message = messageParts.join(", ")
       
       if (message) {
         toast({
@@ -566,6 +569,17 @@ export default function UsersPage() {
           variant: result.failedCount > 0 ? "destructive" : "default",
           duration: 8000
         })
+      }
+      
+      // 재가입한 유저가 있으면 추가 안내
+      if (result.rejoinedCount > 0) {
+        setTimeout(() => {
+          toast({
+            title: "🎉 재가입한 연맹원이 있습니다",
+            description: `${result.rejoinedCount}명이 다시 연맹에 복귀했습니다. 탈퇴 상태에서 활성 상태로 변경되었습니다.`,
+            duration: 8000
+          })
+        }, 1000)
       }
       
       // 실패한 항목이 있으면 추가 정보 표시

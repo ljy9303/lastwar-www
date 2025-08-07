@@ -73,6 +73,7 @@ export type RegistrationStep =
   | 'image-upload'
   | 'ai-processing' 
   | 'validation-editing'
+  | 'registration-complete'
   | 'final-registration'
 
 // 이미지 업로드 옵션

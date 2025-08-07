@@ -28,6 +28,7 @@ import { UserGradeSelector } from "./UserGradeSelector"
 import { ImageUploadZone } from "./ImageUploadZone"
 import { AIResultEditor } from "./AIResultEditor"
 import { WelcomeScreen } from "./WelcomeScreen"
+import { RegistrationCompleteScreen } from "./RegistrationCompleteScreen"
 import type { 
   RegistrationStep, 
   ProcessedImage, 
@@ -51,6 +52,14 @@ export function AIUserRegistration() {
     processed: 0,
     status: 'idle'
   })
+  
+  // 등록 결과 상태
+  const [registrationResult, setRegistrationResult] = useState<{
+    insertedCount: number
+    updatedCount: number
+    rejoinedCount: number
+    failedCount: number
+  } | null>(null)
 
   // 서비스 인스턴스
   const [aiService] = useState(() => {
@@ -67,20 +76,15 @@ export function AIUserRegistration() {
     }
   })
 
-  // 단계별 진행률 계산
+  // 단계별 진행률 계산 (welcome 단계 제외)
   const getStepProgress = (step: RegistrationStep): number => {
-    const steps = ['welcome', 'grade-selection', 'image-upload', 'ai-processing', 'validation-editing', 'final-registration']
+    if (step === 'welcome') return 0 // welcome 단계는 0%로 처리
+    const steps = ['grade-selection', 'image-upload', 'ai-processing', 'validation-editing', 'final-registration', 'registration-complete']
     return ((steps.indexOf(step) + 1) / steps.length) * 100
   }
 
-  // 단계별 정보 정의
+  // 단계별 정보 정의 (welcome 단계 제외)
   const stepInfo = {
-    'welcome': {
-      icon: Sparkles,
-      title: '시작하기',
-      description: 'AI 연맹원 등록 과정을 시작합니다',
-      color: 'text-purple-600'
-    },
     'grade-selection': {
       icon: Shield,
       title: '등급 선택',
@@ -107,9 +111,15 @@ export function AIUserRegistration() {
     },
     'final-registration': {
       icon: UserPlus,
-      title: '등록 완료',
+      title: '등록 진행',
       description: '검증된 정보로 연맹원을 등록합니다',
       color: 'text-emerald-600'
+    },
+    'registration-complete': {
+      icon: CheckCircle,
+      title: '등록 완료',
+      description: 'AI 연맹원 등록이 성공적으로 완료되었습니다',
+      color: 'text-green-600'
     }
   }
 
@@ -385,18 +395,22 @@ export function AIUserRegistration() {
       console.log("API 응답 결과:", result)
 
       // 결과에 따른 성공 메시지
-      let message = ""
+      const messageParts = []
+      
       if (result.insertedCount > 0) {
-        message += `신규 ${result.insertedCount}명`
+        messageParts.push(`신규 ${result.insertedCount}명`)
       }
       if (result.updatedCount > 0) {
-        if (message) message += ", "
-        message += `업데이트 ${result.updatedCount}명`
+        messageParts.push(`업데이트 ${result.updatedCount}명`)
+      }
+      if (result.rejoinedCount > 0) {
+        messageParts.push(`재가입 ${result.rejoinedCount}명`)
       }
       if (result.failedCount > 0) {
-        if (message) message += ", "
-        message += `실패 ${result.failedCount}명`
+        messageParts.push(`실패 ${result.failedCount}명`)
       }
+      
+      const message = messageParts.join(", ")
 
       toast({
         title: "AI 연맹원 등록 완료",
@@ -404,6 +418,17 @@ export function AIUserRegistration() {
         variant: result.failedCount > 0 ? "destructive" : "default",
         duration: 8000
       })
+
+      // 재가입한 유저가 있으면 추가 안내
+      if (result.rejoinedCount > 0) {
+        setTimeout(() => {
+          toast({
+            title: "🎉 재가입한 연맹원이 있습니다",
+            description: `${result.rejoinedCount}명이 다시 연맹에 복귀했습니다. 탈퇴 상태에서 활성 상태로 변경되었습니다.`,
+            duration: 8000
+          })
+        }, 1000)
+      }
 
       // 실패한 항목이 있으면 추가 정보 표시
       if (result.failedCount > 0 && result.failedNames?.length > 0) {
@@ -415,18 +440,55 @@ export function AIUserRegistration() {
         })
       }
 
-      // 유저 관리 페이지로 이동
-      setTimeout(() => {
-        router.push('/users')
-      }, 2000)
+      // 결과 저장 및 완료 단계로 이동
+      setRegistrationResult({
+        insertedCount: result.insertedCount || 0,
+        updatedCount: result.updatedCount || 0,
+        rejoinedCount: result.rejoinedCount || 0,
+        failedCount: result.failedCount || 0
+      })
+      setCurrentStep('registration-complete')
       
     } catch (error) {
       console.error("유저 등록 실패:", error)
+      
+      // 백엔드 에러 메시지 파싱
+      let errorMessage = "유저 등록 중 오류가 발생했습니다."
+      let errorDetails = ""
+      
+      if (error instanceof Error) {
+        if (error.message.includes("duplicate key")) {
+          errorMessage = "중복된 연맹원이 감지되었습니다"
+          errorDetails = "이미 등록된 연맹원이 포함되어 있습니다. 중복 항목을 확인하고 다시 시도해주세요."
+        } else if (error.message.includes("constraint")) {
+          errorMessage = "데이터 제약 조건 위반"
+          errorDetails = "입력된 연맹원 정보가 시스템 규칙에 맞지 않습니다."
+        } else if (error.message.includes("rollback")) {
+          errorMessage = "데이터베이스 트랜잭션 오류"
+          errorDetails = "일부 연맹원이 이미 존재합니다. 중복되지 않는 항목만 다시 등록해주세요."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast({
-        title: "등록 실패",
-        description: error instanceof Error ? error.message : "유저 등록 중 오류가 발생했습니다.",
-        variant: "destructive"
+        title: errorMessage,
+        description: errorDetails || "문제가 지속되면 관리자에게 문의하세요.",
+        variant: "destructive",
+        duration: 10000
       })
+      
+      // 추가 안내 토스트
+      if (errorMessage.includes("중복") || errorMessage.includes("트랜잭션")) {
+        setTimeout(() => {
+          toast({
+            title: "💡 해결 방법",
+            description: "이전 단계로 돌아가서 이미 등록된 연맹원을 제외하고 다시 시도해보세요.",
+            duration: 8000
+          })
+        }, 1000)
+      }
+      
       setCurrentStep('validation-editing')
     }
   }, [selectedGrade, extractedPlayers, router, toast])
@@ -501,6 +563,21 @@ export function AIUserRegistration() {
     setCurrentStep('grade-selection')
   }
 
+  // 새로운 등록 시작
+  const handleStartNewRegistration = () => {
+    // 모든 상태 초기화
+    setCurrentStep('grade-selection')
+    setSelectedGrade(null)
+    setImages([])
+    setExtractedPlayers([])
+    setRegistrationResult(null)
+    setAiProgress({
+      total: 0,
+      processed: 0,
+      status: 'idle'
+    })
+  }
+
   if (!aiService) {
     return (
       <div className="container mx-auto py-8">
@@ -514,8 +591,8 @@ export function AIUserRegistration() {
     )
   }
 
-  // 헤더 조건부 렌더링 상태
-  const isInitialStep = currentStep === 'welcome' || currentStep === 'grade-selection'
+  // 헤더 조건부 렌더링 상태 (welcome에서만 전체 헤더 표시)
+  const isInitialStep = currentStep === 'welcome'
   const showMinimalHeader = !isInitialStep
 
   return (
@@ -616,65 +693,10 @@ export function AIUserRegistration() {
                       </div>
                     </div>
                   </div>
+                  
                 </div>
               </div>
 
-              {/* 빠른 시작 가이드 - 모바일 최적화된 정보 카드 */}
-              <div className="w-full max-w-none sm:max-w-4xl">
-                <Card className="border-blue-200/50 dark:border-blue-800/50 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-950/20 dark:to-transparent shadow-sm hover:shadow-md transition-shadow duration-200">
-                  <CardContent className="p-4 sm:p-5">
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <div className="p-2 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20">
-                          <CheckSquare className="h-4 w-4 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="space-y-3 flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm sm:text-base text-blue-900 dark:text-blue-100">
-                          💡 시작하기 전에 확인하세요
-                        </h3>
-                        
-                        {/* 모바일에서는 세로 배치, 태블릿 이상에서는 2열 그리드 */}
-                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 sm:gap-y-2">
-                          <li className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
-                            <span className="text-sm text-blue-800/90 dark:text-blue-200/90 leading-relaxed">
-                              연맹원 목록이 <span className="font-medium">선명하게 보이는</span> 스크린샷
-                            </span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
-                            <span className="text-sm text-blue-800/90 dark:text-blue-200/90 leading-relaxed">
-                              <span className="font-medium">닉네임, 레벨, 전투력</span>이 모두 포함된 화면
-                            </span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0 mt-2" />
-                            <span className="text-sm text-blue-800/90 dark:text-blue-200/90 leading-relaxed">
-                              <span className="font-medium">PNG, JPG</span> 형식의 이미지 파일
-                            </span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-2" />
-                            <span className="text-sm text-blue-800/90 dark:text-blue-200/90 leading-relaxed">
-                              이미지당 <span className="font-medium">최대 50명까지</span> 인식 가능
-                            </span>
-                          </li>
-                        </ul>
-                        
-                        {/* 추가 팁 - 접을 수 있는 섹션 */}
-                        <div className="pt-2 border-t border-blue-200/30 dark:border-blue-800/30">
-                          <div className="text-xs text-blue-700/80 dark:text-blue-300/80 flex items-center gap-2">
-                            <Sparkles className="h-3 w-3 flex-shrink-0" />
-                            <span className="font-medium">팁:</span>
-                            <span>어두운 배경에 밝은 텍스트가 있는 스크린샷이 가장 정확하게 인식됩니다</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </div>
           )}
 
@@ -736,116 +758,52 @@ export function AIUserRegistration() {
                   </div>
                 </div>
 
-                {/* 축소된 진행률 표시 */}
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="font-medium">진행률</span>
-                    <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 text-xs px-2 py-0.5">
-                      {Math.round(getStepProgress(currentStep))}%
-                    </Badge>
+                {/* 축소된 진행률 표시 (welcome 제외) */}
+                {currentStep !== 'welcome' && (
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    {/* 선택된 연맹 등급 표시 */}
+                    {selectedGrade && (
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="p-1 sm:p-1.5 rounded-lg bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950 ring-1 ring-green-200/50 dark:ring-green-800/50">
+                          <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-600" />
+                        </div>
+                        <div className="text-xs">
+                          <div className="text-muted-foreground text-xs sm:text-xs hidden sm:block">선택된 등급</div>
+                          <div className="font-semibold text-green-700 dark:text-green-300 text-xs sm:text-sm">
+                            {selectedGrade}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="font-medium">진행률</span>
+                      <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 text-xs px-2 py-0.5">
+                        {Math.round(getStepProgress(currentStep))}%
+                      </Badge>
+                    </div>
+                    
+                    {/* 모바일에서는 진행률만 표시 */}
+                    <div className="sm:hidden">
+                      <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 text-xs px-2 py-0.5">
+                        {Math.round(getStepProgress(currentStep))}%
+                      </Badge>
+                    </div>
+                    
+                    <div className="w-12 sm:w-16 lg:w-20">
+                      <Progress 
+                        value={getStepProgress(currentStep)} 
+                        className="w-full h-1.5 sm:h-2" 
+                      />
+                    </div>
                   </div>
-                  <div className="w-16 sm:w-20">
-                    <Progress 
-                      value={getStepProgress(currentStep)} 
-                      className="w-full h-2" 
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* 진행률 표시 - 초기 단계에서만 상세 표시 */}
-      {!showMinimalHeader && (
-        <div className="animate-in fade-in-0 slide-in-from-top-4 duration-300">
-          <Card className="overflow-hidden">
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-blue-600" />
-                    진행 상황
-                  </h3>
-                  <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
-                    {Math.round(getStepProgress(currentStep))}% 완료
-                  </Badge>
-                </div>
-                
-                <div className="relative">
-                  <Progress 
-                    value={getStepProgress(currentStep)} 
-                    className="w-full h-3" 
-                  />
-                  <div
-                    className="absolute top-0 left-0 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                  {Object.entries(stepInfo).map(([step, info], index) => {
-                    const Icon = info.icon
-                    const isActive = currentStep === step
-                    const isCompleted = Object.keys(stepInfo).indexOf(currentStep) > index
-                    
-                    return (
-                      <div
-                        key={step}
-                        className={`
-                          relative p-4 rounded-lg border-2 transition-all duration-300
-                          ${isActive 
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-md scale-105' 
-                            : isCompleted
-                            ? 'border-green-300 bg-green-50 dark:bg-green-950/30'
-                            : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
-                          }
-                        `}
-                      >
-                        <div className="flex flex-col items-center text-center space-y-2">
-                          <div className={`
-                            p-2 rounded-full transition-colors
-                            ${isActive 
-                              ? 'bg-blue-500 text-white' 
-                              : isCompleted
-                              ? 'bg-green-500 text-white'
-                              : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
-                            }
-                          `}>
-                            {isCompleted ? (
-                              <CheckCircle className="h-5 w-5" />
-                            ) : (
-                              <Icon className="h-5 w-5" />
-                            )}
-                          </div>
-                          <div>
-                            <div className={`text-sm font-medium ${
-                              isActive ? 'text-blue-700 dark:text-blue-300' : 
-                              isCompleted ? 'text-green-700 dark:text-green-300' :
-                              'text-gray-600 dark:text-gray-400'
-                            }`}>
-                              {index + 1}. {info.title}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1 hidden lg:block">
-                              {info.description}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {isActive && (
-                          <div
-                            className="absolute inset-0 rounded-lg border-2 border-blue-400"
-                          />
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {/* AI 처리 진행 상태 */}
       <>
@@ -1027,6 +985,21 @@ export function AIUserRegistration() {
               onNext={goToNextStep}
               onBack={goToPreviousStep}
               selectedGrade={selectedGrade!}
+            />
+          </div>
+        )}
+
+        {currentStep === 'registration-complete' && registrationResult && (
+          <div
+            key="registration-complete"
+          >
+            <RegistrationCompleteScreen
+              insertedCount={registrationResult.insertedCount}
+              updatedCount={registrationResult.updatedCount}
+              rejoinedCount={registrationResult.rejoinedCount}
+              failedCount={registrationResult.failedCount}
+              selectedGrade={selectedGrade!}
+              onStartNew={handleStartNewRegistration}
             />
           </div>
         )}
