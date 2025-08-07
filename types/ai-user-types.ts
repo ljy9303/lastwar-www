@@ -154,7 +154,6 @@ export interface AIUsageStartRequest {
   modelName: string
   requestType: string
   imageCount: number
-  sessionId?: string
 }
 
 export interface AIUsageCompleteRequest {
@@ -221,7 +220,6 @@ export interface AIUsageTracking {
   modelName: string
   requestType: string
   imageCount: number
-  sessionId?: string
   status: 'pending' | 'processing' | 'completed' | 'failed'
   startedAt?: string
   completedAt?: string

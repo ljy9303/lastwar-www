@@ -30,7 +30,6 @@ export class GeminiAIService {
       modelName: 'gemini-2.0-flash-lite', 
       requestType: 'IMAGE_ANALYSIS',
       imageCount: 1,
-      sessionId: `session-${Date.now()}`,
       status: 'pending'
     }
     
@@ -40,8 +39,7 @@ export class GeminiAIService {
         serviceType: tracking.serviceType,
         modelName: tracking.modelName,
         requestType: tracking.requestType,
-        imageCount: tracking.imageCount,
-        sessionId: tracking.sessionId
+        imageCount: tracking.imageCount
       })
       
       trackingId = trackingResponse.id
@@ -244,8 +242,7 @@ export class GeminiAIService {
         serviceType: 'GEMINI',
         modelName: 'gemini-2.0-flash-lite',
         requestType: 'BATCH_IMAGE_ANALYSIS',
-        imageCount: files.length,
-        sessionId: `batch-session-${Date.now()}`
+        imageCount: files.length
       })
       
       batchTrackingId = batchTrackingResponse.id

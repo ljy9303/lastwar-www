@@ -430,7 +430,6 @@ export async function startAIUsageTracking(request: {
   modelName: string
   requestType: string
   imageCount: number
-  sessionId?: string
 }) {
   return fetchFromAPI('/ai/usage/start', {
     method: 'POST',
