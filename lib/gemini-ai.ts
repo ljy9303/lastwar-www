@@ -14,7 +14,7 @@ export class GeminiAIService {
     }
     
     this.genAI = new GoogleGenerativeAI(apiKey)
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
   }
 
   async extractPlayerInfo(file: File, imageIndex: number): Promise<GeminiAIResponse> {
@@ -65,10 +65,23 @@ export class GeminiAIService {
       }
     } catch (error) {
       console.error("Gemini AI 처리 실패:", error)
+      
+      let errorMessage = "AI 처리 중 오류가 발생했습니다."
+      
+      if (error instanceof Error) {
+        if (error.message.includes("429") || error.message.includes("quota")) {
+          errorMessage = "AI 분석 할당량을 초과했습니다. 잠시 후 다시 시도해주세요. 또는 수동으로 연맹원 정보를 입력해주세요."
+        } else if (error.message.includes("rate")) {
+          errorMessage = "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       return {
         success: false,
         players: [],
-        error: error instanceof Error ? error.message : "AI 처리 중 오류가 발생했습니다."
+        error: errorMessage
       }
     }
   }
@@ -154,15 +167,33 @@ export class GeminiAIService {
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      const result = await this.extractPlayerInfo(file, i)
       
-      if (result.success) {
-        allPlayers.push(...result.players)
-      }
-      
-      // API 제한을 고려하여 약간의 지연
-      if (i < files.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
+      try {
+        const result = await this.extractPlayerInfo(file, i)
+        
+        if (result.success) {
+          allPlayers.push(...result.players)
+        } else if (result.error?.includes("할당량")) {
+          // 할당량 초과 시 남은 파일들은 처리하지 않음
+          console.warn(`할당량 초과로 인해 ${files.length - i}개 파일 처리 중단`)
+          break
+        }
+        
+        // API 제한을 고려하여 지연 (lite 모델은 더 짧은 지연)
+        if (i < files.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
+      } catch (error) {
+        console.error(`파일 ${i + 1} 처리 실패:`, error)
+        
+        // 429 에러인 경우 처리 중단
+        if (error instanceof Error && (error.message.includes("429") || error.message.includes("quota"))) {
+          console.warn(`할당량 초과로 인해 ${files.length - i}개 파일 처리 중단`)
+          break
+        }
+        
+        // 다른 에러는 계속 진행
+        continue
       }
     }
     
