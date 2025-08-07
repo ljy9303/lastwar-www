@@ -100,16 +100,21 @@ export interface ValidationRules {
 
 // 연맹원 존재 확인 관련 타입
 export interface ExistenceCheckRequest {
-  nickname: string
+  name: string
   level: number
-  power: string
+  power: number
+  userGrade?: string
 }
 
 export interface ExistenceCheckResult {
+  name: string
+  level: number
+  power: number
+  userGrade?: string
   exists: boolean
-  matchConfidence?: number
   existingUser?: ExistingUserDetails
-  matchType?: 'exact' | 'similar' | 'none'
+  matchConfidence: number
+  matchType: 'EXACT_MATCH' | 'HIGH_SIMILARITY' | 'PARTIAL_MATCH' | 'NO_MATCH'
 }
 
 export interface ExistingUserDetails {
@@ -118,8 +123,9 @@ export interface ExistingUserDetails {
   level: number
   power: number
   userGrade: string
-  lastUpdated: string
-  createdAt: string
+  isActive: boolean
+  lastUpdated?: string
+  createdAt?: string
 }
 
 export interface ExistenceCheckStatus {
@@ -130,10 +136,12 @@ export interface ExistenceCheckStatus {
 }
 
 export interface ExistenceCheckResponse {
+  success: boolean
   results: ExistenceCheckResult[]
   summary: {
     totalChecked: number
-    newMembers: number
-    existingMembers: number
+    existingUsers: number
+    newUsers: number
+    highConfidenceMatches: number
   }
 }

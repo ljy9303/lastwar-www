@@ -148,9 +148,10 @@ export function AIResultEditor({
 
       // API 요청 데이터 준비
       const checkData = validPlayers.map(player => ({
-        nickname: player.editedNickname || player.nickname,
+        name: player.editedNickname || player.nickname,
         level: player.editedLevel || player.level,
-        power: player.editedPower || player.power
+        power: parseFloat((player.editedPower || player.power).replace(/[^\d.]/g, '')),
+        userGrade: selectedGrade
       }))
 
       const response: ExistenceCheckResponse = await checkUserExistence(checkData)
@@ -189,7 +190,7 @@ export function AIResultEditor({
 
       toast({
         title: "존재 확인 완료",
-        description: `${response.summary.newMembers}명의 신규 연맹원, ${response.summary.existingMembers}명의 기존 연맹원을 확인했습니다.`,
+        description: `${response.summary.newUsers}명의 신규 연맹원, ${response.summary.existingUsers}명의 기존 연맹원을 확인했습니다.`,
       })
 
     } catch (error) {
@@ -417,124 +418,75 @@ export function AIResultEditor({
         </div>
       </CardHeader>
       <CardContent className="space-y-8 p-6">
-        {/* 통계 대시보드 */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 ai-slide-up">
-          <div className="ai-hover-lift">
-            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
-              <CardContent className="p-5 text-center">
-                <div className="flex items-center justify-center mb-2 ai-gentle-wiggle">
-                  <div className="p-2 bg-blue-500 text-white rounded-full">
-                    <Users className="h-5 w-5" />
+        {/* 간소화된 통계 요약 */}
+        <div className="ai-slide-up">
+          <Card className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/30 dark:via-indigo-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500 rounded-full">
+                    <Users className="h-5 w-5 text-white" />
                   </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    인식 결과 요약
+                  </h3>
                 </div>
-                <div className="text-3xl font-bold text-blue-600 ai-scale-in" style={{animationDelay: '0.3s'}}>
-                  {stats.total}
-                </div>
-                <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">총 인식 수</div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="ai-hover-lift">
-            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
-              <CardContent className="p-5 text-center">
-                <div className="flex items-center justify-center mb-2 ai-gentle-bounce">
-                  <div className="p-2 bg-green-500 text-white rounded-full">
-                    <Check className="h-5 w-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-green-600 ai-scale-in" style={{animationDelay: '0.4s'}}>
-                  {stats.valid}
-                </div>
-                <div className="text-sm text-green-600 dark:text-green-400 font-medium">유효 데이터</div>
-                <div className="text-xs text-green-500 mt-1">
-                  {stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}% 정확도
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="ai-hover-lift">
-            <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200 dark:border-emerald-800">
-              <CardContent className="p-5 text-center">
-                <div className="flex items-center justify-center mb-2 ai-gentle-bounce">
-                  <div className="p-2 bg-emerald-500 text-white rounded-full">
-                    <UserPlus className="h-5 w-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-emerald-600 ai-scale-in" style={{animationDelay: '0.5s'}}>
-                  {stats.existence.newMembers}
-                </div>
-                <div className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">신규 연맹원</div>
-                {existenceCheckStatus.loading && (
-                  <div className="text-xs text-emerald-500 mt-1">
-                    <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
-                    확인중...
-                  </div>
+                {existenceCheckStatus.completed && (
+                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                    <Check className="h-3 w-3 mr-1" />
+                    검증 완료
+                  </Badge>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600 ai-scale-in">{stats.total}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">총 인식</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-emerald-600 ai-scale-in" style={{animationDelay: '0.1s'}}>
+                    {stats.existence.newMembers}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">신규 연맹원</div>
+                  {existenceCheckStatus.loading && (
+                    <Loader2 className="h-3 w-3 animate-spin text-emerald-500 mt-1 mx-auto" />
+                  )}
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-sky-600 ai-scale-in" style={{animationDelay: '0.2s'}}>
+                    {stats.existence.existingMembers}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">기존 연맹원</div>
+                  {existenceCheckStatus.loading && (
+                    <Loader2 className="h-3 w-3 animate-spin text-sky-500 mt-1 mx-auto" />
+                  )}
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600 ai-scale-in" style={{animationDelay: '0.3s'}}>
+                    {stats.invalid + duplicateGroups.length}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {stats.invalid + duplicateGroups.length > 0 ? '검토 필요' : '문제 없음'}
+                  </div>
+                </div>
+              </div>
 
-          <div className="ai-hover-lift">
-            <Card className="bg-gradient-to-br from-sky-50 to-cyan-50 dark:from-sky-950/30 dark:to-cyan-950/30 border-sky-200 dark:border-sky-800">
-              <CardContent className="p-5 text-center">
-                <div className="flex items-center justify-center mb-2 ai-gentle-wiggle">
-                  <div className="p-2 bg-sky-500 text-white rounded-full">
-                    <UserCheck className="h-5 w-5" />
+              {(stats.invalid > 0 || duplicateGroups.length > 0) && (
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      {stats.invalid > 0 && `${stats.invalid}개 오류 데이터`}
+                      {stats.invalid > 0 && duplicateGroups.length > 0 && ', '}
+                      {duplicateGroups.length > 0 && `${duplicateGroups.length}개 중복 그룹`} 
+                      검토가 필요합니다
+                    </span>
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-sky-600 ai-scale-in" style={{animationDelay: '0.6s'}}>
-                  {stats.existence.existingMembers}
-                </div>
-                <div className="text-sm text-sky-600 dark:text-sky-400 font-medium">기존 연맹원</div>
-                {existenceCheckStatus.loading && (
-                  <div className="text-xs text-sky-500 mt-1">
-                    <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
-                    확인중...
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="ai-hover-lift">
-            <Card className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-red-200 dark:border-red-800">
-              <CardContent className="p-5 text-center">
-                <div className="flex items-center justify-center mb-2 ai-gentle-shake">
-                  <div className="p-2 bg-red-500 text-white rounded-full">
-                    <AlertTriangle className="h-5 w-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-red-600 ai-scale-in" style={{animationDelay: '0.7s'}}>
-                  {stats.invalid}
-                </div>
-                <div className="text-sm text-red-600 dark:text-red-400 font-medium">오류 데이터</div>
-                {stats.invalid > 0 && (
-                  <div className="text-xs text-red-500 mt-1">수정 필요</div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="ai-hover-lift">
-            <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-orange-200 dark:border-orange-800">
-              <CardContent className="p-5 text-center">
-                <div className="flex items-center justify-center mb-2">
-                  <div className="p-2 bg-orange-500 text-white rounded-full ai-gentle-wiggle">
-                    <Copy className="h-5 w-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-orange-600 ai-scale-in" style={{animationDelay: '0.8s'}}>
-                  {duplicateGroups.length}
-                </div>
-                <div className="text-sm text-orange-600 dark:text-orange-400 font-medium">중복 그룹</div>
-                {duplicateGroups.length > 0 && (
-                  <div className="text-xs text-orange-500 mt-1 ai-gentle-bounce">처리 필요</div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* 중복 경고 */}
@@ -966,7 +918,10 @@ export function AIResultEditor({
                                     생성일시
                                   </label>
                                   <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                    {new Date(player.existenceStatus.result.existingUser.createdAt).toLocaleString('ko-KR')}
+                                    {player.existenceStatus.result.existingUser.createdAt 
+                                      ? new Date(player.existenceStatus.result.existingUser.createdAt).toLocaleString('ko-KR')
+                                      : '정보 없음'
+                                    }
                                   </div>
                                 </div>
                                 <div>
@@ -974,7 +929,10 @@ export function AIResultEditor({
                                     최종 수정일시
                                   </label>
                                   <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                    {new Date(player.existenceStatus.result.existingUser.lastUpdated).toLocaleString('ko-KR')}
+                                    {player.existenceStatus.result.existingUser.lastUpdated 
+                                      ? new Date(player.existenceStatus.result.existingUser.lastUpdated).toLocaleString('ko-KR')
+                                      : '수정 기록 없음'
+                                    }
                                   </div>
                                 </div>
                               </div>

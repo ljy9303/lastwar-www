@@ -242,11 +242,11 @@ export async function autoUpsertUsers(users: any[]) {
   })
 }
 
-// User existence check
-export async function checkUserExistence(users: Array<{ nickname: string; level: number; power: string }>) {
+// User existence check  
+export async function checkUserExistence(users: Array<{ name: string; level: number; power: number; userGrade?: string }>) {
   return fetchFromAPI('/user/check-existence', {
     method: 'POST',
-    body: JSON.stringify(users)
+    body: JSON.stringify({ members: users })
   })
 }
 

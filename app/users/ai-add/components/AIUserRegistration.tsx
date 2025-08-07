@@ -496,131 +496,338 @@ export function AIUserRegistration() {
     )
   }
 
+  // 헤더 조건부 렌더링 상태
+  const isInitialStep = currentStep === 'grade-selection'
+  const showMinimalHeader = !isInitialStep
+
   return (
     <div className="container mx-auto py-8 space-y-8">
-      {/* 헤더 */}
-      <div 
-        className="flex items-center gap-4"
-      >
-        <Button
-          variant="outline"
-          onClick={() => router.push('/users')}
-          className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          연맹원 관리로 돌아가기
-        </Button>
-        
-        <div className="flex-1">
-          <h1 
-            className="text-3xl font-bold flex items-center gap-3"
+      {/* 조건부 헤더 섹션 - 애니메이션 전환 */}
+      <div className={`space-y-4 transition-all duration-500 ease-in-out ${
+        showMinimalHeader ? 'pb-2' : 'pb-4'
+      }`}>
+        {/* 개선된 브레드크럼 네비게이션 - 항상 표시 */}
+        <nav className="flex items-center text-sm" aria-label="페이지 경로 네비게이션" role="navigation">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/users')}
+            className="h-9 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 rounded-lg -ml-3"
+            aria-label="연맹원 관리 페이지로 돌아가기"
           >
-            <div className="relative">
-              <Bot className="h-8 w-8 text-blue-600" />
-              <div
-                className="absolute -top-1 -right-1"
-              >
-                <Sparkles className="h-4 w-4 text-yellow-500" />
-              </div>
-            </div>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">연맹원 관리</span>
+            <span className="sm:hidden">뒤로</span>
+          </Button>
+          <div className="flex items-center text-muted-foreground/60 ml-2">
+            <span className="hidden sm:inline mx-2">/</span>
+            <span className="sm:hidden mx-2">›</span>
+          </div>
+          <span 
+            className="font-semibold text-foreground text-sm sm:text-base" 
+            aria-current="page"
+          >
             AI 연맹원 등록
-          </h1>
-          <p 
-            className="text-muted-foreground mt-2"
-          >
-            스크린샷 이미지로 간편하게 여러 연맹원을 한 번에 등록하세요. AI가 자동으로 정보를 추출합니다.
-          </p>
-        </div>
-      </div>
+          </span>
+        </nav>
 
-      {/* 진행률 표시 */}
-      <div
-      >
-        <Card className="overflow-hidden">
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-blue-600" />
-                  진행 상황
-                </h3>
-                <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
-                  {Math.round(getStepProgress(currentStep))}% 완료
-                </Badge>
-              </div>
-              
-              <div className="relative">
-                <Progress 
-                  value={getStepProgress(currentStep)} 
-                  className="w-full h-3" 
-                />
-                <div
-                  className="absolute top-0 left-0 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                {Object.entries(stepInfo).map(([step, info], index) => {
-                  const Icon = info.icon
-                  const isActive = currentStep === step
-                  const isCompleted = Object.keys(stepInfo).indexOf(currentStep) > index
+        {/* 메인 헤더 컨텐츠 - 조건부 크기 */}
+        <div className={`transition-all duration-500 ease-in-out ${
+          showMinimalHeader ? 'space-y-2' : 'space-y-6'
+        }`}>
+          {/* 초기 단계: 큰 헤더 */}
+          {!showMinimalHeader && (
+            <div className="space-y-6 animate-in fade-in-0 slide-in-from-top-4 duration-300">
+              {/* 페이지 제목과 아이콘 - 반응형 최적화 */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="relative flex-shrink-0">
+                  {/* AI 아이콘 컨테이너 - 시각적 강조 */}
+                  <div className="relative p-3 sm:p-3 rounded-2xl bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-purple-500/10 ring-1 ring-blue-500/20 shadow-sm">
+                    <Bot className="h-7 w-7 sm:h-8 sm:w-8 text-blue-600" />
+                    {/* 반짝이는 효과 */}
+                    <div className="absolute -top-1 -right-1 animate-pulse">
+                      <div className="p-1 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-sm">
+                        <Sparkles className="h-3 w-3 text-yellow-100" />
+                      </div>
+                    </div>
+                    {/* 글로우 효과 */}
+                    <div className="absolute inset-0 rounded-2xl bg-blue-500/5 animate-pulse" />
+                  </div>
+                </div>
+                
+                <div className="flex-1 min-w-0 w-full sm:w-auto">
+                  {/* 메인 제목 - 반응형 폰트 크기 */}
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground mb-3 sm:mb-4">
+                    <span className="bg-gradient-to-r from-blue-700 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      AI 연맹원 등록
+                    </span>
+                  </h1>
                   
-                  return (
-                    <div
-                      key={step}
-                      className={`
-                        relative p-4 rounded-lg border-2 transition-all duration-300
-                        ${isActive 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-md scale-105' 
-                          : isCompleted
-                          ? 'border-green-300 bg-green-50 dark:bg-green-950/30'
-                          : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
-                        }
-                      `}
-                    >
-                      <div className="flex flex-col items-center text-center space-y-2">
-                        <div className={`
-                          p-2 rounded-full transition-colors
-                          ${isActive 
-                            ? 'bg-blue-500 text-white' 
-                            : isCompleted
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
-                          }
-                        `}>
-                          {isCompleted ? (
-                            <CheckCircle className="h-5 w-5" />
-                          ) : (
-                            <Icon className="h-5 w-5" />
-                          )}
+                  {/* 부제목 - AI 기능 강조 (모바일 최적화) */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-4">
+                    <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-950 dark:to-purple-950 ring-1 ring-blue-200/50 dark:ring-blue-800/50">
+                      <span className="text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300">
+                        🤖 자동화된 AI 분석
+                      </span>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950 ring-1 ring-green-200/50 dark:ring-green-800/50">
+                      <span className="text-xs sm:text-sm font-semibold text-green-700 dark:text-green-300">
+                        ⚡ 대량 등록
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* 설명 텍스트 - 모바일 가독성 최적화 */}
+                  <div className="space-y-3 sm:space-y-4">
+                    <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
+                      <span className="font-semibold text-foreground">스크린샷 하나로</span> 여러 연맹원을 한 번에 등록하세요.
+                    </p>
+                    {/* 기능 설명 - 모바일에서는 수직 배치 */}
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                        <span>AI가 닉네임, 레벨, 전투력을 자동 추출</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                        <span>수동 검증 및 수정 가능</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
+                        <span>실시간 중복 검사</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 빠른 시작 가이드 - 모바일 최적화된 정보 카드 */}
+              <div className="w-full max-w-none sm:max-w-4xl">
+                <Card className="border-blue-200/50 dark:border-blue-800/50 bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-950/20 dark:to-transparent shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <div className="p-2 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/20">
+                          <CheckSquare className="h-4 w-4 text-blue-600" />
                         </div>
-                        <div>
-                          <div className={`text-sm font-medium ${
-                            isActive ? 'text-blue-700 dark:text-blue-300' : 
-                            isCompleted ? 'text-green-700 dark:text-green-300' :
-                            'text-gray-600 dark:text-gray-400'
-                          }`}>
-                            {index + 1}. {info.title}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1 hidden lg:block">
-                            {info.description}
+                      </div>
+                      <div className="space-y-3 flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm sm:text-base text-blue-900 dark:text-blue-100">
+                          💡 시작하기 전에 확인하세요
+                        </h3>
+                        
+                        {/* 모바일에서는 세로 배치, 태블릿 이상에서는 2열 그리드 */}
+                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 sm:gap-y-2">
+                          <li className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
+                            <span className="text-sm text-blue-800/90 dark:text-blue-200/90 leading-relaxed">
+                              연맹원 목록이 <span className="font-medium">선명하게 보이는</span> 스크린샷
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
+                            <span className="text-sm text-blue-800/90 dark:text-blue-200/90 leading-relaxed">
+                              <span className="font-medium">닉네임, 레벨, 전투력</span>이 모두 포함된 화면
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0 mt-2" />
+                            <span className="text-sm text-blue-800/90 dark:text-blue-200/90 leading-relaxed">
+                              <span className="font-medium">PNG, JPG</span> 형식의 이미지 파일
+                            </span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-purple-500 flex-shrink-0 mt-2" />
+                            <span className="text-sm text-blue-800/90 dark:text-blue-200/90 leading-relaxed">
+                              이미지당 <span className="font-medium">최대 50명까지</span> 인식 가능
+                            </span>
+                          </li>
+                        </ul>
+                        
+                        {/* 추가 팁 - 접을 수 있는 섹션 */}
+                        <div className="pt-2 border-t border-blue-200/30 dark:border-blue-800/30">
+                          <div className="text-xs text-blue-700/80 dark:text-blue-300/80 flex items-center gap-2">
+                            <Sparkles className="h-3 w-3 flex-shrink-0" />
+                            <span className="font-medium">팁:</span>
+                            <span>어두운 배경에 밝은 텍스트가 있는 스크린샷이 가장 정확하게 인식됩니다</span>
                           </div>
                         </div>
                       </div>
-                      
-                      {isActive && (
-                        <div
-                          className="absolute inset-0 rounded-lg border-2 border-blue-400"
-                        />
-                      )}
                     </div>
-                  )
-                })}
+                  </CardContent>
+                </Card>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {/* 진행 단계 이후: 축소된 헤더 */}
+          {showMinimalHeader && (
+            <div className="animate-in fade-in-0 slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-4 py-2">
+                {/* 축소된 아이콘 */}
+                <div className="relative flex-shrink-0">
+                  <div className="relative p-2 rounded-xl bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-purple-500/10 ring-1 ring-blue-500/20 shadow-sm">
+                    <Bot className="h-5 w-5 text-blue-600" />
+                    <div className="absolute -top-0.5 -right-0.5">
+                      <div className="p-0.5 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500">
+                        <Sparkles className="h-2 w-2 text-yellow-100" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 축소된 제목 */}
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                    <span className="bg-gradient-to-r from-blue-700 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      AI 연맹원 등록
+                    </span>
+                  </h1>
+                  
+                  {/* 현재 단계 표시 */}
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-1.5">
+                      {stepInfo[currentStep] && (() => {
+                        const StepIcon = stepInfo[currentStep].icon
+                        const stepColorClass = stepInfo[currentStep].color
+                        
+                        // 배경색 매핑
+                        const getBackgroundColor = (colorClass: string) => {
+                          const colorMap = {
+                            'text-blue-600': 'bg-blue-100 dark:bg-blue-900',
+                            'text-green-600': 'bg-green-100 dark:bg-green-900',
+                            'text-purple-600': 'bg-purple-100 dark:bg-purple-900',
+                            'text-orange-600': 'bg-orange-100 dark:bg-orange-900',
+                            'text-emerald-600': 'bg-emerald-100 dark:bg-emerald-900',
+                          }
+                          return colorMap[colorClass as keyof typeof colorMap] || 'bg-gray-100 dark:bg-gray-900'
+                        }
+                        
+                        return (
+                          <>
+                            <div className={`p-1 rounded-md ${getBackgroundColor(stepColorClass)}`}>
+                              <StepIcon className={`h-3 w-3 ${stepColorClass}`} />
+                            </div>
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {stepInfo[currentStep].title}
+                            </span>
+                          </>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 축소된 진행률 표시 */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="font-medium">진행률</span>
+                    <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 text-xs px-2 py-0.5">
+                      {Math.round(getStepProgress(currentStep))}%
+                    </Badge>
+                  </div>
+                  <div className="w-16 sm:w-20">
+                    <Progress 
+                      value={getStepProgress(currentStep)} 
+                      className="w-full h-2" 
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* 진행률 표시 - 초기 단계에서만 상세 표시 */}
+      {!showMinimalHeader && (
+        <div className="animate-in fade-in-0 slide-in-from-top-4 duration-300">
+          <Card className="overflow-hidden">
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-blue-600" />
+                    진행 상황
+                  </h3>
+                  <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+                    {Math.round(getStepProgress(currentStep))}% 완료
+                  </Badge>
+                </div>
+                
+                <div className="relative">
+                  <Progress 
+                    value={getStepProgress(currentStep)} 
+                    className="w-full h-3" 
+                  />
+                  <div
+                    className="absolute top-0 left-0 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  {Object.entries(stepInfo).map(([step, info], index) => {
+                    const Icon = info.icon
+                    const isActive = currentStep === step
+                    const isCompleted = Object.keys(stepInfo).indexOf(currentStep) > index
+                    
+                    return (
+                      <div
+                        key={step}
+                        className={`
+                          relative p-4 rounded-lg border-2 transition-all duration-300
+                          ${isActive 
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-md scale-105' 
+                            : isCompleted
+                            ? 'border-green-300 bg-green-50 dark:bg-green-950/30'
+                            : 'border-gray-200 dark:border-gray-800 hover:border-gray-300'
+                          }
+                        `}
+                      >
+                        <div className="flex flex-col items-center text-center space-y-2">
+                          <div className={`
+                            p-2 rounded-full transition-colors
+                            ${isActive 
+                              ? 'bg-blue-500 text-white' 
+                              : isCompleted
+                              ? 'bg-green-500 text-white'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                            }
+                          `}>
+                            {isCompleted ? (
+                              <CheckCircle className="h-5 w-5" />
+                            ) : (
+                              <Icon className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div>
+                            <div className={`text-sm font-medium ${
+                              isActive ? 'text-blue-700 dark:text-blue-300' : 
+                              isCompleted ? 'text-green-700 dark:text-green-300' :
+                              'text-gray-600 dark:text-gray-400'
+                            }`}>
+                              {index + 1}. {info.title}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1 hidden lg:block">
+                              {info.description}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {isActive && (
+                          <div
+                            className="absolute inset-0 rounded-lg border-2 border-blue-400"
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* AI 처리 진행 상태 */}
       <>

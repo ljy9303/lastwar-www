@@ -155,7 +155,7 @@ export function UserGradeSelector({ selectedGrade, onGradeSelect, onNext }: User
           </CardTitle>
           <div className="space-y-2 mt-3">
             <p className="text-muted-foreground">
-              새로 등록할 유저들의 연맹 등급을 선택해주세요. 각 등급별 현황과 역할을 확인하세요.
+              새로 등록할 연맹원들의 연맹 등급을 선택해주세요. 각 등급별 현황과 역할을 확인하세요.
             </p>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
