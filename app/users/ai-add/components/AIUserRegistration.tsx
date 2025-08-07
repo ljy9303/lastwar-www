@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { motion, AnimatePresence } from "framer-motion"
 import { 
   CheckCircle, 
   AlertTriangle,
@@ -500,10 +499,7 @@ export function AIUserRegistration() {
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* 헤더 */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div 
         className="flex items-center gap-4"
       >
         <Button
@@ -516,40 +512,29 @@ export function AIUserRegistration() {
         </Button>
         
         <div className="flex-1">
-          <motion.h1 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+          <h1 
             className="text-3xl font-bold flex items-center gap-3"
           >
             <div className="relative">
               <Bot className="h-8 w-8 text-blue-600" />
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              <div
                 className="absolute -top-1 -right-1"
               >
                 <Sparkles className="h-4 w-4 text-yellow-500" />
-              </motion.div>
+              </div>
             </div>
             AI 유저 등록
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
+          </h1>
+          <p 
             className="text-muted-foreground mt-2"
           >
             스크린샷 이미지로 간편하게 여러 유저를 한 번에 등록하세요. AI가 자동으로 정보를 추출합니다.
-          </motion.p>
+          </p>
         </div>
-      </motion.div>
+      </div>
 
       {/* 진행률 표시 */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, duration: 0.5 }}
+      <div
       >
         <Card className="overflow-hidden">
           <CardContent className="p-6">
@@ -569,11 +554,8 @@ export function AIUserRegistration() {
                   value={getStepProgress(currentStep)} 
                   className="w-full h-3" 
                 />
-                <motion.div
+                <div
                   className="absolute top-0 left-0 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${getStepProgress(currentStep)}%` }}
-                  transition={{ duration: 1, ease: "easeInOut" }}
                 />
               </div>
               
@@ -584,11 +566,8 @@ export function AIUserRegistration() {
                   const isCompleted = Object.keys(stepInfo).indexOf(currentStep) > index
                   
                   return (
-                    <motion.div
+                    <div
                       key={step}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.8 + index * 0.1, duration: 0.3 }}
                       className={`
                         relative p-4 rounded-lg border-2 transition-all duration-300
                         ${isActive 
@@ -630,39 +609,31 @@ export function AIUserRegistration() {
                       </div>
                       
                       {isActive && (
-                        <motion.div
+                        <div
                           className="absolute inset-0 rounded-lg border-2 border-blue-400"
-                          animate={{ opacity: [0.5, 1, 0.5] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                         />
                       )}
-                    </motion.div>
+                    </div>
                   )
                 })}
               </div>
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* AI 처리 진행 상태 */}
-      <AnimatePresence>
+      <>
         {currentStep === 'ai-processing' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
+          <div
           >
             <Card className="overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/50 dark:to-blue-950/50">
                 <CardTitle className="text-2xl font-bold flex items-center gap-3">
                   <div className="relative">
                     <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
-                    <motion.div
+                    <div
                       className="absolute inset-0 rounded-full border-2 border-purple-300"
-                      animate={{ rotate: -360, scale: [1, 1.2, 1] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                     />
                   </div>
                   <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
@@ -684,19 +655,14 @@ export function AIUserRegistration() {
                       value={(aiProgress.processed / aiProgress.total) * 100} 
                       className="w-full h-4" 
                     />
-                    <motion.div
+                    <div
                       className="absolute top-0 left-0 h-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(aiProgress.processed / aiProgress.total) * 100}%` }}
-                      transition={{ duration: 0.5, ease: "easeInOut" }}
                     />
                   </div>
                 </div>
                 
                 {aiProgress.currentImage && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                  <div 
                     className="p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-purple-200 dark:border-purple-800"
                   >
                     <div className="flex items-center gap-3">
@@ -708,17 +674,15 @@ export function AIUserRegistration() {
                         <div className="text-lg font-semibold">{aiProgress.currentImage}</div>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
 
                 <Alert className="border-blue-200 dark:border-blue-800">
                   <div className="flex items-center gap-2">
-                    <motion.div
-                      animate={{ rotate: [0, 360] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    <div
                     >
                       <Bot className="h-4 w-4 text-blue-600" />
-                    </motion.div>
+                    </div>
                     <Sparkles className="h-4 w-4 text-blue-600" />
                   </div>
                   <AlertDescription className="mt-2">
@@ -736,31 +700,25 @@ export function AIUserRegistration() {
                 </Alert>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
 
       {/* 최종 등록 진행 상태 */}
-      <AnimatePresence>
+      <>
         {currentStep === 'final-registration' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
+          <div
           >
             <Card className="overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/50 dark:to-green-950/50">
                 <CardTitle className="text-2xl font-bold flex items-center gap-3">
                   <div className="relative">
                     <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-                    <motion.div
+                    <div
                       className="absolute inset-0"
-                      animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                     >
                       <UserPlus className="h-6 w-6 text-emerald-400" />
-                    </motion.div>
+                    </div>
                   </div>
                   <span className="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
                     유저 등록 중...
@@ -768,19 +726,14 @@ export function AIUserRegistration() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
+                <div
                 >
                   <Alert className="border-emerald-200 dark:border-emerald-800">
                     <div className="flex items-center gap-2">
-                      <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                      <div
                       >
                         <CheckCircle className="h-4 w-4 text-emerald-600" />
-                      </motion.div>
+                      </div>
                       <UserPlus className="h-4 w-4 text-emerald-600" />
                     </div>
                     <AlertDescription className="mt-2">
@@ -794,38 +747,30 @@ export function AIUserRegistration() {
                       </div>
                     </AlertDescription>
                   </Alert>
-                </motion.div>
+                </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
 
       {/* 단계별 컴포넌트 렌더링 */}
-      <AnimatePresence mode="wait">
+      <div>
         {currentStep === 'grade-selection' && (
-          <motion.div
+          <div
             key="grade-selection"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.3 }}
           >
             <UserGradeSelector
               selectedGrade={selectedGrade}
               onGradeSelect={setSelectedGrade}
               onNext={goToNextStep}
             />
-          </motion.div>
+          </div>
         )}
 
         {currentStep === 'image-upload' && (
-          <motion.div
+          <div
             key="image-upload"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.3 }}
           >
             <ImageUploadZone
               images={images}
@@ -835,16 +780,12 @@ export function AIUserRegistration() {
               onBack={goToPreviousStep}
               isProcessing={aiProgress.status === 'processing'}
             />
-          </motion.div>
+          </div>
         )}
 
         {currentStep === 'validation-editing' && (
-          <motion.div
+          <div
             key="validation-editing"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.3 }}
           >
             <AIResultEditor
               players={extractedPlayers}
@@ -854,9 +795,9 @@ export function AIUserRegistration() {
               onBack={goToPreviousStep}
               selectedGrade={selectedGrade!}
             />
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   )
 }

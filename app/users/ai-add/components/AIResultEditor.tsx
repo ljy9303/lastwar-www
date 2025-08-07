@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   Table,
   TableBody,
@@ -232,19 +231,11 @@ export function AIResultEditor({
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 dark:from-orange-950/30 dark:via-amber-950/30 dark:to-yellow-950/30">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
+        <div className="ai-fade-in">
           <CardTitle className="text-2xl font-bold flex items-center gap-3">
             <div className="relative">
               <CheckSquare className="h-8 w-8 text-orange-600" />
-              <motion.div
-                className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full"
-                animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full ai-pulse-glow" />
             </div>
             <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
               4단계: AI 결과 검증 및 편집
@@ -269,304 +260,236 @@ export function AIResultEditor({
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-8 p-6">
         {/* 통계 대시보드 */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
-        >
-          <motion.div whileHover={{ scale: 1.05, y: -2 }}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 ai-slide-up">
+          <div className="ai-hover-lift">
             <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
               <CardContent className="p-5 text-center">
-                <motion.div 
-                  className="flex items-center justify-center mb-2"
-                  animate={{ rotate: [0, 5, -5, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
+                <div className="flex items-center justify-center mb-2 ai-gentle-wiggle">
                   <div className="p-2 bg-blue-500 text-white rounded-full">
                     <Users className="h-5 w-5" />
                   </div>
-                </motion.div>
-                <motion.div 
-                  className="text-3xl font-bold text-blue-600"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-                >
+                </div>
+                <div className="text-3xl font-bold text-blue-600 ai-scale-in" style={{animationDelay: '0.3s'}}>
                   {stats.total}
-                </motion.div>
+                </div>
                 <div className="text-sm text-blue-600 dark:text-blue-400 font-medium">총 인식 수</div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
           
-          <motion.div whileHover={{ scale: 1.05, y: -2 }}>
+          <div className="ai-hover-lift">
             <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
               <CardContent className="p-5 text-center">
-                <motion.div 
-                  className="flex items-center justify-center mb-2"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                >
+                <div className="flex items-center justify-center mb-2 ai-gentle-bounce">
                   <div className="p-2 bg-green-500 text-white rounded-full">
                     <Check className="h-5 w-5" />
                   </div>
-                </motion.div>
-                <motion.div 
-                  className="text-3xl font-bold text-green-600"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-                >
+                </div>
+                <div className="text-3xl font-bold text-green-600 ai-scale-in" style={{animationDelay: '0.4s'}}>
                   {stats.valid}
-                </motion.div>
+                </div>
                 <div className="text-sm text-green-600 dark:text-green-400 font-medium">유효 데이터</div>
                 <div className="text-xs text-green-500 mt-1">
                   {stats.total > 0 ? Math.round((stats.valid / stats.total) * 100) : 0}% 정확도
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
           
-          <motion.div whileHover={{ scale: 1.05, y: -2 }}>
+          <div className="ai-hover-lift">
             <Card className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-red-200 dark:border-red-800">
               <CardContent className="p-5 text-center">
-                <motion.div 
-                  className="flex items-center justify-center mb-2"
-                  animate={{ rotate: [0, -10, 10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
+                <div className="flex items-center justify-center mb-2 ai-gentle-shake">
                   <div className="p-2 bg-red-500 text-white rounded-full">
                     <AlertTriangle className="h-5 w-5" />
                   </div>
-                </motion.div>
-                <motion.div 
-                  className="text-3xl font-bold text-red-600"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
-                >
+                </div>
+                <div className="text-3xl font-bold text-red-600 ai-scale-in" style={{animationDelay: '0.5s'}}>
                   {stats.invalid}
-                </motion.div>
+                </div>
                 <div className="text-sm text-red-600 dark:text-red-400 font-medium">오류 데이터</div>
                 {stats.invalid > 0 && (
                   <div className="text-xs text-red-500 mt-1">수정 필요</div>
                 )}
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
           
-          <motion.div whileHover={{ scale: 1.05, y: -2 }}>
+          <div className="ai-hover-lift">
             <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-orange-200 dark:border-orange-800">
               <CardContent className="p-5 text-center">
-                <motion.div 
-                  className="flex items-center justify-center mb-2"
-                  animate={{ x: [-2, 2, -2] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <div className="p-2 bg-orange-500 text-white rounded-full">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-orange-500 text-white rounded-full ai-gentle-wiggle">
                     <Copy className="h-5 w-5" />
                   </div>
-                </motion.div>
-                <motion.div 
-                  className="text-3xl font-bold text-orange-600"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
-                >
+                </div>
+                <div className="text-3xl font-bold text-orange-600 ai-scale-in" style={{animationDelay: '0.6s'}}>
                   {duplicateGroups.length}
-                </motion.div>
+                </div>
                 <div className="text-sm text-orange-600 dark:text-orange-400 font-medium">중복 그룹</div>
                 {duplicateGroups.length > 0 && (
-                  <div className="text-xs text-orange-500 mt-1">처리 필요</div>
+                  <div className="text-xs text-orange-500 mt-1 ai-gentle-bounce">처리 필요</div>
                 )}
               </CardContent>
             </Card>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* 중복 경고 */}
-        <AnimatePresence>
-          {duplicateGroups.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Alert className="border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 dark:from-orange-950/20 dark:via-amber-950/20 dark:to-yellow-950/20">
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                </motion.div>
-                <AlertDescription>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <motion.div
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        <Copy className="h-4 w-4 text-orange-600" />
-                      </motion.div>
+        {duplicateGroups.length > 0 && (
+          <div className="ai-slide-up">
+            <Alert className="border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 dark:from-orange-950/20 dark:via-amber-950/20 dark:to-yellow-950/20">
+              <div className="ai-gentle-wiggle inline-block">
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
+              </div>
+              <AlertDescription>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="ai-pulse-glow inline-block">
+                      <Copy className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div>
                       <p className="font-semibold text-orange-800 dark:text-orange-200">
                         <strong>{duplicateGroups.length}개의 중복된 닉네임</strong>이 발견되었습니다
                       </p>
+                      <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                        각 그룹별로 처리 방법을 선택해주세요
+                      </p>
                     </div>
-                    
-                    <div className="space-y-3">
-                      {duplicateGroups.map((group, index) => (
-                        <motion.div 
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-800 rounded-lg shadow-sm"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-                              <Users className="h-4 w-4 text-orange-600" />
-                            </div>
-                            <div>
-                              <span className="font-bold text-foreground">{group.nickname}</span>
-                              <div className="text-sm text-muted-foreground">
-                                {group.players.length}개 중복 항목
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-950/30"
-                                onClick={() => handleDuplicateResolution(group, 'keep-first')}
-                              >
-                                <Check className="h-3 w-3 mr-1" />
-                                첫 번째 유지
-                              </Button>
-                            </motion.div>
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/30 text-red-600 hover:text-red-700"
-                                onClick={() => handleDuplicateResolution(group, 'remove-all')}
-                              >
-                                <Trash2 className="h-3 w-3 mr-1" />
-                                모두 삭제
-                              </Button>
-                            </motion.div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* 이미지 미리보기 */}
-        <AnimatePresence>
-          {selectedImageIndex !== null && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="overflow-hidden border-2 border-blue-200 dark:border-blue-800">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500 text-white rounded-full">
-                        <ImageIcon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold">원본 이미지 미리보기</h3>
-                        <p className="text-sm text-muted-foreground">
-                          이미지 #{selectedImageIndex + 1} - AI 분석 결과 확인
-                        </p>
-                      </div>
-                    </div>
-                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/30"
-                        onClick={() => setSelectedImageIndex(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </motion.div>
                   </div>
                   
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="relative rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700"
-                  >
-                    <img
-                      src={images[selectedImageIndex]?.preview}
-                      alt={`이미지 ${selectedImageIndex + 1}`}
-                      className="w-full h-auto max-h-[70vh] object-contain bg-gray-50 dark:bg-gray-900"
-                    />
-                    
-                    {/* 이미지 정보 오버레이 */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 }}
-                      className="absolute bottom-0 left-0 right-0 bg-black/80 text-white p-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">
-                            {images[selectedImageIndex]?.file.name}
+                  <div className="space-y-3">
+                    {duplicateGroups.map((group, index) => (
+                      <div 
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-800 rounded-lg shadow-sm ai-fade-in"
+                        style={{animationDelay: `${index * 0.1}s`}}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+                            <Users className="h-4 w-4 text-orange-600" />
                           </div>
-                          <div className="text-sm text-gray-300">
-                            크기: {images[selectedImageIndex]?.file.size ? 
-                              (images[selectedImageIndex].file.size / 1024 / 1024).toFixed(2) + 'MB' : 'N/A'}
+                          <div>
+                            <span className="font-bold text-foreground">{group.nickname}</span>
+                            <div className="text-sm text-muted-foreground">
+                              {group.players.length}개 중복 항목
+                            </div>
                           </div>
                         </div>
                         
-                        {images[selectedImageIndex]?.players.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            <span>{images[selectedImageIndex].players.length}명 인식</span>
+                        <div className="flex gap-2">
+                          <div className="ai-hover-scale">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-950/30"
+                              onClick={() => handleDuplicateResolution(group, 'keep-first')}
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              첫 번째만 남기기
+                            </Button>
                           </div>
-                        )}
+                          <div className="ai-hover-scale">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/30 text-red-600 hover:text-red-700"
+                              onClick={() => handleDuplicateResolution(group, 'remove-all')}
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              전부 삭제
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    </motion.div>
-                  </motion.div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                    ))}
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* 이미지 미리보기 */}
+        {selectedImageIndex !== null && (
+          <div className="ai-fade-in">
+            <Card className="overflow-hidden border-2 border-blue-200 dark:border-blue-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500 text-white rounded-full">
+                      <ImageIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">원본 이미지 미리보기</h3>
+                      <p className="text-sm text-muted-foreground">
+                        이미지 #{selectedImageIndex + 1} - AI 분석 결과 확인
+                      </p>
+                    </div>
+                  </div>
+                  <div className="ai-hover-scale">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/30"
+                      onClick={() => setSelectedImageIndex(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="relative rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 ai-fade-in">
+                  <img
+                    src={images[selectedImageIndex]?.preview}
+                    alt={`이미지 ${selectedImageIndex + 1}`}
+                    className="w-full h-auto max-h-[70vh] object-contain bg-gray-50 dark:bg-gray-900"
+                  />
+                  
+                  {/* 이미지 정보 오버레이 */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-white p-4 ai-slide-up" style={{animationDelay: '0.5s'}}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">
+                          {images[selectedImageIndex]?.file.name}
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          크기: {images[selectedImageIndex]?.file.size ? 
+                            (images[selectedImageIndex].file.size / 1024 / 1024).toFixed(2) + 'MB' : 'N/A'}
+                        </div>
+                      </div>
+                      
+                      {images[selectedImageIndex]?.players.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          <span>{images[selectedImageIndex].players.length}명 인식</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* 플레이어 목록 테이블 */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">인식된 유저 목록</h3>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={resetAll}>
+              <Button size="sm" variant="outline" onClick={resetAll} className="ai-hover-scale">
                 <RotateCcw className="h-4 w-4 mr-1" />
                 초기화
               </Button>
             </div>
           </div>
           
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-hidden ai-slide-up">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -600,8 +523,12 @@ export function AIResultEditor({
                           />
                         ) : (
                           <div className="flex items-center gap-2">
-                            <span className={player.isDuplicate ? "text-orange-600" : ""}>{displayNickname}</span>
-                            {player.isDuplicate && <Copy className="h-3 w-3 text-orange-500" />}
+                            <span className={player.isDuplicate ? "text-orange-600 font-medium" : ""}>{displayNickname}</span>
+                            {player.isDuplicate && (
+                              <div className="ai-gentle-wiggle inline-block">
+                                <Copy className="h-3 w-3 text-orange-500" />
+                              </div>
+                            )}
                           </div>
                         )}
                       </TableCell>
@@ -640,6 +567,7 @@ export function AIResultEditor({
                           variant="ghost"
                           onClick={() => toggleImagePreview(player.imageIndex)}
                           title="이미지 보기"
+                          className="ai-hover-scale"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -669,6 +597,7 @@ export function AIResultEditor({
                             variant="ghost"
                             onClick={() => toggleEdit(index)}
                             title="편집"
+                            className="ai-hover-scale"
                           >
                             <Edit3 className="h-3 w-3" />
                           </Button>
@@ -677,6 +606,7 @@ export function AIResultEditor({
                             variant="ghost"
                             onClick={() => duplicatePlayer(index)}
                             title="복제"
+                            className="ai-hover-scale"
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -685,7 +615,7 @@ export function AIResultEditor({
                             variant="ghost"
                             onClick={() => removePlayer(index)}
                             title="삭제"
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 ai-hover-scale"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -700,39 +630,27 @@ export function AIResultEditor({
         </div>
 
         {/* 네비게이션 버튼 */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.3 }}
-          className="flex items-center justify-between pt-8 border-t border-gray-200 dark:border-gray-700"
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <div className="flex items-center justify-between pt-8 border-t border-gray-200 dark:border-gray-700 ai-fade-in" style={{animationDelay: '0.8s'}}>
+          <div className="ai-hover-scale">
             <Button 
               onClick={onBack} 
               variant="outline" 
               size="lg"
               className="flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              <motion.div
-                animate={{ x: [-2, 0] }}
-                transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-              >
+              <div className="ai-gentle-sway">
                 ←
-              </motion.div>
+              </div>
               이전 단계
             </Button>
-          </motion.div>
+          </div>
           
           <div className="flex items-center gap-4">
             {/* 통계 표시 */}
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3 text-sm"
-            >
+            <div className="flex items-center gap-3 text-sm ai-fade-in" style={{animationDelay: '0.9s'}}>
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${
-                  stats.valid > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
+                  stats.valid > 0 ? 'bg-green-500 ai-pulse-glow' : 'bg-gray-300'
                 }`}></div>
                 <span className="text-muted-foreground">
                   유효한 데이터: <span className="font-bold text-green-600">{stats.valid}</span>/{stats.total}개
@@ -745,10 +663,10 @@ export function AIResultEditor({
                   <span className="text-sm">{stats.invalid}개 수정 필요</span>
                 </div>
               )}
-            </motion.div>
+            </div>
             
             {/* 등록 버튼 */}
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <div className="ai-hover-scale">
               <Button 
                 onClick={onNext} 
                 disabled={stats.valid === 0}
@@ -765,19 +683,13 @@ export function AIResultEditor({
                 <div className="flex items-center gap-2">
                   {stats.valid > 0 ? (
                     <>
-                      <motion.div
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      >
+                      <div className="ai-pulse-glow">
                         <CheckSquare className="h-4 w-4" />
-                      </motion.div>
+                      </div>
                       유저 등록
-                      <motion.div
-                        animate={{ x: [0, 3, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      >
+                      <div className="ai-gentle-sway">
                         →
-                      </motion.div>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -787,9 +699,9 @@ export function AIResultEditor({
                   )}
                 </div>
               </Button>
-            </motion.div>
+            </div>
           </div>
-        </motion.div>
+        </div>
       </CardContent>
     </Card>
   )

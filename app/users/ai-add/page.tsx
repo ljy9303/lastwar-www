@@ -3,7 +3,7 @@ import { Metadata } from "next"
 import { AIUserRegistration } from "./components/AIUserRegistration"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { motion } from "framer-motion"
+// CSS 애니메이션으로 대체
 import { Bot, Sparkles, Shield, Upload, Search, CheckSquare, UserPlus } from "lucide-react"
 
 export const metadata: Metadata = {
@@ -23,51 +23,38 @@ function AIUserRegistrationLoading() {
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* 헤더 로딩 애니메이션 */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <div 
         className="flex items-center gap-4"
       >
         <Skeleton className="h-10 w-32" />
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-3">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            >
+            <div className="animate-spin">
               <Bot className="h-8 w-8 text-blue-600" />
-            </motion.div>
-            <motion.div
-              animate={{ scale: [1, 1.05, 1], opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            >
+            </div>
+            <div className="animate-pulse">
               <Sparkles className="h-6 w-6 text-yellow-500" />
-            </motion.div>
+            </div>
             <Skeleton className="h-8 w-48" />
           </div>
           <Skeleton className="h-4 w-96" />
         </div>
-      </motion.div>
+      </div>
 
       {/* 진행률 스켈레톤 - 더 상세한 애니메이션 */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-      >
+      <div>
         <Card className="overflow-hidden bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
           <CardContent className="p-6">
             <div className="space-y-6">
               {/* 헤더 */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <motion.div
+                  <div
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                   >
                     <Sparkles className="h-5 w-5 text-blue-600" />
-                  </motion.div>
+                  </div>
                   <Skeleton className="h-6 w-32" />
                 </div>
                 <Skeleton className="h-6 w-20" />
@@ -76,7 +63,7 @@ function AIUserRegistrationLoading() {
               {/* 진행률 바 */}
               <div className="relative">
                 <Skeleton className="h-3 w-full" />
-                <motion.div
+                <div
                   className="absolute top-0 left-0 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-30"
                   animate={{ width: ['0%', '20%', '0%'] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -88,7 +75,7 @@ function AIUserRegistrationLoading() {
                 {stepInfo.map((step, index) => {
                   const Icon = step.icon
                   return (
-                    <motion.div
+                    <div
                       key={index}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -97,7 +84,7 @@ function AIUserRegistrationLoading() {
                     >
                       <div className="p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50">
                         <div className="flex flex-col items-center space-y-2">
-                          <motion.div
+                          <div
                             animate={{ 
                               y: [0, -2, 0],
                               rotate: [0, 2, -2, 0]
@@ -111,14 +98,14 @@ function AIUserRegistrationLoading() {
                             className="p-2 rounded-full bg-gray-100 dark:bg-gray-800"
                           >
                             <Icon className={`h-5 w-5 ${step.color}`} />
-                          </motion.div>
+                          </div>
                           <Skeleton className="h-4 w-16" />
                           <Skeleton className="h-3 w-20 hidden lg:block" />
                         </div>
                       </div>
                       
                       {/* 지연 로딩 훨르링 */}
-                      <motion.div
+                      <div
                         className="absolute inset-0 rounded-lg border-2 border-blue-300 dark:border-blue-700 opacity-0"
                         animate={{ opacity: [0, 0.5, 0] }}
                         transition={{ 
@@ -128,17 +115,17 @@ function AIUserRegistrationLoading() {
                           ease: "easeInOut" 
                         }}
                       />
-                    </motion.div>
+                    </div>
                   )
                 })}
               </div>
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* 메인 컨텐츠 로딩 - 더 생생한 애니메이션 */}
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.5 }}
@@ -149,13 +136,13 @@ function AIUserRegistrationLoading() {
               {/* 제목 영역 */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <motion.div
+                  <div
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                     className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full"
                   >
                     <Shield className="h-6 w-6 text-blue-600" />
-                  </motion.div>
+                  </div>
                   <Skeleton className="h-8 w-56" />
                 </div>
                 <div className="space-y-2 ml-12">
@@ -167,7 +154,7 @@ function AIUserRegistrationLoading() {
               {/* 컨텐칠 그리드 */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <motion.div 
+                  <div 
                     key={i}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -192,7 +179,7 @@ function AIUserRegistrationLoading() {
                     </div>
                     
                     {/* 반짝이는 테두리 */}
-                    <motion.div
+                    <div
                       className="absolute inset-0 rounded-xl border-2 border-blue-200 dark:border-blue-800 opacity-0"
                       animate={{ opacity: [0, 0.3, 0], scale: [0.98, 1.02, 0.98] }}
                       transition={{ 
@@ -202,7 +189,7 @@ function AIUserRegistrationLoading() {
                         ease: "easeInOut" 
                       }}
                     />
-                  </motion.div>
+                  </div>
                 ))}
               </div>
               
@@ -217,31 +204,31 @@ function AIUserRegistrationLoading() {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
       
       {/* 로딩 지시자 */}
-      <motion.div
+      <div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 0.5 }}
         className="text-center py-8"
       >
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
-          <motion.div
+          <div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           >
             <Bot className="h-5 w-5 text-blue-600" />
-          </motion.div>
+          </div>
           <span className="text-sm font-medium">AI 유저 등록 시스템 초기화 중...</span>
-          <motion.div
+          <div
             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           >
             <Sparkles className="h-4 w-4 text-yellow-500" />
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }

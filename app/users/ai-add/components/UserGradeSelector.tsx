@@ -14,7 +14,6 @@ const gradeConfig = {
   // R5 등급은 AI 유저 등록에서 제외 (관리자 전용 등급)
   R4: {
     label: "R4", 
-    name: "고위 지휘관",
     icon: Star,
     color: "bg-gradient-to-r from-blue-500 to-indigo-600",
     textColor: "text-blue-700 dark:text-blue-300",
@@ -24,7 +23,6 @@ const gradeConfig = {
   },
   R3: {
     label: "R3",
-    name: "전투 지휘관",
     icon: Shield,
     color: "bg-gradient-to-r from-green-500 to-emerald-600", 
     textColor: "text-green-700 dark:text-green-300",
@@ -34,7 +32,6 @@ const gradeConfig = {
   },
   R2: {
     label: "R2",
-    name: "소대장",
     icon: Users,
     color: "bg-gradient-to-r from-yellow-500 to-orange-500",
     textColor: "text-yellow-700 dark:text-yellow-300", 
@@ -44,7 +41,6 @@ const gradeConfig = {
   },
   R1: {
     label: "R1",
-    name: "일반 전투원",
     icon: UserIcon,
     color: "bg-gradient-to-r from-gray-500 to-slate-600",
     textColor: "text-gray-700 dark:text-gray-300",
@@ -88,15 +84,6 @@ export function UserGradeSelector({ selectedGrade, onGradeSelect, onNext }: User
 
   const handleGradeSelect = (grade: string) => {
     if (!statistics) return
-    
-    const gradeInfo = gradeConfig[grade as keyof typeof gradeConfig]
-    
-    // 간단한 선택 피드백
-    toast({
-      title: "등급 선택됨",
-      description: `${gradeInfo.name} (${grade}) 등급이 선택되었습니다.`,
-      duration: 2000,
-    })
     
     onGradeSelect(grade)
   }
@@ -219,12 +206,6 @@ export function UserGradeSelector({ selectedGrade, onGradeSelect, onNext }: User
                   </div>
                 </div>
                 
-                {/* 등급명 */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold text-foreground">
-                    {config.name}
-                  </h3>
-                </div>
 
                 {/* 현재 인원 수 */}
                 <div className="text-center">
@@ -257,7 +238,7 @@ export function UserGradeSelector({ selectedGrade, onGradeSelect, onNext }: User
                     <h4
                       className="text-lg font-bold text-green-800 dark:text-green-200"
                     >
-                      {gradeConfig[selectedGrade as keyof typeof gradeConfig].name} ({gradeConfig[selectedGrade as keyof typeof gradeConfig].label}) 선택됨
+                      {gradeConfig[selectedGrade as keyof typeof gradeConfig].label} 등급 선택됨
                     </h4>
                     <p
                       className="text-sm text-green-600 dark:text-green-400"
