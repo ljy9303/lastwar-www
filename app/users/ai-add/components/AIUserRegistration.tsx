@@ -521,7 +521,7 @@ export function AIUserRegistration() {
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* 조건부 헤더 섹션 - 애니메이션 전환 */}
-      <div className={`space-y-4 transition-all duration-500 ease-in-out ${
+      <div className={`space-y-4 transition-all duration-200 ease-in-out ${
         showMinimalHeader ? 'pb-2' : 'pb-4'
       }`}>
         {/* 개선된 브레드크럼 네비게이션 - 항상 표시 */}
@@ -550,7 +550,7 @@ export function AIUserRegistration() {
         </nav>
 
         {/* 메인 헤더 컨텐츠 - 조건부 크기 */}
-        <div className={`transition-all duration-500 ease-in-out ${
+        <div className={`transition-all duration-200 ease-in-out ${
           showMinimalHeader ? 'space-y-2' : 'space-y-6'
         }`}>
           {/* 초기 단계: 큰 헤더 */}
