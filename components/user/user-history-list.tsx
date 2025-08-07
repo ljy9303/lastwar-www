@@ -71,7 +71,7 @@ export function UserHistoryList() {
           <TableHeader>
             <TableRow>
               <TableHead className="hidden md:table-cell">날짜</TableHead>
-              <TableHead>유저</TableHead>
+              <TableHead>연맹원</TableHead>
               <TableHead>변경 내역</TableHead>
             </TableRow>
           </TableHeader>

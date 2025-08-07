@@ -65,7 +65,7 @@ export interface GradeSlotInfo {
   percentage: number
 }
 
-// AI 유저 등록 단계
+// AI 연맹원 등록 단계
 export type RegistrationStep = 
   | 'grade-selection'
   | 'image-upload'

@@ -37,7 +37,7 @@ export default function UsersPage() {
   const [isImportExplanationOpen, setIsImportExplanationOpen] = useState(false)
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false)
 
-  // 유저 목록 로드
+  // 연맹원 목록 로드
   const loadUsers = async (params: UserSearchParams = {}) => {
     setIsLoading(true)
     try {
@@ -45,10 +45,10 @@ export default function UsersPage() {
       const data = await fetchFromAPI(`/user${queryString}`)
       setUsers(data)
     } catch (error) {
-      console.error("유저 목록 로드 실패:", error)
+      console.error("연맹원 목록 로드 실패:", error)
       toast({
         title: "오류 발생",
-        description: "유저 목록을 불러오는 중 오류가 발생했습니다.",
+        description: "연맹원 목록을 불러오는 중 오류가 발생했습니다.",
         variant: "destructive"
       })
     } finally {
@@ -67,19 +67,19 @@ export default function UsersPage() {
     loadUsers(params)
   }
 
-  // 유저 추가 성공 처리
+  // 연맹원 추가 성공 처리
   const handleAddSuccess = () => {
     setIsAddDialogOpen(false)
     loadUsers(searchParams)
   }
 
-  // 유저 수정 다이얼로그 열기
+  // 연맹원 수정 다이얼로그 열기
   const handleEdit = (user: User) => {
     setCurrentUser(user)
     setIsEditDialogOpen(true)
   }
 
-  // 유저 수정 성공 처리
+  // 연맹원 수정 성공 처리
   const handleEditSuccess = () => {
     setIsEditDialogOpen(false)
     setCurrentUser(null)
@@ -105,8 +105,8 @@ export default function UsersPage() {
   const downloadSampleCsv = () => {
     const sampleData = [
       ["닉네임", "본부레벨", "전투력", "등급"],
-      ["샘플유저1", "30", "120.5", "R5"],
-      ["샘플유저2", "29", "95.2", "R4"]
+      ["샘플연맹원1", "30", "120.5", "R5"],
+      ["샘플연맹원2", "29", "95.2", "R4"]
     ]
     
     const csv = Papa.unparse(sampleData)
@@ -114,7 +114,7 @@ export default function UsersPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
-    link.setAttribute("download", "유저정보_샘플.csv")
+    link.setAttribute("download", "연맹원정보_샘플.csv")
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
@@ -141,7 +141,7 @@ export default function UsersPage() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
-    link.setAttribute("download", `유저목록_${new Date().toISOString().split("T")[0]}.csv`)
+    link.setAttribute("download", `연맹원목록_${new Date().toISOString().split("T")[0]}.csv`)
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
@@ -337,7 +337,7 @@ export default function UsersPage() {
     
     console.log("유효한 행 수:", validRows.length)
 
-    const processedUsers = validRows.map((row, index) => {
+    const processedMembers = validRows.map((row, index) => {
       // 레벨 처리: 빈 값이면 1로 기본값 설정
       let level = 1
       const levelStr = row[1]?.trim()
@@ -362,19 +362,19 @@ export default function UsersPage() {
         userGrade = validGrades.includes(gradeStr) ? gradeStr : 'R1'
       }
       
-      const userObj = {
+      const memberObj = {
         name: row[0]?.trim() || '',
         level: level,
         power: power,
         userGrade: userGrade,
         serverAllianceId: serverAllianceId // 현재 사용자의 server_alliance_id 추가
       }
-      console.log(`유저 ${index + 1} 생성:`, userObj)
-      return userObj
+      console.log(`연맹원 ${index + 1} 생성:`, memberObj)
+      return memberObj
     })
     
-    console.log("processCsvData 완료. 생성된 유저 수:", processedUsers.length)
-    return processedUsers
+    console.log("processCsvData 완료. 생성된 연맹원 수:", processedMembers.length)
+    return processedMembers
   }
 
   // CSV 파일 업로드 처리
@@ -448,8 +448,8 @@ export default function UsersPage() {
         // 2단계: 데이터 가공
         console.log("데이터 가공 시작...")
         const processedUsers = await processCsvData(data)
-        console.log("가공된 유저 데이터:", processedUsers)
-        console.log("가공된 유저 수:", processedUsers.length)
+        console.log("가공된 연맹원 데이터:", processedUsers)
+        console.log("가공된 연맹원 수:", processedUsers.length)
         
         if (processedUsers.length === 0) {
           console.error("가공 후 유효한 데이터가 없음")
@@ -539,7 +539,7 @@ export default function UsersPage() {
 
   // 자동 upsert 처리 (단순화)
   const processUsersWithAutoUpsert = async (users: any[]) => {
-    console.log("자동 upsert 시작. 처리할 유저 수:", users.length)
+    console.log("자동 upsert 시작. 처리할 연맹원 수:", users.length)
     
     try {
       const result = await autoUpsertUsers(users)
@@ -586,7 +586,7 @@ export default function UsersPage() {
         variant: "destructive"
       })
     } finally {
-      // 상태 초기화 및 유저 목록 새로고침
+      // 상태 초기화 및 연맹원 목록 새로고침
       await finalizeAllProcessing()
     }
   }
@@ -594,17 +594,17 @@ export default function UsersPage() {
 
   // 모든 처리 완료
   const finalizeAllProcessing = async () => {
-    // 유저 목록 새로고침
+    // 연맹원 목록 새로고침
     await loadUsers(searchParams)
   }
 
   return (
     <div className="container mx-auto">
-      <h1 className="text-3xl font-bold mb-6">유저 관리</h1>
+      <h1 className="text-3xl font-bold mb-6">연맹원 관리</h1>
 
       <Tabs defaultValue="users">
         <TabsList className="mb-4">
-          <TabsTrigger value="users">유저 목록</TabsTrigger>
+          <TabsTrigger value="users">연맹원 목록</TabsTrigger>
           <TabsTrigger value="history">변경 히스토리</TabsTrigger>
           <TabsTrigger value="nickname-search">예전 닉네임 검색</TabsTrigger>
           <TabsTrigger value="merge">데이터 통합</TabsTrigger>
@@ -613,9 +613,9 @@ export default function UsersPage() {
         <TabsContent value="users">
           <Card>
             <CardHeader>
-              <CardTitle>유저 목록</CardTitle>
+              <CardTitle>연맹원 목록</CardTitle>
               <CardDescription>
-                게임 유저 정보를 관리합니다. 검색 및 필터링을 통해 원하는 유저를 찾을 수 있습니다.
+                게임 연맹원 정보를 관리합니다. 검색 및 필터링을 통해 원하는 연맹원을 찾을 수 있습니다.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -642,12 +642,12 @@ export default function UsersPage() {
                         className="flex-1 sm:flex-auto bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200"
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        유저 추가
+                        연맹원 추가
                       </OptimizedTouchButton>
                     </DialogTrigger>
                     <DialogContent className="bg-background border-border">
                       <DialogHeader>
-                        <DialogTitle className="text-foreground">새 유저 추가</DialogTitle>
+                        <DialogTitle className="text-foreground">새 연맹원 추가</DialogTitle>
                       </DialogHeader>
                       <UserForm mode="create" onSuccess={handleAddSuccess} onCancel={() => setIsAddDialogOpen(false)} />
                     </DialogContent>
@@ -660,7 +660,7 @@ export default function UsersPage() {
                       className="flex-1 sm:flex-auto w-full border-blue-500 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950/20 shadow-sm hover:shadow-md transition-all duration-200"
                     >
                       <Bot className="mr-2 h-4 w-4" />
-                      AI 유저 등록
+                      AI 연맹원 등록
                     </OptimizedTouchButton>
                   </Link>
                 </div>
@@ -716,7 +716,7 @@ export default function UsersPage() {
           <Card>
             <CardHeader>
               <CardTitle>변경 히스토리</CardTitle>
-              <CardDescription>유저 정보 변경 내역을 확인합니다.</CardDescription>
+              <CardDescription>연맹원 정보 변경 내역을 확인합니다.</CardDescription>
             </CardHeader>
             <CardContent>
               <UserHistoryList />
@@ -787,7 +787,7 @@ export default function UsersPage() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="bg-background border-border">
             <DialogHeader>
-              <DialogTitle className="text-foreground">유저 정보 수정</DialogTitle>
+              <DialogTitle className="text-foreground">연맹원 정보 수정</DialogTitle>
             </DialogHeader>
             <UserForm
               mode="edit"

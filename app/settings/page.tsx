@@ -281,7 +281,7 @@ export default function SettingsPage() {
                     checked={settings.allowUserEdit}
                     onCheckedChange={(checked) => setSettings({ ...settings, allowUserEdit: checked })}
                   />
-                  <Label htmlFor="allowUserEdit">유저 정보 수정 허용</Label>
+                  <Label htmlFor="allowUserEdit">연맹원 정보 수정 허용</Label>
                 </div>
 
                 <div className="flex items-center gap-2">

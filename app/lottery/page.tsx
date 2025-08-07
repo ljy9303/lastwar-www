@@ -44,20 +44,20 @@ export default function LotteryPage() {
   const MAX_SELECTIONS = 50
   const MAX_DRAW_COUNT = 50
 
-  // 유저 목록 로드
+  // 연맹원 목록 로드
   useEffect(() => {
     
     const loadUsers = async () => {
       setIsLoading(true)
       try {
-        // 유저관리와 동일한 API 사용 (활동중인 유저만)
+        // 연맹원관리와 동일한 API 사용 (활동중인 연맹원만)
         const data = await fetchFromAPI('/user?leave=false')
         setUsers(data)
       } catch (error) {
-        console.error("유저 목록 로드 실패:", error)
+        console.error("연맹원 목록 로드 실패:", error)
         toast({
           title: "오류 발생",
-          description: "유저 목록을 불러오는 중 오류가 발생했습니다.",
+          description: "연맹원 목록을 불러오는 중 오류가 발생했습니다.",
           variant: "destructive"
         })
       } finally {
@@ -72,8 +72,8 @@ export default function LotteryPage() {
   const startLottery = () => {
     if (selectedUsers.length === 0) {
       toast({
-        title: "선택된 유저 없음",
-        description: "추첨할 유저를 선택해주세요.",
+        title: "선택된 연맹원 없음",
+        description: "추첨할 연맹원를 선택해주세요.",
         variant: "destructive"
       })
       return
@@ -125,7 +125,7 @@ export default function LotteryPage() {
     return (
       <div className="container mx-auto flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg text-muted-foreground">유저 목록을 불러오는 중...</p>
+        <p className="text-lg text-muted-foreground">연맹원 목록을 불러오는 중...</p>
       </div>
     )
   }
@@ -137,7 +137,7 @@ export default function LotteryPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="selection">
-            유저 선택
+            연맹원 선택
           </TabsTrigger>
           <TabsTrigger value="result" disabled={winners.length === 0}>
             추첨 결과
@@ -149,8 +149,8 @@ export default function LotteryPage() {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>유저 선택</CardTitle>
-                  <CardDescription>추첨에 참여할 유저를 선택하세요 (최대 {MAX_SELECTIONS}명)</CardDescription>
+                  <CardTitle>연맹원 선택</CardTitle>
+                  <CardDescription>추첨에 참여할 연맹원를 선택하세요 (최대 {MAX_SELECTIONS}명)</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <UserSelection
@@ -226,7 +226,7 @@ export default function LotteryPage() {
               <div className="mt-6">
                 <Card className="h-[62.5vh]">
                   <CardHeader>
-                    <CardTitle>선택된 유저</CardTitle>
+                    <CardTitle>선택된 연맹원</CardTitle>
                     <CardDescription>
                       {selectedUsers.length}명 선택됨 (최대 {MAX_SELECTIONS}명)
                     </CardDescription>
@@ -250,7 +250,7 @@ export default function LotteryPage() {
                           </div>
                         ))
                       ) : (
-                        <div className="text-center text-muted-foreground py-4">선택된 유저가 없습니다.</div>
+                        <div className="text-center text-muted-foreground py-4">선택된 연맹원가 없습니다.</div>
                       )}
                     </div>
                   </CardContent>

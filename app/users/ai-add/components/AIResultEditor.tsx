@@ -35,6 +35,7 @@ import {
   Filter,
   Image as ImageIcon
 } from "lucide-react"
+import { ImageOverlay } from "@/components/ui/image-overlay"
 import { useToast } from "@/hooks/use-toast"
 import type { ValidatedPlayerInfo, ProcessedImage, DuplicateGroup } from "@/types/ai-user-types"
 
@@ -57,7 +58,11 @@ export function AIResultEditor({
 }: AIResultEditorProps) {
   const { toast } = useToast()
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null)
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
+  const [imageOverlay, setImageOverlay] = useState<{
+    isOpen: boolean
+    src: string
+    alt: string
+  }>({ isOpen: false, src: '', alt: '' })
 
   // 중복 그룹 계산
   const duplicateGroups = useMemo(() => {
@@ -212,9 +217,16 @@ export function AIResultEditor({
     setEditingPlayerId(editingPlayerId === `${index}` ? null : `${index}`)
   }
 
-  // 이미지 미리보기 토글
-  const toggleImagePreview = (imageIndex: number) => {
-    setSelectedImageIndex(selectedImageIndex === imageIndex ? null : imageIndex)
+  // 이미지 뷰어 열기
+  const openImageViewer = (imageIndex: number) => {
+    const image = images[imageIndex]
+    if (image) {
+      setImageOverlay({
+        isOpen: true,
+        src: image.preview,
+        alt: `이미지 ${imageIndex + 1}`
+      })
+    }
   }
 
   // 전체 초기화
@@ -243,7 +255,7 @@ export function AIResultEditor({
           </CardTitle>
           <div className="space-y-2 mt-3">
             <p className="text-muted-foreground">
-              AI가 인식한 유저 정보를 검토하고 필요시 수정해주세요. 정확성을 확인한 후 다음 단계로 진행하세요.
+              AI가 인식한 연맹원 정보를 검토하고 필요시 수정해주세요. 정확성을 확인한 후 다음 단계로 진행하세요.
             </p>
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2 text-orange-600">
@@ -348,18 +360,13 @@ export function AIResultEditor({
               </div>
               <AlertDescription>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className="ai-pulse-glow inline-block">
-                      <Copy className="h-4 w-4 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-orange-800 dark:text-orange-200">
-                        <strong>{duplicateGroups.length}개의 중복된 닉네임</strong>이 발견되었습니다
-                      </p>
-                      <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                        각 그룹별로 처리 방법을 선택해주세요
-                      </p>
-                    </div>
+                  <div>
+                    <p className="font-semibold text-orange-800 dark:text-orange-200">
+                      <strong>{duplicateGroups.length}개의 중복된 닉네임</strong>이 발견되었습니다
+                    </p>
+                    <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
+                      각 그룹별로 처리 방법을 선택해주세요
+                    </p>
                   </div>
                   
                   <div className="space-y-3">
@@ -390,7 +397,7 @@ export function AIResultEditor({
                               onClick={() => handleDuplicateResolution(group, 'keep-first')}
                             >
                               <Check className="h-3 w-3 mr-1" />
-                              첫 번째만 남기기
+                              합치기
                             </Button>
                           </div>
                           <div className="ai-hover-scale">
@@ -401,7 +408,7 @@ export function AIResultEditor({
                               onClick={() => handleDuplicateResolution(group, 'remove-all')}
                             >
                               <Trash2 className="h-3 w-3 mr-1" />
-                              전부 삭제
+                              모두 삭제
                             </Button>
                           </div>
                         </div>
@@ -414,73 +421,11 @@ export function AIResultEditor({
           </div>
         )}
 
-        {/* 이미지 미리보기 */}
-        {selectedImageIndex !== null && (
-          <div className="ai-fade-in">
-            <Card className="overflow-hidden border-2 border-blue-200 dark:border-blue-800">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-500 text-white rounded-full">
-                      <ImageIcon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">원본 이미지 미리보기</h3>
-                      <p className="text-sm text-muted-foreground">
-                        이미지 #{selectedImageIndex + 1} - AI 분석 결과 확인
-                      </p>
-                    </div>
-                  </div>
-                  <div className="ai-hover-scale">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/30"
-                      onClick={() => setSelectedImageIndex(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="relative rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 ai-fade-in">
-                  <img
-                    src={images[selectedImageIndex]?.preview}
-                    alt={`이미지 ${selectedImageIndex + 1}`}
-                    className="w-full h-auto max-h-[70vh] object-contain bg-gray-50 dark:bg-gray-900"
-                  />
-                  
-                  {/* 이미지 정보 오버레이 */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-white p-4 ai-slide-up" style={{animationDelay: '0.5s'}}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">
-                          {images[selectedImageIndex]?.file.name}
-                        </div>
-                        <div className="text-sm text-gray-300">
-                          크기: {images[selectedImageIndex]?.file.size ? 
-                            (images[selectedImageIndex].file.size / 1024 / 1024).toFixed(2) + 'MB' : 'N/A'}
-                        </div>
-                      </div>
-                      
-                      {images[selectedImageIndex]?.players.length > 0 && (
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <span>{images[selectedImageIndex].players.length}명 인식</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
         {/* 플레이어 목록 테이블 */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">인식된 유저 목록</h3>
+            <h3 className="text-lg font-medium">인식된 연맹원 목록</h3>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={resetAll} className="ai-hover-scale">
                 <RotateCcw className="h-4 w-4 mr-1" />
@@ -565,7 +510,7 @@ export function AIResultEditor({
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => toggleImagePreview(player.imageIndex)}
+                          onClick={() => openImageViewer(player.imageIndex)}
                           title="이미지 보기"
                           className="ai-hover-scale"
                         >
@@ -686,7 +631,7 @@ export function AIResultEditor({
                       <div className="ai-pulse-glow">
                         <CheckSquare className="h-4 w-4" />
                       </div>
-                      유저 등록
+                      연맹원 등록
                       <div className="ai-gentle-sway">
                         →
                       </div>
@@ -703,6 +648,14 @@ export function AIResultEditor({
           </div>
         </div>
       </CardContent>
+      
+      {/* 이미지 뷰어 모달 */}
+      <ImageOverlay
+        src={imageOverlay.src}
+        alt={imageOverlay.alt}
+        isOpen={imageOverlay.isOpen}
+        onClose={() => setImageOverlay({ isOpen: false, src: '', alt: '' })}
+      />
     </Card>
   )
 }

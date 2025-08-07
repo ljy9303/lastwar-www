@@ -164,7 +164,7 @@ export function UserList({ users, onEdit }: UserListProps) {
                   onClick={() => handleSort("userGrade")}
                   className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
                 >
-                  유저 등급
+                  연맹원 등급
                   {sortField === "userGrade" &&
                     (sortDirection === "asc" ? (
                       <ChevronUp className="ml-1 h-4 w-4" />

@@ -60,15 +60,15 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
       if (mode === "create") {
         result = await createUser(formData as UserCreateRequest)
         toast({
-          title: "유저 생성 성공",
-          description: `${result.name} 유저가 생성되었습니다.`,
+          title: "연맹원 생성 성공",
+          description: `${result.name} 연맹원이 생성되었습니다.`,
         })
       } else {
-        if (!user) throw new Error("수정할 유저 정보가 없습니다.")
+        if (!user) throw new Error("수정할 연맹원 정보가 없습니다.")
         result = await updateUser(user.userSeq, formData as UserUpdateRequest)
         toast({
-          title: "유저 수정 성공",
-          description: `${result.name} 유저 정보가 수정되었습니다.`,
+          title: "연맹원 수정 성공",
+          description: `${result.name} 연맹원 정보가 수정되었습니다.`,
         })
       }
 
@@ -76,7 +76,7 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
         onSuccess(result)
       }
     } catch (error) {
-      console.error("유저 저장 실패:", error)
+      console.error("연맹원 저장 실패:", error)
       
       // 닉네임 중복 에러인 경우 인풋 필드에 validation 표시
       if (error instanceof Error && error.message.includes("같은 연맹에 이미 존재하는 닉네임입니다")) {
@@ -85,7 +85,7 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
         // 기타 에러는 토스트로 표시
         toast({
           title: "오류 발생",
-          description: error instanceof Error ? error.message : "유저 저장 중 오류가 발생했습니다.",
+          description: error instanceof Error ? error.message : "연맹원 저장 중 오류가 발생했습니다.",
           variant: "destructive",
         })
       }
@@ -140,10 +140,10 @@ export function UserForm({ user, onSuccess, onCancel, mode }: UserFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="userGrade">유저 등급</Label>
+        <Label htmlFor="userGrade">연맹원 등급</Label>
         <Select value={formData.userGrade || "R1"} onValueChange={(value) => handleChange("userGrade", value)}>
           <SelectTrigger>
-            <SelectValue placeholder="유저 등급 선택" />
+            <SelectValue placeholder="연맹원 등급 선택" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="R5">R5</SelectItem>

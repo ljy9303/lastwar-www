@@ -560,7 +560,7 @@ export default function SurveysPage() {
                     </div>
                   </TableHead>
                   <TableHead className="hidden sm:table-cell">
-                    유저 등급
+                    연맹원 등급
                   </TableHead>
                   <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => requestSort("intentType")}>
                     <div className="flex items-center">
@@ -655,7 +655,7 @@ export default function SurveysPage() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>유저 정보 수정</DialogTitle>
+              <DialogTitle>연맹원 정보 수정</DialogTitle>
               <DialogDescription>{currentRoster.userName}님의 정보를 수정하세요.</DialogDescription>
             </DialogHeader>
             <UserForm

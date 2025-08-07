@@ -77,7 +77,7 @@ export function AIUserRegistration() {
     'grade-selection': {
       icon: Shield,
       title: '등급 선택',
-      description: '신규 유저들의 연맹 등급을 선택하세요',
+      description: '신규 연맹원들의 연맹 등급을 선택하세요',
       color: 'text-blue-600'
     },
     'image-upload': {
@@ -89,7 +89,7 @@ export function AIUserRegistration() {
     'ai-processing': {
       icon: Search,
       title: 'AI 분석',
-      description: 'AI가 이미지에서 유저 정보를 추출합니다',
+      description: 'AI가 이미지에서 연맹원 정보를 추출합니다',
       color: 'text-purple-600'
     },
     'validation-editing': {
@@ -101,7 +101,7 @@ export function AIUserRegistration() {
     'final-registration': {
       icon: UserPlus,
       title: '등록 완료',
-      description: '검증된 정보로 유저를 등록합니다',
+      description: '검증된 정보로 연맹원을 등록합니다',
       color: 'text-emerald-600'
     }
   }
@@ -216,7 +216,7 @@ export function AIUserRegistration() {
 
           toast({
             title: `이미지 ${i + 1} 처리 완료`,
-            description: `${result.players.length}명의 유저 정보를 인식했습니다.`,
+            description: `${result.players.length}명의 연맹원 정보를 인식했습니다.`,
           })
         } else {
           // 처리 실패
@@ -225,7 +225,7 @@ export function AIUserRegistration() {
               ? { 
                   ...img, 
                   status: 'failed',
-                  error: result.error || "유저 정보를 인식할 수 없습니다."
+                  error: result.error || "연맹원 정보를 인식할 수 없습니다."
                 }
               : img
           ))
@@ -276,7 +276,7 @@ export function AIUserRegistration() {
       
       toast({
         title: "AI 처리 완료",
-        description: `총 ${validatedPlayers.length}명의 유저 정보가 인식되었습니다.`,
+        description: `총 ${validatedPlayers.length}명의 연맹원 정보가 인식되었습니다.`,
       })
 
       // 검증 단계로 이동
@@ -284,7 +284,7 @@ export function AIUserRegistration() {
     } else {
       toast({
         title: "인식 실패",
-        description: "유저 정보를 인식하지 못했습니다. 다른 이미지를 시도해보세요.",
+        description: "연맹원 정보를 인식하지 못했습니다. 다른 이미지를 시도해보세요.",
         variant: "destructive"
       })
       
@@ -336,7 +336,7 @@ export function AIUserRegistration() {
     if (!selectedGrade || extractedPlayers.length === 0) {
       toast({
         title: "등록 불가",
-        description: "등급이 선택되지 않았거나 등록할 유저가 없습니다.",
+        description: "등급이 선택되지 않았거나 등록할 연맹원이 없습니다.",
         variant: "destructive"
       })
       return
@@ -350,8 +350,8 @@ export function AIUserRegistration() {
       
       if (validPlayers.length === 0) {
         toast({
-          title: "등록할 유저 없음",
-          description: "유효한 유저 데이터가 없습니다.",
+          title: "등록할 연맹원 없음",
+          description: "유효한 연맹원 데이터가 없습니다.",
           variant: "destructive"
         })
         setCurrentStep('validation-editing')
@@ -359,7 +359,7 @@ export function AIUserRegistration() {
       }
 
       // 백엔드 API 호출을 위한 데이터 변환
-      const usersToRegister = validPlayers.map(player => {
+      const membersToRegister = validPlayers.map(player => {
         const powerValue = parsePowerString(player.editedPower || player.power)
         
         return {
@@ -372,8 +372,8 @@ export function AIUserRegistration() {
       })
 
       // 기존 autoUpsertUsers API 사용
-      console.log("등록할 유저 데이터:", usersToRegister)
-      const result = await autoUpsertUsers(usersToRegister)
+      console.log("등록할 연맹원 데이터:", membersToRegister)
+      const result = await autoUpsertUsers(membersToRegister)
       
       console.log("API 응답 결과:", result)
 
@@ -392,7 +392,7 @@ export function AIUserRegistration() {
       }
 
       toast({
-        title: "AI 유저 등록 완료",
+        title: "AI 연맹원 등록 완료",
         description: message || `${validPlayers.length}명 처리 완료`,
         variant: result.failedCount > 0 ? "destructive" : "default",
         duration: 8000
@@ -508,7 +508,7 @@ export function AIUserRegistration() {
           className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          유저 관리로 돌아가기
+          연맹원 관리로 돌아가기
         </Button>
         
         <div className="flex-1">
@@ -523,12 +523,12 @@ export function AIUserRegistration() {
                 <Sparkles className="h-4 w-4 text-yellow-500" />
               </div>
             </div>
-            AI 유저 등록
+            AI 연맹원 등록
           </h1>
           <p 
             className="text-muted-foreground mt-2"
           >
-            스크린샷 이미지로 간편하게 여러 유저를 한 번에 등록하세요. AI가 자동으로 정보를 추출합니다.
+            스크린샷 이미지로 간편하게 여러 연맹원을 한 번에 등록하세요. AI가 자동으로 정보를 추출합니다.
           </p>
         </div>
       </div>
@@ -688,7 +688,7 @@ export function AIUserRegistration() {
                   <AlertDescription className="mt-2">
                     <div className="space-y-2">
                       <p className="font-medium text-blue-700 dark:text-blue-300">
-                        AI가 이미지에서 유저 정보를 정밀하게 분석하고 있습니다
+                        AI가 이미지에서 연맹원 정보를 정밀하게 분석하고 있습니다
                       </p>
                       <ul className="text-sm space-y-1 text-muted-foreground">
                         <li>• 닉네임, 레벨, 전투력 정보를 추출합니다</li>
@@ -721,7 +721,7 @@ export function AIUserRegistration() {
                     </div>
                   </div>
                   <span className="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                    유저 등록 중...
+                    연맹원 등록 중...
                   </span>
                 </CardTitle>
               </CardHeader>
@@ -739,7 +739,7 @@ export function AIUserRegistration() {
                     <AlertDescription className="mt-2">
                       <div className="space-y-2">
                         <p className="font-medium text-emerald-700 dark:text-emerald-300">
-                          검증된 유저 정보를 서버에 등록하고 있습니다
+                          검증된 연맹원 정보를 서버에 등록하고 있습니다
                         </p>
                         <div className="text-sm text-muted-foreground">
                           잠시만 기다려 주세요. 곧 완료됩니다.

@@ -29,7 +29,7 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "유저 관리",
+    title: "연맹원 관리",
     href: "/users",
     icon: Users,
   },

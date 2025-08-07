@@ -7,8 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Bot, Sparkles, Shield, Upload, Search, CheckSquare, UserPlus } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "AI 유저 등록 - LastWar",
-  description: "스크린샷 이미지를 사용하여 AI로 유저를 자동 등록합니다",
+  title: "AI 연맹원 등록 - LastWar",
+  description: "스크린샷 이미지를 사용하여 AI로 연맹원을 자동 등록합니다",
 }
 
 function AIUserRegistrationLoading() {
@@ -220,7 +220,7 @@ function AIUserRegistrationLoading() {
           >
             <Bot className="h-5 w-5 text-blue-600" />
           </div>
-          <span className="text-sm font-medium">AI 유저 등록 시스템 초기화 중...</span>
+          <span className="text-sm font-medium">AI 연맹원 등록 시스템 초기화 중...</span>
           <div
             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}

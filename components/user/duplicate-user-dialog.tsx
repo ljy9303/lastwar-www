@@ -98,16 +98,16 @@ export function DuplicateUserDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-500" />
-            중복 유저 발견
+            중복 연맹원 발견
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* 새로 추가하려는 유저 정보 */}
+          {/* 새로 추가하려는 연맹원 정보 */}
           <Card className="border-blue-200 bg-blue-50">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-blue-800">
-                추가하려는 유저 정보
+                추가하려는 연맹원 정보
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -134,7 +134,7 @@ export function DuplicateUserDialog({
           <div>
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
               <Users className="h-5 w-5" />
-              중복 가능성이 있는 기존 유저들 ({duplicateUsers.length}명)
+              중복 가능성이 있는 기존 연맹원들 ({duplicateUsers.length}명)
             </h3>
             
             <div className="space-y-3 max-h-60 overflow-y-auto">
@@ -196,7 +196,7 @@ export function DuplicateUserDialog({
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <div className="flex-1 text-sm mb-2 sm:mb-0">
             <div className="text-gray-600 mb-1">
-              동일한 유저라면 '기존 유저 업데이트'를, 다른 유저라면 '신규 유저 생성'을 선택하세요.
+              동일한 연맹원이라면 '기존 연맹원 업데이트'를, 다른 연맹원이라면 '신규 연맹원 생성'을 선택하세요.
             </div>
             {hasExactMatch && (
               <div className="text-red-600 text-xs font-medium">
@@ -217,7 +217,7 @@ export function DuplicateUserDialog({
               className="flex items-center gap-2"
             >
               <UserCheck className="h-4 w-4" />
-              기존 유저 업데이트
+              기존 연맹원 업데이트
             </Button>
             
             <Button 
@@ -227,7 +227,7 @@ export function DuplicateUserDialog({
               variant={hasExactMatch ? "outline" : "default"}
             >
               <UserPlus className="h-4 w-4" />
-              {hasExactMatch ? "신규 생성 불가" : "신규 유저 생성"}
+              {hasExactMatch ? "신규 생성 불가" : "신규 연맹원 생성"}
             </Button>
           </div>
         </DialogFooter>
