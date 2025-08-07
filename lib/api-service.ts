@@ -242,6 +242,14 @@ export async function autoUpsertUsers(users: any[]) {
   })
 }
 
+// User existence check
+export async function checkUserExistence(users: Array<{ nickname: string; level: number; power: string }>) {
+  return fetchFromAPI('/user/check-existence', {
+    method: 'POST',
+    body: JSON.stringify(users)
+  })
+}
+
 // Dashboard API functions - 통합 통계 API
 export async function getDashboardStats() {
   return fetchFromAPI('/dashboard/stats')

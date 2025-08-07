@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   AlertTriangle,
   Check,
@@ -33,11 +44,24 @@ import {
   Search,
   Zap,
   Filter,
-  Image as ImageIcon
+  Image as ImageIcon,
+  UserPlus,
+  UserCheck,
+  RefreshCw,
+  Loader2,
+  ChevronDown,
+  Info
 } from "lucide-react"
 import { ImageOverlay } from "@/components/ui/image-overlay"
 import { useToast } from "@/hooks/use-toast"
-import type { ValidatedPlayerInfo, ProcessedImage, DuplicateGroup } from "@/types/ai-user-types"
+import { checkUserExistence } from "@/lib/api-service"
+import type { 
+  ValidatedPlayerInfo, 
+  ProcessedImage, 
+  DuplicateGroup,
+  ExistenceCheckResponse,
+  ExistenceCheckStatus
+} from "@/types/ai-user-types"
 
 interface AIResultEditorProps {
   players: ValidatedPlayerInfo[]
@@ -63,6 +87,12 @@ export function AIResultEditor({
     src: string
     alt: string
   }>({ isOpen: false, src: '', alt: '' })
+  const [existenceCheckStatus, setExistenceCheckStatus] = useState<{
+    loading: boolean
+    completed: boolean
+    error?: string
+  }>({ loading: false, completed: false })
+  const [expandedDetails, setExpandedDetails] = useState<Set<number>>(new Set())
 
   // 중복 그룹 계산
   const duplicateGroups = useMemo(() => {
@@ -91,9 +121,106 @@ export function AIResultEditor({
     const valid = players.filter(p => p.isValid).length
     const invalid = total - valid
     const duplicates = duplicateGroups.reduce((acc, group) => acc + group.players.length, 0)
+    
+    // 존재 확인 통계
+    const existenceStats = {
+      checked: players.filter(p => p.existenceStatus?.checked).length,
+      newMembers: players.filter(p => p.existenceStatus?.result && !p.existenceStatus.result.exists).length,
+      existingMembers: players.filter(p => p.existenceStatus?.result && p.existenceStatus.result.exists).length,
+      errors: players.filter(p => p.existenceStatus?.error).length
+    }
 
-    return { total, valid, invalid, duplicates }
+    return { total, valid, invalid, duplicates, existence: existenceStats }
   }, [players, duplicateGroups])
+
+  // 연맹원 존재 확인
+  const checkExistence = useCallback(async () => {
+    if (players.length === 0) return
+
+    setExistenceCheckStatus({ loading: true, completed: false })
+
+    try {
+      // 유효한 플레이어들만 체크
+      const validPlayers = players.filter(p => p.isValid)
+      if (validPlayers.length === 0) {
+        throw new Error('유효한 플레이어 데이터가 없습니다')
+      }
+
+      // API 요청 데이터 준비
+      const checkData = validPlayers.map(player => ({
+        nickname: player.editedNickname || player.nickname,
+        level: player.editedLevel || player.level,
+        power: player.editedPower || player.power
+      }))
+
+      const response: ExistenceCheckResponse = await checkUserExistence(checkData)
+
+      // 각 플레이어에 존재 확인 결과 추가
+      const updatedPlayers = players.map((player, index) => {
+        if (!player.isValid) {
+          return {
+            ...player,
+            existenceStatus: {
+              checked: false,
+              loading: false,
+              error: '유효하지 않은 데이터'
+            }
+          }
+        }
+
+        const validIndex = validPlayers.findIndex(vp => vp === player)
+        const result = response.results[validIndex]
+
+        return {
+          ...player,
+          existenceStatus: {
+            checked: true,
+            loading: false,
+            result: result || {
+              exists: false,
+              matchType: 'none'
+            }
+          }
+        }
+      })
+
+      onPlayersUpdate(updatedPlayers)
+      setExistenceCheckStatus({ loading: false, completed: true })
+
+      toast({
+        title: "존재 확인 완료",
+        description: `${response.summary.newMembers}명의 신규 연맹원, ${response.summary.existingMembers}명의 기존 연맹원을 확인했습니다.`,
+      })
+
+    } catch (error) {
+      console.error('존재 확인 오류:', error)
+      const errorMessage = error instanceof Error ? error.message : '존재 확인 중 오류가 발생했습니다'
+      
+      setExistenceCheckStatus({ 
+        loading: false, 
+        completed: false, 
+        error: errorMessage 
+      })
+
+      toast({
+        title: "존재 확인 실패",
+        description: errorMessage,
+        variant: "destructive"
+      })
+    }
+  }, [players, onPlayersUpdate, toast])
+
+  // 컴포넌트 마운트 시 자동으로 존재 확인 실행
+  useEffect(() => {
+    if (players.length > 0 && !existenceCheckStatus.completed && !existenceCheckStatus.loading) {
+      // 약간의 지연을 두고 실행 (UI가 렌더링된 후)
+      const timer = setTimeout(() => {
+        checkExistence()
+      }, 1000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [checkExistence, players.length, existenceCheckStatus.completed, existenceCheckStatus.loading])
 
   // 플레이어 정보 업데이트
   const updatePlayer = (index: number, updates: Partial<ValidatedPlayerInfo>) => {
@@ -240,6 +367,17 @@ export function AIResultEditor({
     onPlayersUpdate(resetPlayers)
   }
 
+  // 세부사항 토글
+  const toggleDetails = (index: number) => {
+    const newExpanded = new Set(expandedDetails)
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index)
+    } else {
+      newExpanded.add(index)
+    }
+    setExpandedDetails(newExpanded)
+  }
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 dark:from-orange-950/30 dark:via-amber-950/30 dark:to-yellow-950/30">
@@ -255,9 +393,9 @@ export function AIResultEditor({
           </CardTitle>
           <div className="space-y-2 mt-3">
             <p className="text-muted-foreground">
-              AI가 인식한 연맹원 정보를 검토하고 필요시 수정해주세요. 정확성을 확인한 후 다음 단계로 진행하세요.
+              AI가 인식한 연맹원 정보를 검토하고 필요시 수정해주세요. 시스템에서 기존 연맹원과의 중복 여부를 자동으로 확인합니다.
             </p>
-            <div className="flex items-center gap-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="flex items-center gap-2 text-orange-600">
                 <Search className="h-4 w-4" />
                 <span>검증 및 편집</span>
@@ -265,6 +403,10 @@ export function AIResultEditor({
               <div className="flex items-center gap-2 text-blue-600">
                 <Shield className="h-4 w-4" />
                 <span>중복 탐지</span>
+              </div>
+              <div className="flex items-center gap-2 text-emerald-600">
+                <UserPlus className="h-4 w-4" />
+                <span>신규/기존 확인</span>
               </div>
               <div className="flex items-center gap-2 text-green-600">
                 <Zap className="h-4 w-4" />
@@ -276,7 +418,7 @@ export function AIResultEditor({
       </CardHeader>
       <CardContent className="space-y-8 p-6">
         {/* 통계 대시보드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 ai-slide-up">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 ai-slide-up">
           <div className="ai-hover-lift">
             <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
               <CardContent className="p-5 text-center">
@@ -313,6 +455,50 @@ export function AIResultEditor({
           </div>
           
           <div className="ai-hover-lift">
+            <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-emerald-200 dark:border-emerald-800">
+              <CardContent className="p-5 text-center">
+                <div className="flex items-center justify-center mb-2 ai-gentle-bounce">
+                  <div className="p-2 bg-emerald-500 text-white rounded-full">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-emerald-600 ai-scale-in" style={{animationDelay: '0.5s'}}>
+                  {stats.existence.newMembers}
+                </div>
+                <div className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">신규 연맹원</div>
+                {existenceCheckStatus.loading && (
+                  <div className="text-xs text-emerald-500 mt-1">
+                    <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
+                    확인중...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="ai-hover-lift">
+            <Card className="bg-gradient-to-br from-sky-50 to-cyan-50 dark:from-sky-950/30 dark:to-cyan-950/30 border-sky-200 dark:border-sky-800">
+              <CardContent className="p-5 text-center">
+                <div className="flex items-center justify-center mb-2 ai-gentle-wiggle">
+                  <div className="p-2 bg-sky-500 text-white rounded-full">
+                    <UserCheck className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-sky-600 ai-scale-in" style={{animationDelay: '0.6s'}}>
+                  {stats.existence.existingMembers}
+                </div>
+                <div className="text-sm text-sky-600 dark:text-sky-400 font-medium">기존 연맹원</div>
+                {existenceCheckStatus.loading && (
+                  <div className="text-xs text-sky-500 mt-1">
+                    <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
+                    확인중...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="ai-hover-lift">
             <Card className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-red-200 dark:border-red-800">
               <CardContent className="p-5 text-center">
                 <div className="flex items-center justify-center mb-2 ai-gentle-shake">
@@ -320,7 +506,7 @@ export function AIResultEditor({
                     <AlertTriangle className="h-5 w-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-red-600 ai-scale-in" style={{animationDelay: '0.5s'}}>
+                <div className="text-3xl font-bold text-red-600 ai-scale-in" style={{animationDelay: '0.7s'}}>
                   {stats.invalid}
                 </div>
                 <div className="text-sm text-red-600 dark:text-red-400 font-medium">오류 데이터</div>
@@ -339,7 +525,7 @@ export function AIResultEditor({
                     <Copy className="h-5 w-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-bold text-orange-600 ai-scale-in" style={{animationDelay: '0.6s'}}>
+                <div className="text-3xl font-bold text-orange-600 ai-scale-in" style={{animationDelay: '0.8s'}}>
                   {duplicateGroups.length}
                 </div>
                 <div className="text-sm text-orange-600 dark:text-orange-400 font-medium">중복 그룹</div>
@@ -421,6 +607,102 @@ export function AIResultEditor({
           </div>
         )}
 
+        {/* 존재 확인 상태 */}
+        {existenceCheckStatus.loading && (
+          <div className="ai-slide-up">
+            <Alert className="border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 via-sky-50 to-cyan-50 dark:from-blue-950/20 dark:via-sky-950/20 dark:to-cyan-950/20">
+              <div className="ai-gentle-wiggle inline-block">
+                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+              </div>
+              <AlertDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-blue-800 dark:text-blue-200">
+                      연맹원 존재 여부 확인 중...
+                    </p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      데이터베이스에서 기존 연맹원 정보를 조회하고 있습니다
+                    </p>
+                  </div>
+                  <div className="text-right text-sm text-blue-600 dark:text-blue-400">
+                    <div>진행률</div>
+                    <div className="font-bold">확인중...</div>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {existenceCheckStatus.error && (
+          <div className="ai-slide-up">
+            <Alert className="border-red-200 dark:border-red-800 bg-gradient-to-r from-red-50 via-rose-50 to-pink-50 dark:from-red-950/20 dark:via-rose-950/20 dark:to-pink-950/20">
+              <div className="ai-gentle-shake inline-block">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <AlertDescription>
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-semibold text-red-800 dark:text-red-200">
+                      존재 확인 실패
+                    </p>
+                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                      {existenceCheckStatus.error}
+                    </p>
+                  </div>
+                  <div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={checkExistence}
+                      disabled={existenceCheckStatus.loading}
+                      className="hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/30"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      다시 시도
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {existenceCheckStatus.completed && stats.existence.checked > 0 && (
+          <div className="ai-slide-up">
+            <Alert className="border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 dark:from-green-950/20 dark:via-emerald-950/20 dark:to-teal-950/20">
+              <div className="ai-gentle-bounce inline-block">
+                <CheckSquare className="h-5 w-5 text-green-600" />
+              </div>
+              <AlertDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-green-800 dark:text-green-200">
+                      연맹원 존재 확인 완료
+                    </p>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                      총 {stats.existence.checked}명 확인 - 
+                      신규 {stats.existence.newMembers}명, 
+                      기존 {stats.existence.existingMembers}명
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={checkExistence}
+                      disabled={existenceCheckStatus.loading}
+                      className="hover:bg-green-50 hover:border-green-300 dark:hover:bg-green-950/30"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      재확인
+                    </Button>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         {/* 플레이어 목록 테이블 */}
         <div className="space-y-4">
@@ -443,8 +725,9 @@ export function AIResultEditor({
                   <TableHead>레벨</TableHead>
                   <TableHead>전투력</TableHead>
                   <TableHead>등급</TableHead>
+                  <TableHead>연맹원 상태</TableHead>
                   <TableHead>이미지</TableHead>
-                  <TableHead>상태</TableHead>
+                  <TableHead>검증 상태</TableHead>
                   <TableHead className="w-[120px]">액션</TableHead>
                 </TableRow>
               </TableHeader>
@@ -454,9 +737,17 @@ export function AIResultEditor({
                   const displayNickname = player.editedNickname || player.nickname
                   const displayLevel = player.editedLevel || player.level
                   const displayPower = player.editedPower || player.power
+                  const isDetailExpanded = expandedDetails.has(index)
 
                   return (
-                    <TableRow key={index} className={!player.isValid ? "bg-red-50 dark:bg-red-950/20" : ""}>
+                    <>
+                      <TableRow key={index} className={
+                        !player.isValid 
+                          ? "bg-red-50 dark:bg-red-950/20" 
+                          : player.existenceStatus?.result?.exists
+                          ? "bg-blue-50/50 dark:bg-blue-950/10"
+                          : ""
+                      }>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>
                         {isEditing ? (
@@ -505,6 +796,47 @@ export function AIResultEditor({
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">{selectedGrade}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {player.existenceStatus?.loading ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span className="text-xs text-muted-foreground">확인중...</span>
+                          </div>
+                        ) : player.existenceStatus?.result ? (
+                          <div className="flex items-center gap-2">
+                            {player.existenceStatus.result.exists ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300"
+                                onClick={() => toggleDetails(index)}
+                              >
+                                <UserCheck className="h-3 w-3 mr-1" />
+                                기존 연맹원
+                                <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${isDetailExpanded ? 'rotate-180' : ''}`} />
+                              </Button>
+                            ) : (
+                              <Badge 
+                                variant="default" 
+                                className="bg-emerald-600 hover:bg-emerald-700"
+                              >
+                                <UserPlus className="h-3 w-3 mr-1" />
+                                신규 연맹원
+                              </Badge>
+                            )}
+                          </div>
+                        ) : player.existenceStatus?.error ? (
+                          <Badge variant="destructive">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            확인 실패
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">
+                            <Search className="h-3 w-3 mr-1" />
+                            미확인
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -567,6 +899,106 @@ export function AIResultEditor({
                         </div>
                       </TableCell>
                     </TableRow>
+                    {/* 기존 연맹원 세부 정보 확장 행 */}
+                    {isDetailExpanded && player.existenceStatus?.result?.exists && player.existenceStatus.result.existingUser && (
+                      <TableRow className="bg-blue-50/30 dark:bg-blue-950/10">
+                        <TableCell></TableCell>
+                        <TableCell colSpan={8}>
+                          <div className="py-4 px-6 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2">
+                                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                                  <UserCheck className="h-4 w-4 text-blue-600" />
+                                </div>
+                                <div>
+                                  <h4 className="font-medium text-blue-800 dark:text-blue-200">
+                                    기존 연맹원 상세 정보
+                                  </h4>
+                                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                                    매칭 유형: {player.existenceStatus.result.matchType} 
+                                    {player.existenceStatus.result.matchConfidence && 
+                                      ` (${Math.round(player.existenceStatus.result.matchConfidence * 100)}% 일치)`
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4 border-t border-blue-200 dark:border-blue-700">
+                                <div>
+                                  <label className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                    기존 닉네임
+                                  </label>
+                                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {player.existenceStatus.result.existingUser.name}
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                    기존 레벨
+                                  </label>
+                                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {player.existenceStatus.result.existingUser.level}
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                    기존 전투력
+                                  </label>
+                                  <div className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {player.existenceStatus.result.existingUser.power}M
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                    기존 등급
+                                  </label>
+                                  <div className="mt-1">
+                                    <Badge variant="outline" className="text-sm">
+                                      {player.existenceStatus.result.existingUser.userGrade}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-blue-200 dark:border-blue-700">
+                                <div>
+                                  <label className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                    생성일시
+                                  </label>
+                                  <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                    {new Date(player.existenceStatus.result.existingUser.createdAt).toLocaleString('ko-KR')}
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                                    최종 수정일시
+                                  </label>
+                                  <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                    {new Date(player.existenceStatus.result.existingUser.lastUpdated).toLocaleString('ko-KR')}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="pt-4 border-t border-blue-200 dark:border-blue-700">
+                                <div className="flex items-center gap-4 text-sm">
+                                  <div className="flex items-center gap-2 text-amber-600">
+                                    <Info className="h-4 w-4" />
+                                    <span>
+                                      이 연맹원은 이미 등록되어 있습니다. 
+                                      {player.existenceStatus.result.matchType === 'exact' 
+                                        ? '정확히 일치하는 정보입니다.' 
+                                        : '유사한 정보로 판단됩니다.'
+                                      }
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                   )
                 })}
               </TableBody>

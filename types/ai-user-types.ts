@@ -30,6 +30,7 @@ export interface ValidatedPlayerInfo extends ExtractedPlayerInfo {
   editedNickname?: string
   editedPower?: string
   editedLevel?: number
+  existenceStatus?: ExistenceCheckStatus
 }
 
 export interface GeminiAIResponse {
@@ -95,4 +96,44 @@ export interface ValidationRules {
   levelMax: number
   powerFormats: RegExp[]
   requiredFields: string[]
+}
+
+// 연맹원 존재 확인 관련 타입
+export interface ExistenceCheckRequest {
+  nickname: string
+  level: number
+  power: string
+}
+
+export interface ExistenceCheckResult {
+  exists: boolean
+  matchConfidence?: number
+  existingUser?: ExistingUserDetails
+  matchType?: 'exact' | 'similar' | 'none'
+}
+
+export interface ExistingUserDetails {
+  userSeq: number
+  name: string
+  level: number
+  power: number
+  userGrade: string
+  lastUpdated: string
+  createdAt: string
+}
+
+export interface ExistenceCheckStatus {
+  checked: boolean
+  loading: boolean
+  error?: string
+  result?: ExistenceCheckResult
+}
+
+export interface ExistenceCheckResponse {
+  results: ExistenceCheckResult[]
+  summary: {
+    totalChecked: number
+    newMembers: number
+    existingMembers: number
+  }
 }
