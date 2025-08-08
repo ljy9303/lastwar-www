@@ -188,6 +188,113 @@ export class ImageProcessingService {
   }
 
   /**
+   * OCR 최적화된 이미지 압축 (서버 사이드 Sharp 사용)
+   * 토큰 사용량을 70-80% 절약하면서 OCR 품질 유지
+   */
+  static async compressImageForOCR(file: File): Promise<{
+    compressedFile: File
+    originalSize: number
+    compressedSize: number
+    compressionRatio: number
+  }> {
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch('/api/image/compress', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('서버 압축 실패')
+      }
+
+      const compressedBuffer = await response.arrayBuffer()
+      const originalSize = parseInt(response.headers.get('X-Original-Size') || '0')
+      const compressedSize = parseInt(response.headers.get('X-Compressed-Size') || '0')
+      const compressionRatio = parseInt(response.headers.get('X-Compression-Ratio')?.replace('%', '') || '0')
+
+      // 압축된 버퍼를 File 객체로 변환
+      const compressedBlob = new Blob([compressedBuffer], { type: 'image/jpeg' })
+      const compressedFile = new File(
+        [compressedBlob], 
+        file.name.replace(/\.[^/.]+$/, '') + '_compressed.jpg',
+        { type: 'image/jpeg' }
+      )
+
+      return {
+        compressedFile,
+        originalSize,
+        compressedSize,
+        compressionRatio
+      }
+    } catch (error) {
+      console.error('OCR 최적화 압축 실패:', error)
+      // 실패 시 클라이언트 사이드 압축으로 폴백
+      const compressedFile = await this.compressImage(file, 800, 0.75)
+      return {
+        compressedFile,
+        originalSize: file.size,
+        compressedSize: compressedFile.size,
+        compressionRatio: Math.round((1 - compressedFile.size / file.size) * 100)
+      }
+    }
+  }
+
+  /**
+   * 배치 OCR 최적화 압축
+   */
+  static async compressImagesForOCR(files: File[]): Promise<Array<{
+    compressedFile: File
+    originalSize: number
+    compressedSize: number
+    compressionRatio: number
+  }>> {
+    const results = []
+    
+    for (const file of files) {
+      const result = await this.compressImageForOCR(file)
+      results.push(result)
+    }
+
+    return results
+  }
+
+  /**
+   * 이미지 압축 통계 표시용 포맷터
+   */
+  static formatCompressionStats(originalSize: number, compressedSize: number, compressionRatio: number): string {
+    const originalMB = (originalSize / 1024 / 1024).toFixed(1)
+    const compressedMB = (compressedSize / 1024 / 1024).toFixed(1)
+    return `${originalMB}MB → ${compressedMB}MB (${compressionRatio}% 절약)`
+  }
+
+  /**
+   * 토큰 절약량 추정 (이미지 크기 기반)
+   */
+  static estimateTokenSavings(originalSize: number, compressedSize: number): {
+    estimatedOriginalTokens: number
+    estimatedCompressedTokens: number
+    tokenSavings: number
+    tokenSavingsPercent: number
+  } {
+    // 대략적인 토큰 계산 (1MB ≈ 750 토큰으로 추정)
+    const tokensPerMB = 750
+    const estimatedOriginalTokens = Math.round((originalSize / 1024 / 1024) * tokensPerMB)
+    const estimatedCompressedTokens = Math.round((compressedSize / 1024 / 1024) * tokensPerMB)
+    const tokenSavings = estimatedOriginalTokens - estimatedCompressedTokens
+    const tokenSavingsPercent = Math.round((tokenSavings / estimatedOriginalTokens) * 100)
+
+    return {
+      estimatedOriginalTokens,
+      estimatedCompressedTokens,
+      tokenSavings,
+      tokenSavingsPercent
+    }
+  }
+
+  /**
    * 이미지 메타데이터 추출
    */
   static async getImageMetadata(file: File): Promise<{
