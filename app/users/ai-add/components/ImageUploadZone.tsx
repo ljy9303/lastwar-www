@@ -465,8 +465,8 @@ export function ImageUploadZone({
               </div>
             </div>
 
-            {/* 정보 배지 - OCR 최적화 정보 추가 */}
-            <div className="space-y-3 text-xs text-muted-foreground bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            {/* 정보 배지 */}
+            <div className="space-y-2 text-xs text-muted-foreground bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-center">
                 <div className="flex items-center justify-center gap-1">
                   <CheckCircle className="h-3 w-3 text-green-500" />
@@ -479,14 +479,6 @@ export function ImageUploadZone({
                 <div className="flex items-center justify-center gap-1">
                   <Zap className="h-3 w-3 text-purple-500" />
                   <span>단축키: Ctrl+V</span>
-                </div>
-              </div>
-              
-              {/* OCR 최적화 정보 */}
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                <div className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400">
-                  <Sparkles className="h-3 w-3" />
-                  <span className="font-medium">✨ 자동 OCR 최적화: 토큰 70-80% 절약 | 800x1200px 리사이즈 | JPEG 75% 품질</span>
                 </div>
               </div>
             </div>
