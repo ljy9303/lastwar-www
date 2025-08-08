@@ -99,15 +99,45 @@ export function ImageUploadZone({
     return validFiles
   }, [images.length, maxImages, maxSizeMB, toast])
 
-  // 파일 선택 처리
-  const handleFileSelect = useCallback((files: File[]) => {
+  // 파일 선택 처리 (OCR 최적화 압축 포함)
+  const handleFileSelect = useCallback(async (files: File[]) => {
     const validFiles = validateFiles(files)
     if (validFiles.length > 0) {
-      onImagesAdd(validFiles)
+      // 압축 시작을 사용자에게 알림
       toast({
-        title: "이미지 업로드 성공",
-        description: `${validFiles.length}개의 이미지가 추가되었습니다.`,
+        title: "이미지 압축 시작",
+        description: `${validFiles.length}개 이미지를 OCR에 최적화 중입니다...`,
       })
+
+      try {
+        // OCR 최적화 압축 수행
+        const compressionResults = await ImageProcessingService.compressImagesForOCR(validFiles)
+        
+        // 압축된 파일들과 통계 정보를 함께 전달
+        const compressedFiles = compressionResults.map(result => result.compressedFile)
+        const totalOriginalSize = compressionResults.reduce((sum, result) => sum + result.originalSize, 0)
+        const totalCompressedSize = compressionResults.reduce((sum, result) => sum + result.compressedSize, 0)
+        const averageCompressionRatio = Math.round(compressionResults.reduce((sum, result) => sum + result.compressionRatio, 0) / compressionResults.length)
+        
+        // 토큰 절약량 계산
+        const tokenSavings = ImageProcessingService.estimateTokenSavings(totalOriginalSize, totalCompressedSize)
+        
+        onImagesAdd(compressedFiles)
+        
+        toast({
+          title: "✨ 이미지 압축 완료!",
+          description: `${ImageProcessingService.formatCompressionStats(totalOriginalSize, totalCompressedSize, averageCompressionRatio)} | 예상 토큰 절약: ${tokenSavings.tokenSavings.toLocaleString()}개 (${tokenSavings.tokenSavingsPercent}%)`,
+        })
+      } catch (error) {
+        console.error('이미지 압축 실패:', error)
+        // 압축 실패 시 원본 파일 사용
+        onImagesAdd(validFiles)
+        toast({
+          title: "이미지 업로드 완료",
+          description: `${validFiles.length}개의 이미지가 추가되었습니다. (압축 없이)`,
+          variant: "destructive",
+        })
+      }
     }
   }, [validateFiles, onImagesAdd, toast])
 
@@ -435,8 +465,8 @@ export function ImageUploadZone({
               </div>
             </div>
 
-            {/* 정보 배지 */}
-            <div className="space-y-2 text-xs text-muted-foreground bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            {/* 정보 배지 - OCR 최적화 정보 추가 */}
+            <div className="space-y-3 text-xs text-muted-foreground bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-center">
                 <div className="flex items-center justify-center gap-1">
                   <CheckCircle className="h-3 w-3 text-green-500" />
@@ -449,6 +479,14 @@ export function ImageUploadZone({
                 <div className="flex items-center justify-center gap-1">
                   <Zap className="h-3 w-3 text-purple-500" />
                   <span>단축키: Ctrl+V</span>
+                </div>
+              </div>
+              
+              {/* OCR 최적화 정보 */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400">
+                  <Sparkles className="h-3 w-3" />
+                  <span className="font-medium">✨ 자동 OCR 최적화: 토큰 70-80% 절약 | 800x1200px 리사이즈 | JPEG 75% 품질</span>
                 </div>
               </div>
             </div>
