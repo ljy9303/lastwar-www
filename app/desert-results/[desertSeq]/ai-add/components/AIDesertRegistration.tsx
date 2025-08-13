@@ -25,7 +25,8 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { GeminiDesertAIService } from "@/lib/gemini-desert-ai"
 import { ImageProcessingService } from "@/lib/image-processing"
-import { getDesertById, saveDesertBattleResult, saveDesertAttendance } from "@/lib/api-service"
+import { saveDesertBattleResult, saveDesertAttendance } from "@/lib/api-service"
+import { getDesertById, type Desert } from "@/app/actions/event-actions"
 import { WelcomeScreen } from "./WelcomeScreen"
 import { AnalysisTypeSelector } from "./AnalysisTypeSelector"
 import { ImageUploadZone } from "./ImageUploadZone"
@@ -36,7 +37,6 @@ import type {
   DesertRegistrationStep,
   DesertAnalysisType, 
   ProcessedDesertImage, 
-  Desert,
   DesertAIProgress,
   DesertBattleResult,
   DesertAttendanceData,
@@ -112,12 +112,10 @@ export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
   const loadDesertInfo = async () => {
     try {
       setLoading(true)
-      const response = await getDesertById(desertSeq)
-      if (response.success && response.data) {
-        setSelectedDesert(response.data)
-      } else {
-        throw new Error(response.message || '사막전 정보를 찾을 수 없습니다.')
-      }
+      // event-actions의 getDesertById는 직접 Desert 객체를 반환
+      const desert = await getDesertById(desertSeq)
+      console.log('사막전 정보 로드 성공:', desert)
+      setSelectedDesert(desert)
     } catch (error) {
       console.error('사막전 정보 로드 실패:', error)
       toast({
