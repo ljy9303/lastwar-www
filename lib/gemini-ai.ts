@@ -19,7 +19,7 @@ export class GeminiAIService {
     }
     
     this.genAI = new GoogleGenerativeAI(apiKey)
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
   }
 
   async extractPlayerInfo(file: File, imageIndex: number): Promise<GeminiAIResponse> {
@@ -27,7 +27,7 @@ export class GeminiAIService {
     let trackingId: number | undefined
     let tracking: AIUsageTracking = {
       serviceType: 'GEMINI',
-      modelName: 'gemini-2.0-flash-exp', 
+      modelName: 'gemini-2.0-flash', 
       requestType: 'IMAGE_ANALYSIS',
       imageCount: 1,
       status: 'pending'
@@ -105,7 +105,7 @@ export class GeminiAIService {
             successCount: 1,
             failedCount: 0,
             extractedUsersCount: players.length,
-            estimatedCostUsd: 0.005 // gemini-2.0-flash-exp의 대략적인 비용 (이미지 1장당)
+            estimatedCostUsd: 0.00625 // gemini-2.0-flash의 대략적인 비용 (이미지 1장당)
           })
           console.log(`AI 사용량 추적 완료: trackingId=${trackingId}, 추출된 사용자=${players.length}명`)
         } catch (trackingError) {
