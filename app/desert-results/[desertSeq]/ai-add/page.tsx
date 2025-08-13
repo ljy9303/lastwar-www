@@ -1,11 +1,12 @@
 import { AIDesertRegistration } from "./components/AIDesertRegistration"
 
 interface AIDesertAddPageProps {
-  params: {
+  params: Promise<{
     desertSeq: string
-  }
+  }>
 }
 
-export default function AIDesertAddPage({ params }: AIDesertAddPageProps) {
-  return <AIDesertRegistration desertSeq={parseInt(params.desertSeq)} />
+export default async function AIDesertAddPage({ params }: AIDesertAddPageProps) {
+  const { desertSeq } = await params
+  return <AIDesertRegistration desertSeq={parseInt(desertSeq)} />
 }
