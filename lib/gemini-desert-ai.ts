@@ -200,7 +200,7 @@ export class GeminiDesertAIService {
         ourServer: parsed.ourServer || "",
         ourAllianceName: parsed.ourAllianceName || "",
         ourScore: Number(parsed.ourScore) || 0,
-        enemyServer: parsed.enemyServer || "",
+        enemyServer: (parsed.enemyServer || "").replace(/^#/, "").trim(), // '#' 문자 제거
         enemyAllianceName: parsed.enemyAllianceName || "",
         enemyScore: Number(parsed.enemyScore) || 0,
         battleResult: parsed.battleResult || "DRAW",
