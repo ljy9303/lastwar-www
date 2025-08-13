@@ -25,7 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useOCRBatch } from "@/hooks/use-ocr-batch"
 import { ImageProcessingService } from "@/lib/image-processing"
-import { getStageDisplayMessage } from "@/lib/ocr-batch-service"
+import { OCRErrorAlert } from "@/components/ui/ocr-error-alert"
 import { UserGradeSelector } from "./UserGradeSelector"
 import { ImageUploadZone } from "./ImageUploadZone"
 import { AIResultEditor } from "./AIResultEditor"
@@ -37,7 +37,8 @@ import type {
   ValidatedPlayerInfo,
   AIProgress,
   OCRBatchResult,
-  OCRProcessingStage
+  OCRBatchRequest,
+  OCRErrorMessage
 } from "@/types/ai-user-types"
 
 export function AIUserRegistration() {
@@ -62,23 +63,35 @@ export function AIUserRegistration() {
   
   // OCR 배치 처리 훅
   const {
-    isProcessing: isBatchProcessing,
-    batchId,
-    status: batchStatus,
-    progress: batchProgress,
-    result: batchResult,
-    error: batchError,
-    submitBatch,
-    cancelBatch,
-    resetState: resetBatchState
+    state: {
+      batchId,
+      status: batchStatus,
+      result: batchResult,
+      error: batchError,
+      isSubmitting,
+      isProcessing: isBatchProcessing,
+      isCompleted,
+      isFailed,
+      progress: batchProgress,
+      statusMessage,
+      estimatedTimeRemaining
+    },
+    actions: {
+      submitBatch,
+      cancelBatch,
+      reset: resetBatchState,
+      retry: retryBatch
+    }
   } = useOCRBatch({
-    onProgress: (progress) => {
-      setAiProgress({
-        total: progress.totalImages || images.length,
-        processed: progress.processedImages || 0,
-        status: 'processing',
-        currentImage: getStageDisplayMessage(progress.stage, progress.details)
-      })
+    onProgress: (status) => {
+      if (status.progress) {
+        setAiProgress({
+          total: status.progress.totalImages || images.length,
+          processed: status.progress.processedImages || 0,
+          status: 'processing',
+          currentImage: status.progress.stageDetails || '처리 중...'
+        })
+      }
     },
     onComplete: (result: OCRBatchResult) => {
       // OCR 결과를 ValidatedPlayerInfo로 변환
@@ -105,7 +118,8 @@ export function AIUserRegistration() {
         setCurrentStep('registration-complete')
       }
     },
-    onError: (error) => {
+    onError: (error: OCRErrorMessage) => {
+      console.error('OCR 배치 처리 에러:', error)
       setAiProgress({
         total: images.length,
         processed: 0,
@@ -253,12 +267,19 @@ export function AIUserRegistration() {
     try {
       const files = images.map(img => img.file)
       
-      // OCR 배치 처리 시작 (자동 등록 비활성화로 검증 단계 거치도록)
-      await submitBatch(files, selectedGrade, {
-        autoRegister: false,        // 검증 단계를 거치도록
-        enableDuplicateCheck: true, // 중복 체크 활성화
-        skipValidation: false       // 검증 수행
-      })
+      // OCR 배치 처리 요청 객체 생성
+      const batchRequest: OCRBatchRequest = {
+        images: files,
+        userGrade: selectedGrade,
+        options: {
+          autoRegister: false,        // 검증 단계를 거치도록
+          enableDuplicateCheck: true, // 중복 체크 활성화
+          skipValidation: false       // 검증 수행
+        }
+      }
+      
+      // OCR 배치 처리 시작
+      await submitBatch(batchRequest)
       
     } catch (error) {
       console.error("OCR 배치 처리 시작 실패:", error)
@@ -266,7 +287,7 @@ export function AIUserRegistration() {
       // 모든 이미지를 실패 상태로 업데이트
       setImages(prev => prev.map(img => ({ 
         ...img, 
-        status: 'error',
+        status: 'failed',
         error: error instanceof Error ? error.message : "OCR 처리 시작에 실패했습니다."
       })))
 
@@ -343,12 +364,18 @@ export function AIUserRegistration() {
       // OCR 배치 처리로 다시 제출 (이번엔 자동 등록 활성화)
       const files = images.map(img => img.file)
       
-      await submitBatch(files, selectedGrade, {
-        autoRegister: true,         // 이번엔 자동 등록
-        enableDuplicateCheck: true, // 중복 체크 유지
-        skipValidation: false,      // 검증은 여전히 수행
-        overwriteExisting: false    // 기존 데이터 덮어쓰기 안함
-      })
+      const finalRequest: OCRBatchRequest = {
+        images: files,
+        userGrade: selectedGrade,
+        options: {
+          autoRegister: true,         // 이번엔 자동 등록
+          enableDuplicateCheck: true, // 중복 체크 유지
+          skipValidation: false,      // 검증은 여전히 수행
+          overwriteExisting: false    // 기존 데이터 덮어쓰기 안함
+        }
+      }
+      
+      await submitBatch(finalRequest)
       
       // submitBatch 완료 후 결과는 useOCRBatch의 onComplete에서 처리됨
       
@@ -487,15 +514,45 @@ export function AIUserRegistration() {
 
 
   // OCR 배치 처리 에러가 있으면 표시
-  if (batchError) {
+  if (batchError && currentStep === 'image-upload') {
     return (
-      <div className="container mx-auto py-8">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            OCR 배치 처리 중 오류가 발생했습니다: {batchError}
-          </AlertDescription>
-        </Alert>
+      <div className="container mx-auto py-8 space-y-6">
+        {/* 헤더 */}
+        <div className="space-y-4">
+          <nav className="flex items-center text-sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/users')}
+              className="h-9 px-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 rounded-lg -ml-3"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              연맹원 관리
+            </Button>
+            <span className="mx-2 text-muted-foreground/60">/</span>
+            <span className="font-semibold text-foreground">AI 연맹원 등록</span>
+          </nav>
+        </div>
+        
+        {/* OCR 에러 알림 */}
+        <OCRErrorAlert 
+          error={batchError}
+          onRetry={retryBatch}
+          onDismiss={() => {
+            resetBatchState()
+            setCurrentStep('image-upload')
+          }}
+        />
+        
+        {/* 이미지 업로드 컴포넌트도 함께 표시 */}
+        <ImageUploadZone
+          images={images}
+          onImagesAdd={handleImagesAdd}
+          onImageRemove={handleImageRemove}
+          onNext={goToNextStep}
+          onBack={goToPreviousStep}
+          isProcessing={isBatchProcessing || aiProgress.status === 'processing'}
+        />
       </div>
     )
   }
@@ -809,17 +866,17 @@ export function AIUserRegistration() {
                     <span className="text-lg font-medium">진행률</span>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-lg px-3 py-1">
-                        {batchProgress.processedImages} / {batchProgress.totalImages}
+                        {batchStatus?.progress?.processedImages || 0} / {batchStatus?.progress?.totalImages || images.length}
                       </Badge>
                       <Badge variant="outline" className="text-sm">
-                        {Math.round(batchProgress.percentage)}%
+                        {batchProgress}%
                       </Badge>
                     </div>
                   </div>
                   
                   <div className="relative">
                     <Progress 
-                      value={batchProgress.percentage} 
+                      value={batchProgress} 
                       className="w-full h-4" 
                     />
                   </div>
@@ -832,15 +889,15 @@ export function AIUserRegistration() {
                   )}
                   
                   {/* 예상 완료 시간 */}
-                  {batchProgress.estimatedTimeRemaining && (
+                  {estimatedTimeRemaining && (
                     <div className="text-sm text-muted-foreground">
-                      예상 완료 시간: 약 {Math.ceil(batchProgress.estimatedTimeRemaining / 60)}분 후
+                      예상 완료 시간: 약 {Math.ceil(estimatedTimeRemaining / 60000)}분 후
                     </div>
                   )}
                 </div>
                 
                 {/* 현재 처리 단계 */}
-                {batchProgress.stage && (
+                {batchStatus?.progress?.currentStage && (
                   <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-purple-200 dark:border-purple-800">
                     <div className="flex items-center gap-3">
                       <Search className="h-5 w-5 text-purple-600 animate-pulse" />
@@ -849,8 +906,13 @@ export function AIUserRegistration() {
                           현재 단계
                         </div>
                         <div className="text-lg font-semibold">
-                          {getStageDisplayMessage(batchProgress.stage, batchProgress.details)}
+                          {statusMessage}
                         </div>
+                        {batchStatus.progress.stageDetails && (
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {batchStatus.progress.stageDetails}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

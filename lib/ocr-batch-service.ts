@@ -1,210 +1,410 @@
 "use client"
 
-import { useOCRBatch } from "@/hooks/use-ocr-batch"
-import type { 
+import { 
+  submitOCRBatchJob, 
+  getOCRBatchStatus, 
+  cancelOCRBatchJob,
+  getOCRBatchResult 
+} from './api-service'
+import { 
+  OCRBatchRequest,
+  OCRBatchResponse,
+  OCRBatchStatusResponse,
   OCRBatchResult,
-  OCRProcessingStage,
+  OCRPollingConfig,
   OCRErrorMessage,
-  ValidatedPlayerInfo,
-  ExtractedPlayerInfo,
-  AIProgress
-} from "@/types/ai-user-types"
+  ValidatedPlayerInfo
+} from '@/types/ai-user-types'
 
 /**
- * OCR 배치 처리 서비스 클래스
- * 기존 GeminiAIService와 동일한 인터페이스를 유지하면서 배치 처리로 전환
+ * OCR 배치 처리 서비스
+ * 이미지 업로드, 상태 추적, 결과 조회를 관리
  */
 export class OCRBatchService {
-  private onProgressCallback?: (progress: AIProgress) => void
-  private onStageChangeCallback?: (stage: OCRProcessingStage, details?: string) => void
+  private static instance: OCRBatchService
+  private pollingIntervals: Map<string, NodeJS.Timeout> = new Map()
   
-  constructor() {
-    // 필요시 초기화 로직
+  // 기본 폴링 설정
+  private defaultPollingConfig: OCRPollingConfig = {
+    intervalMs: 2000, // 2초 간격
+    maxAttempts: 150, // 최대 5분 (2초 * 150 = 300초)
+    backoffMultiplier: 1.2, // 점진적 지연 증가
+    maxIntervalMs: 5000, // 최대 5초 간격
   }
-  
-  /**
-   * 진행률 콜백 설정
-   */
-  setProgressCallback(callback: (progress: AIProgress) => void) {
-    this.onProgressCallback = callback
-  }
-  
-  /**
-   * 단계 변경 콜백 설정
-   */
-  setStageChangeCallback(callback: (stage: OCRProcessingStage, details?: string) => void) {
-    this.onStageChangeCallback = callback
-  }
-  
-  /**
-   * OCR 배치 처리 시작
-   * @param images 처리할 이미지 파일 배열
-   * @param userGrade 사용자 등급
-   * @param options 처리 옵션
-   * @returns Promise<ExtractedPlayerInfo[]>
-   */
-  async processImagesBatch(
-    images: File[], 
-    userGrade: string,
-    options?: {
-      autoRegister?: boolean
-      skipValidation?: boolean
-      overwriteExisting?: boolean
-      enableDuplicateCheck?: boolean
+
+  private constructor() {}
+
+  static getInstance(): OCRBatchService {
+    if (!OCRBatchService.instance) {
+      OCRBatchService.instance = new OCRBatchService()
     }
-  ): Promise<{
-    success: boolean
-    players: ExtractedPlayerInfo[]
-    registrationResult?: {
-      insertedCount: number
-      updatedCount: number
-      rejoinedCount: number
-      failedCount: number
-      failedNames?: string[]
+    return OCRBatchService.instance
+  }
+
+  /**
+   * OCR 배치 작업 제출
+   */
+  async submitBatch(request: OCRBatchRequest): Promise<OCRBatchResponse> {
+    try {
+      const response = await submitOCRBatchJob(
+        request.images, 
+        request.userGrade, 
+        request.options
+      )
+      
+      console.log('[OCR] 배치 작업 제출 완료:', response)
+      return response
+    } catch (error) {
+      console.error('[OCR] 배치 작업 제출 실패:', error)
+      throw this.parseError(error)
     }
-    error?: string
-  }> {
-    return new Promise((resolve, reject) => {
-      // useOCRBatch 훅을 직접 사용할 수 없으므로 Promise로 래핑
-      const processOCR = async () => {
-        try {
-          const { submitBatch } = useOCRBatch({
-            onProgress: (progress) => {
-              if (this.onProgressCallback) {
-                this.onProgressCallback({
-                  total: progress.totalImages || images.length,
-                  processed: progress.processedImages || 0,
-                  status: 'processing',
-                  currentImage: progress.details
-                })
-              }
-              
-              if (this.onStageChangeCallback) {
-                this.onStageChangeCallback(progress.stage, progress.details)
-              }
-            },
-            onComplete: (result: OCRBatchResult) => {
-              // OCRBatchResult를 ExtractedPlayerInfo[]로 변환
-              const players: ExtractedPlayerInfo[] = result.extractedPlayers.map((player, index) => ({
-                nickname: player.nickname,
-                power: player.power,
-                level: player.level,
-                imageIndex: player.imageIndex || index
-              }))
-              
-              resolve({
-                success: true,
-                players,
-                registrationResult: result.registrationResult
-              })
-            },
-            onError: (error: OCRErrorMessage) => {
-              resolve({
-                success: false,
-                players: [],
-                error: error.userFriendlyMessage
-              })
-            }
+  }
+
+  /**
+   * 배치 상태 조회
+   */
+  async getBatchStatus(batchId: string): Promise<OCRBatchStatusResponse> {
+    try {
+      const response = await getOCRBatchStatus(batchId)
+      return response
+    } catch (error) {
+      console.error('[OCR] 배치 상태 조회 실패:', error)
+      throw this.parseError(error)
+    }
+  }
+
+  /**
+   * 배치 결과 조회
+   */
+  async getBatchResult(batchId: string): Promise<OCRBatchResult> {
+    try {
+      const response = await getOCRBatchResult(batchId)
+      return response
+    } catch (error) {
+      console.error('[OCR] 배치 결과 조회 실패:', error)
+      throw this.parseError(error)
+    }
+  }
+
+  /**
+   * 배치 작업 취소
+   */
+  async cancelBatch(batchId: string, reason?: string): Promise<void> {
+    try {
+      await cancelOCRBatchJob(batchId, reason)
+      this.stopPolling(batchId)
+      console.log('[OCR] 배치 작업 취소 완료:', batchId)
+    } catch (error) {
+      console.error('[OCR] 배치 작업 취소 실패:', error)
+      throw this.parseError(error)
+    }
+  }
+
+  /**
+   * 상태 폴링 시작
+   */
+  startPolling(
+    batchId: string,
+    onUpdate: (status: OCRBatchStatusResponse) => void,
+    onComplete: (result: OCRBatchResult) => void,
+    onError: (error: OCRErrorMessage) => void,
+    config?: Partial<OCRPollingConfig>
+  ): void {
+    // 기존 폴링 중지
+    this.stopPolling(batchId)
+
+    const pollingConfig = { ...this.defaultPollingConfig, ...config }
+    let attempt = 0
+    let currentInterval = pollingConfig.intervalMs
+
+    const poll = async () => {
+      try {
+        attempt++
+        console.log(`[OCR] 폴링 시도 ${attempt}/${pollingConfig.maxAttempts} - ${batchId}`)
+
+        const status = await this.getBatchStatus(batchId)
+        onUpdate(status)
+
+        // 완료된 경우
+        if (status.status === 'COMPLETED') {
+          this.stopPolling(batchId)
+          try {
+            const result = await this.getBatchResult(batchId)
+            onComplete(result)
+          } catch (resultError) {
+            console.error('[OCR] 결과 조회 실패:', resultError)
+            onError(this.parseError(resultError))
+          }
+          return
+        }
+
+        // 실패한 경우
+        if (status.status === 'FAILED' || status.status === 'CANCELLED') {
+          this.stopPolling(batchId)
+          onError({
+            code: status.status,
+            message: status.error || '작업이 실패했습니다.',
+            type: 'SERVER_ERROR',
+            userFriendlyMessage: status.status === 'CANCELLED' 
+              ? '작업이 취소되었습니다.' 
+              : '처리 중 오류가 발생했습니다.',
+            retryable: status.status === 'FAILED'
           })
-          
-          await submitBatch(images, userGrade, options)
-        } catch (error) {
-          reject(error)
+          return
+        }
+
+        // 최대 시도 횟수 초과
+        if (attempt >= pollingConfig.maxAttempts) {
+          this.stopPolling(batchId)
+          onError({
+            code: 'TIMEOUT',
+            message: '작업 완료 대기 시간이 초과되었습니다.',
+            type: 'SERVER_ERROR',
+            userFriendlyMessage: '처리 시간이 예상보다 오래 걸리고 있습니다. 잠시 후 다시 시도해 주세요.',
+            retryable: true
+          })
+          return
+        }
+
+        // 다음 폴링 스케줄링 (백오프 적용)
+        currentInterval = Math.min(
+          currentInterval * pollingConfig.backoffMultiplier,
+          pollingConfig.maxIntervalMs
+        )
+
+        const timeoutId = setTimeout(poll, currentInterval)
+        this.pollingIntervals.set(batchId, timeoutId)
+
+      } catch (error) {
+        console.error('[OCR] 폴링 중 오류:', error)
+        
+        // 일시적 네트워크 오류는 계속 재시도
+        if (attempt < pollingConfig.maxAttempts) {
+          const timeoutId = setTimeout(poll, currentInterval * 2) // 오류시 대기 시간 증가
+          this.pollingIntervals.set(batchId, timeoutId)
+        } else {
+          this.stopPolling(batchId)
+          onError(this.parseError(error))
         }
       }
-      
-      processOCR()
-    })
+    }
+
+    // 첫 번째 폴링 시작
+    poll()
   }
-  
+
   /**
-   * 기존 extractPlayerInfo 메서드와 호환성을 위한 래퍼
-   * @deprecated 단일 이미지 처리는 더 이상 권장되지 않습니다. processImagesBatch를 사용하세요.
+   * 폴링 중지
    */
-  async extractPlayerInfo(file: File, imageIndex: number): Promise<{
-    success: boolean
-    players: ExtractedPlayerInfo[]
-    error?: string
-  }> {
-    console.warn('[DEPRECATED] extractPlayerInfo는 deprecated되었습니다. processImagesBatch를 사용하세요.')
-    
-    try {
-      // 단일 이미지를 배치 처리로 변환
-      const result = await this.processImagesBatch([file], 'R1', {
-        autoRegister: false,
-        skipValidation: true
-      })
+  stopPolling(batchId: string): void {
+    const timeoutId = this.pollingIntervals.get(batchId)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      this.pollingIntervals.delete(batchId)
+      console.log('[OCR] 폴링 중지:', batchId)
+    }
+  }
+
+  /**
+   * 모든 폴링 중지
+   */
+  stopAllPolling(): void {
+    this.pollingIntervals.forEach((timeoutId, batchId) => {
+      clearTimeout(timeoutId)
+      console.log('[OCR] 폴링 중지:', batchId)
+    })
+    this.pollingIntervals.clear()
+  }
+
+  /**
+   * 현재 폴링 중인 작업들
+   */
+  getActivePolling(): string[] {
+    return Array.from(this.pollingIntervals.keys())
+  }
+
+  /**
+   * 에러 파싱 및 사용자 친화적 메시지 생성
+   */
+  private parseError(error: unknown): OCRErrorMessage {
+    console.error('[OCR] 에러 파싱:', error)
+
+    if (error instanceof Error) {
+      const errorWithStatus = error as Error & { status?: number; data?: any }
       
-      return {
-        success: result.success,
-        players: result.players.map(player => ({
-          ...player,
-          imageIndex
-        })),
-        error: result.error
+      // API 제한 에러 처리
+      if (errorWithStatus.status === 429 || 
+          errorWithStatus.message.includes('quota') ||
+          errorWithStatus.message.includes('limit')) {
+        return {
+          code: 'QUOTA_EXCEEDED',
+          message: errorWithStatus.message,
+          type: 'QUOTA_EXCEEDED',
+          userFriendlyMessage: 'API 사용량이 초과되었습니다. 잠시 후 다시 시도해 주세요.',
+          retryable: true,
+          retryAfterSeconds: 60
+        }
       }
-    } catch (error) {
-      return {
-        success: false,
-        players: [],
-        error: error instanceof Error ? error.message : 'OCR 처리 중 오류가 발생했습니다.'
+
+      // 서버 에러
+      if (errorWithStatus.status && errorWithStatus.status >= 500) {
+        return {
+          code: 'SERVER_ERROR',
+          message: errorWithStatus.message,
+          type: 'SERVER_ERROR',
+          userFriendlyMessage: '서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+          retryable: true
+        }
       }
+
+      // 클라이언트 에러 (4xx)
+      if (errorWithStatus.status && errorWithStatus.status >= 400 && errorWithStatus.status < 500) {
+        return {
+          code: 'VALIDATION_ERROR',
+          message: errorWithStatus.message,
+          type: 'VALIDATION_ERROR',
+          userFriendlyMessage: errorWithStatus.message || '요청 데이터에 문제가 있습니다.',
+          retryable: false
+        }
+      }
+
+      // 일반 에러
+      return {
+        code: 'UNKNOWN_ERROR',
+        message: errorWithStatus.message,
+        type: 'SERVER_ERROR',
+        userFriendlyMessage: '예기치 못한 오류가 발생했습니다.',
+        retryable: true
+      }
+    }
+
+    // 알 수 없는 에러
+    return {
+      code: 'UNKNOWN_ERROR',
+      message: String(error),
+      type: 'SERVER_ERROR',
+      userFriendlyMessage: '예기치 못한 오류가 발생했습니다.',
+      retryable: true
+    }
+  }
+
+  /**
+   * 이미지 파일 유효성 검사
+   */
+  validateImages(images: File[]): { valid: boolean; errors: string[] } {
+    const errors: string[] = []
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    const maxImages = 20
+
+    if (images.length === 0) {
+      errors.push('최소 1개 이상의 이미지를 업로드해야 합니다.')
+      return { valid: false, errors }
+    }
+
+    if (images.length > maxImages) {
+      errors.push(`최대 ${maxImages}개까지만 업로드할 수 있습니다.`)
+    }
+
+    images.forEach((image, index) => {
+      if (!allowedTypes.includes(image.type)) {
+        errors.push(`${index + 1}번째 이미지: 지원하지 않는 파일 형식입니다. (JPG, PNG, WebP만 지원)`)
+      }
+
+      if (image.size > maxSize) {
+        errors.push(`${index + 1}번째 이미지: 파일 크기가 너무 큽니다. (최대 10MB)`)
+      }
+    })
+
+    return { valid: errors.length === 0, errors }
+  }
+
+  /**
+   * 배치 처리 진행률 계산
+   */
+  calculateProgress(status: OCRBatchStatusResponse): number {
+    if (!status.progress) return 0
+
+    const { processedImages, totalImages } = status.progress
+    if (totalImages === 0) return 0
+
+    return Math.round((processedImages / totalImages) * 100)
+  }
+
+  /**
+   * 예상 완료 시간 계산 (밀리초)
+   */
+  estimateCompletionTime(status: OCRBatchStatusResponse): number | null {
+    if (!status.progress || status.estimatedTimeRemaining === undefined) {
+      return null
+    }
+
+    return status.estimatedTimeRemaining * 1000 // 초를 밀리초로 변환
+  }
+
+  /**
+   * 사용자 친화적 상태 메시지 생성
+   */
+  getStatusMessage(status: OCRBatchStatusResponse): string {
+    switch (status.status) {
+      case 'PENDING':
+        return '작업 대기 중...'
+      case 'PROCESSING':
+        if (status.progress) {
+          const { currentImageIndex, totalImages, currentStage } = status.progress
+          const stageMessage = this.getStageMessage(currentStage)
+          return `${stageMessage} (${currentImageIndex + 1}/${totalImages})`
+        }
+        return '처리 중...'
+      case 'COMPLETED':
+        return '처리 완료'
+      case 'FAILED':
+        return '처리 실패'
+      case 'CANCELLED':
+        return '작업 취소됨'
+      default:
+        return '알 수 없는 상태'
+    }
+  }
+
+  /**
+   * 처리 단계별 메시지
+   */
+  private getStageMessage(stage: string): string {
+    switch (stage) {
+      case 'QUEUE_WAITING':
+        return '대기열에서 대기 중'
+      case 'IMAGE_PREPROCESSING':
+        return '이미지 전처리 중'
+      case 'OCR_ANALYSIS':
+        return 'OCR 분석 중'
+      case 'DATA_VALIDATION':
+        return '데이터 검증 중'
+      case 'USER_REGISTRATION':
+        return '사용자 등록 중'
+      case 'FINALIZING':
+        return '마무리 중'
+      default:
+        return '처리 중'
     }
   }
 }
 
-/**
- * OCR 배치 처리 결과를 ValidatedPlayerInfo로 변환하는 유틸리티 함수
- */
-export function convertOCRResultToValidatedPlayers(
-  result: OCRBatchResult
-): ValidatedPlayerInfo[] {
-  return result.extractedPlayers.map((player, index) => ({
-    nickname: player.nickname,
-    power: player.power,
-    level: player.level,
-    imageIndex: player.imageIndex || index,
-    isValid: player.isValid,
-    errors: player.errors,
-    isDuplicate: player.isDuplicate,
-    duplicateWith: player.duplicateWith,
-    editedNickname: player.editedNickname,
-    editedPower: player.editedPower,
-    editedLevel: player.editedLevel,
-    existenceStatus: player.existenceStatus
-  }))
-}
+// 싱글톤 인스턴스 내보내기
+export const ocrBatchService = OCRBatchService.getInstance()
 
-/**
- * OCR 처리 단계를 사용자 친화적 메시지로 변환
- */
-export function getStageDisplayMessage(stage: OCRProcessingStage, details?: string): string {
-  const stageMessages: Record<OCRProcessingStage, string> = {
-    'QUEUE_WAITING': '대기열에서 대기 중...',
-    'IMAGE_PREPROCESSING': '이미지 전처리 중...',
-    'OCR_ANALYSIS': 'AI가 이미지를 분석 중...',
-    'DATA_VALIDATION': '추출된 데이터 검증 중...',
-    'USER_REGISTRATION': '연맹원 정보 등록 중...',
-    'FINALIZING': '처리 완료 중...'
+// 컴포넌트 언마운트 시 정리를 위한 헬퍼
+export const useOCRBatchCleanup = () => {
+  if (typeof window !== 'undefined') {
+    const cleanup = () => {
+      ocrBatchService.stopAllPolling()
+    }
+
+    window.addEventListener('beforeunload', cleanup)
+    return () => {
+      window.removeEventListener('beforeunload', cleanup)
+      cleanup()
+    }
   }
-  
-  const baseMessage = stageMessages[stage] || '처리 중...'
-  return details ? `${baseMessage} (${details})` : baseMessage
-}
-
-/**
- * 에러 타입에 따른 재시도 가능성 확인
- */
-export function isRetryableError(error: OCRErrorMessage): boolean {
-  return error.retryable && (
-    error.type === 'API_LIMIT' || 
-    error.type === 'SERVER_ERROR'
-  )
-}
-
-/**
- * 에러 메시지에서 재시도 권장 시간 추출
- */
-export function getRetryAfterSeconds(error: OCRErrorMessage): number {
-  return error.retryAfterSeconds || (error.type === 'API_LIMIT' ? 60 : 30)
+  return () => {}
 }

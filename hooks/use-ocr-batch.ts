@@ -1,379 +1,315 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { 
-  submitOCRBatchJob, 
-  getOCRBatchStatus, 
-  cancelOCRBatchJob,
-  getOCRBatchResult 
-} from "@/lib/api-service"
-import type { 
-  OCRBatchResponse, 
-  OCRBatchStatusResponse, 
+  OCRBatchRequest,
+  OCRBatchResponse,
+  OCRBatchStatusResponse,
   OCRBatchResult,
-  OCRBatchStatus,
-  OCRProcessingStage,
   OCRErrorMessage,
+  ValidatedPlayerInfo,
   OCRPollingConfig
-} from "@/types/ai-user-types"
+} from '@/types/ai-user-types'
+import { ocrBatchService, useOCRBatchCleanup } from '@/lib/ocr-batch-service'
 
-interface UseOCRBatchOptions {
-  pollingConfig?: Partial<OCRPollingConfig>
-  onProgress?: (progress: { percentage: number; stage: OCRProcessingStage; details?: string }) => void
+export interface UseOCRBatchOptions {
   onComplete?: (result: OCRBatchResult) => void
   onError?: (error: OCRErrorMessage) => void
+  onProgress?: (status: OCRBatchStatusResponse) => void
+  pollingConfig?: Partial<OCRPollingConfig>
+  autoCleanup?: boolean
 }
 
-interface UseOCRBatchReturn {
-  // 상태
-  isProcessing: boolean
+export interface UseOCRBatchState {
+  // 현재 상태
   batchId: string | null
-  status: OCRBatchStatus | null
-  progress: {
-    percentage: number
-    stage: OCRProcessingStage | null
-    details?: string
-    processedImages: number
-    totalImages: number
-    estimatedTimeRemaining?: number
-  }
+  status: OCRBatchStatusResponse | null
   result: OCRBatchResult | null
-  error: string | null
+  error: OCRErrorMessage | null
   
-  // 액션
-  submitBatch: (images: File[], userGrade: string, options?: {
-    autoRegister?: boolean
-    skipValidation?: boolean
-    overwriteExisting?: boolean
-    enableDuplicateCheck?: boolean
-  }) => Promise<void>
-  cancelBatch: (reason?: string) => Promise<void>
-  resetState: () => void
+  // UI 상태
+  isSubmitting: boolean
+  isProcessing: boolean
+  isCompleted: boolean
+  isFailed: boolean
+  isCancelled: boolean
+  
+  // 진행 상태
+  progress: number
+  statusMessage: string
+  estimatedTimeRemaining: number | null
+  
+  // 메타데이터
+  startTime: Date | null
+  endTime: Date | null
+  processingDuration: number | null
 }
 
+export interface UseOCRBatchActions {
+  submitBatch: (request: OCRBatchRequest) => Promise<void>
+  cancelBatch: (reason?: string) => Promise<void>
+  reset: () => void
+  retry: () => Promise<void>
+  validateImages: (images: File[]) => { valid: boolean; errors: string[] }
+}
+
+export interface UseOCRBatchReturn {
+  state: UseOCRBatchState
+  actions: UseOCRBatchActions
+}
+
+/**
+ * OCR 배치 처리를 위한 커스텀 훅
+ * 
+ * @param options 설정 옵션
+ * @returns 상태와 액션들
+ */
 export function useOCRBatch(options: UseOCRBatchOptions = {}): UseOCRBatchReturn {
-  const { toast } = useToast()
-  
-  // 기본 폴링 설정
-  const defaultPollingConfig: OCRPollingConfig = {
-    intervalMs: 2000,        // 2초 간격
-    maxAttempts: 150,        // 최대 5분 (2초 * 150회)
-    backoffMultiplier: 1.1,  // 점진적 지연 증가
-    maxIntervalMs: 5000      // 최대 5초 간격
-  }
-  
-  const pollingConfig = { ...defaultPollingConfig, ...options.pollingConfig }
-  
+  // 옵션 기본값 설정
+  const {
+    onComplete,
+    onError,
+    onProgress,
+    pollingConfig,
+    autoCleanup = true
+  } = options
+
   // 상태 관리
-  const [isProcessing, setIsProcessing] = useState(false)
   const [batchId, setBatchId] = useState<string | null>(null)
-  const [status, setStatus] = useState<OCRBatchStatus | null>(null)
-  const [progress, setProgress] = useState({
-    percentage: 0,
-    stage: null as OCRProcessingStage | null,
-    details: undefined as string | undefined,
-    processedImages: 0,
-    totalImages: 0,
-    estimatedTimeRemaining: undefined as number | undefined
-  })
+  const [status, setStatus] = useState<OCRBatchStatusResponse | null>(null)
   const [result, setResult] = useState<OCRBatchResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  
-  // 폴링 관련 ref
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const pollingAttemptsRef = useRef(0)
-  const currentIntervalRef = useRef(pollingConfig.intervalMs)
-  
-  // 폴링 정리 함수
-  const clearPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
+  const [error, setError] = useState<OCRErrorMessage | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [startTime, setStartTime] = useState<Date | null>(null)
+  const [endTime, setEndTime] = useState<Date | null>(null)
+
+  // 이전 요청 추적용
+  const lastRequestRef = useRef<OCRBatchRequest | null>(null)
+
+  // 자동 정리 설정
+  const cleanup = useOCRBatchCleanup()
+  useEffect(() => {
+    if (autoCleanup) {
+      return cleanup
     }
-    pollingAttemptsRef.current = 0
-    currentIntervalRef.current = pollingConfig.intervalMs
-  }, [pollingConfig.intervalMs])
+  }, [autoCleanup, cleanup])
+
+  // 파생된 상태들
+  const isProcessing = status?.status === 'PROCESSING' || status?.status === 'PENDING'
+  const isCompleted = status?.status === 'COMPLETED'
+  const isFailed = status?.status === 'FAILED'
+  const isCancelled = status?.status === 'CANCELLED'
+  const progress = status ? ocrBatchService.calculateProgress(status) : 0
+  const statusMessage = status ? ocrBatchService.getStatusMessage(status) : ''
+  const estimatedTimeRemaining = status ? ocrBatchService.estimateCompletionTime(status) : null
   
-  // 상태 업데이트 함수
-  const updateProgress = useCallback((statusResponse: OCRBatchStatusResponse) => {
-    const { progress: batchProgress, status: batchStatus } = statusResponse
-    
-    setStatus(batchStatus)
-    setProgress({
-      percentage: batchProgress.percentage,
-      stage: batchProgress.currentStage,
-      details: batchProgress.stageDetails,
-      processedImages: batchProgress.processedImages,
-      totalImages: batchProgress.totalImages,
-      estimatedTimeRemaining: statusResponse.estimatedTimeRemaining
-    })
-    
-    // 콜백 호출
-    if (options.onProgress) {
-      options.onProgress({
-        percentage: batchProgress.percentage,
-        stage: batchProgress.currentStage,
-        details: batchProgress.stageDetails
-      })
-    }
-  }, [options])
-  
-  // 에러 처리 함수
-  const handleError = useCallback((errorMessage: string, errorType?: OCRErrorMessage['type']) => {
-    setError(errorMessage)
-    setIsProcessing(false)
-    clearPolling()
-    
-    // 사용자 친화적 에러 메시지 생성
-    let userFriendlyMessage = errorMessage
-    let retryable = false
-    
-    if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('할당량')) {
-      userFriendlyMessage = "현재 요청량이 많아 잠시 후 시도해주세요"
-      retryable = true
-    } else if (errorMessage.includes('daily') || errorMessage.includes('금일') || errorMessage.includes('소진')) {
-      userFriendlyMessage = "금일 사용량을 모두 소진되었습니다. 내일 다시 시도해주세요"
-      retryable = false
-    } else if (errorMessage.includes('503') || errorMessage.includes('과부하')) {
-      userFriendlyMessage = "서버가 과부하 상태입니다. 잠시 후 다시 시도해주세요"
-      retryable = true
-    }
-    
-    const ocrError: OCRErrorMessage = {
-      code: errorType === 'API_LIMIT' ? 'API_LIMIT' : 'UNKNOWN_ERROR',
-      message: errorMessage,
-      type: errorType || 'SERVER_ERROR',
-      userFriendlyMessage,
-      retryable
-    }
-    
-    if (options.onError) {
-      options.onError(ocrError)
-    }
-    
-    toast({
-      title: "OCR 처리 오류",
-      description: userFriendlyMessage,
-      variant: "destructive",
-      duration: retryable ? 8000 : 12000
-    })
-  }, [options, toast, clearPolling])
-  
-  // 배치 상태 폴링
-  const pollBatchStatus = useCallback(async (currentBatchId: string) => {
+  const processingDuration = startTime && endTime 
+    ? endTime.getTime() - startTime.getTime() 
+    : startTime && isProcessing 
+    ? Date.now() - startTime.getTime() 
+    : null
+
+  // 상태 업데이트 핸들러
+  const handleStatusUpdate = useCallback((newStatus: OCRBatchStatusResponse) => {
+    console.log('[OCR Hook] 상태 업데이트:', newStatus)
+    setStatus(newStatus)
+    setError(null) // 상태 업데이트 시 에러 클리어
+    onProgress?.(newStatus)
+  }, [onProgress])
+
+  // 완료 핸들러
+  const handleComplete = useCallback((newResult: OCRBatchResult) => {
+    console.log('[OCR Hook] 처리 완료:', newResult)
+    setResult(newResult)
+    setEndTime(new Date())
+    setIsSubmitting(false)
+    onComplete?.(newResult)
+  }, [onComplete])
+
+  // 에러 핸들러
+  const handleError = useCallback((newError: OCRErrorMessage) => {
+    console.error('[OCR Hook] 에러 발생:', newError)
+    setError(newError)
+    setEndTime(new Date())
+    setIsSubmitting(false)
+    onError?.(newError)
+  }, [onError])
+
+  // 배치 작업 제출
+  const submitBatch = useCallback(async (request: OCRBatchRequest) => {
     try {
-      pollingAttemptsRef.current++
+      console.log('[OCR Hook] 배치 작업 제출 시작:', request)
       
-      const statusResponse = await getOCRBatchStatus(currentBatchId) as OCRBatchStatusResponse
-      
-      updateProgress(statusResponse)
-      
-      // 완료 상태 확인
-      if (statusResponse.status === 'COMPLETED') {
-        clearPolling()
-        setIsProcessing(false)
-        
-        // 결과 가져오기
-        try {
-          const batchResult = await getOCRBatchResult(currentBatchId) as OCRBatchResult
-          setResult(batchResult)
-          
-          if (options.onComplete) {
-            options.onComplete(batchResult)
-          }
-          
-          // 성공 토스트
-          const { registrationResult } = batchResult
-          if (registrationResult) {
-            const messageParts = []
-            if (registrationResult.insertedCount > 0) messageParts.push(`신규 ${registrationResult.insertedCount}명`)
-            if (registrationResult.updatedCount > 0) messageParts.push(`업데이트 ${registrationResult.updatedCount}명`)
-            if (registrationResult.rejoinedCount > 0) messageParts.push(`재가입 ${registrationResult.rejoinedCount}명`)
-            
-            toast({
-              title: "OCR 배치 처리 완료",
-              description: messageParts.length > 0 ? messageParts.join(", ") : `${batchResult.extractedPlayers.length}명 처리 완료`,
-              duration: 8000
-            })
-          }
-        } catch (resultError) {
-          console.error("결과 조회 실패:", resultError)
-          handleError("결과를 가져오는데 실패했습니다.")
-        }
-        
-      } else if (statusResponse.status === 'FAILED') {
-        clearPolling()
-        setIsProcessing(false)
-        handleError(statusResponse.error || "배치 처리가 실패했습니다.")
-        
-      } else if (statusResponse.status === 'CANCELLED') {
-        clearPolling()
-        setIsProcessing(false)
-        toast({
-          title: "배치 처리 취소됨",
-          description: "OCR 배치 처리가 취소되었습니다.",
-          variant: "default"
-        })
-        
-      } else {
-        // 계속 처리 중 - 다음 폴링 스케줄링
-        if (pollingAttemptsRef.current < pollingConfig.maxAttempts) {
-          pollingIntervalRef.current = setTimeout(() => {
-            pollBatchStatus(currentBatchId)
-          }, currentIntervalRef.current)
-          
-          // 백오프 적용
-          currentIntervalRef.current = Math.min(
-            currentIntervalRef.current * pollingConfig.backoffMultiplier,
-            pollingConfig.maxIntervalMs
-          )
-        } else {
-          clearPolling()
-          setIsProcessing(false)
-          handleError("배치 처리 시간이 초과되었습니다. 상태를 확인해주세요.")
-        }
-      }
-      
-    } catch (pollError) {
-      console.error("배치 상태 폴링 오류:", pollError)
-      
-      // 재시도 가능한 에러인지 확인
-      if (pollingAttemptsRef.current < pollingConfig.maxAttempts) {
-        pollingIntervalRef.current = setTimeout(() => {
-          pollBatchStatus(currentBatchId)
-        }, currentIntervalRef.current * 2) // 에러 시 더 긴 지연
-      } else {
-        clearPolling()
-        setIsProcessing(false)
-        handleError("배치 상태 확인에 실패했습니다.")
-      }
-    }
-  }, [updateProgress, clearPolling, options, toast, pollingConfig, handleError])
-  
-  // 배치 제출
-  const submitBatch = useCallback(async (
-    images: File[], 
-    userGrade: string, 
-    submitOptions?: {
-      autoRegister?: boolean
-      skipValidation?: boolean
-      overwriteExisting?: boolean
-      enableDuplicateCheck?: boolean
-    }
-  ) => {
-    try {
-      setIsProcessing(true)
+      // 상태 초기화
+      setIsSubmitting(true)
       setError(null)
       setResult(null)
-      setProgress({
-        percentage: 0,
-        stage: 'QUEUE_WAITING',
-        details: "배치 작업을 제출하는 중...",
-        processedImages: 0,
-        totalImages: images.length
-      })
+      setStatus(null)
+      setBatchId(null)
+      setStartTime(new Date())
+      setEndTime(null)
       
-      const response = await submitOCRBatchJob(images, userGrade, submitOptions) as OCRBatchResponse
+      // 이전 요청 저장
+      lastRequestRef.current = request
+
+      // 이미지 유효성 검사
+      const validation = ocrBatchService.validateImages(request.images)
+      if (!validation.valid) {
+        throw {
+          code: 'VALIDATION_ERROR',
+          message: validation.errors.join(', '),
+          type: 'VALIDATION_ERROR',
+          userFriendlyMessage: validation.errors.join('\n'),
+          retryable: false
+        } as OCRErrorMessage
+      }
+
+      // 배치 작업 제출
+      const response = await ocrBatchService.submitBatch(request)
+      console.log('[OCR Hook] 배치 작업 제출 완료:', response)
       
       setBatchId(response.batchId)
-      setStatus(response.status)
-      
-      toast({
-        title: "배치 처리 시작됨",
-        description: `${images.length}개 이미지의 OCR 배치 처리가 시작되었습니다.`,
-        duration: 5000
-      })
-      
+
       // 폴링 시작
-      pollingAttemptsRef.current = 0
-      currentIntervalRef.current = pollingConfig.intervalMs
+      ocrBatchService.startPolling(
+        response.batchId,
+        handleStatusUpdate,
+        handleComplete,
+        handleError,
+        pollingConfig
+      )
+
+    } catch (error) {
+      console.error('[OCR Hook] 배치 작업 제출 실패:', error)
+      setIsSubmitting(false)
+      setEndTime(new Date())
       
-      // 초기 지연 후 폴링 시작
-      setTimeout(() => {
-        pollBatchStatus(response.batchId)
-      }, 1000)
-      
-    } catch (submitError) {
-      console.error("배치 제출 실패:", submitError)
-      setIsProcessing(false)
-      
-      if (submitError instanceof Error) {
-        if (submitError.message.includes('429')) {
-          handleError(submitError.message, 'API_LIMIT')
-        } else if (submitError.message.includes('quota')) {
-          handleError(submitError.message, 'QUOTA_EXCEEDED')
-        } else {
-          handleError(submitError.message, 'SERVER_ERROR')
-        }
+      // 에러 타입 확인 후 처리
+      if (error && typeof error === 'object' && 'code' in error) {
+        handleError(error as OCRErrorMessage)
       } else {
-        handleError("배치 작업 제출에 실패했습니다.", 'SERVER_ERROR')
+        handleError({
+          code: 'SUBMIT_ERROR',
+          message: error instanceof Error ? error.message : String(error),
+          type: 'SERVER_ERROR',
+          userFriendlyMessage: '작업 제출 중 오류가 발생했습니다.',
+          retryable: true
+        })
       }
     }
-  }, [toast, pollingConfig, pollBatchStatus, handleError])
-  
-  // 배치 취소
+  }, [handleStatusUpdate, handleComplete, handleError, pollingConfig])
+
+  // 배치 작업 취소
   const cancelBatch = useCallback(async (reason?: string) => {
-    if (!batchId) return
-    
+    if (!batchId) {
+      console.warn('[OCR Hook] 취소할 배치 ID가 없습니다')
+      return
+    }
+
     try {
-      await cancelOCRBatchJob(batchId, reason)
-      clearPolling()
-      setIsProcessing(false)
-      setStatus('CANCELLED')
+      console.log('[OCR Hook] 배치 작업 취소 시작:', batchId)
+      await ocrBatchService.cancelBatch(batchId, reason)
+      console.log('[OCR Hook] 배치 작업 취소 완료')
       
-      toast({
-        title: "배치 처리 취소됨",
-        description: "OCR 배치 처리가 성공적으로 취소되었습니다.",
-        variant: "default"
-      })
-    } catch (cancelError) {
-      console.error("배치 취소 실패:", cancelError)
-      toast({
-        title: "취소 실패",
-        description: "배치 처리 취소에 실패했습니다.",
-        variant: "destructive"
+      setEndTime(new Date())
+      setIsSubmitting(false)
+      
+    } catch (error) {
+      console.error('[OCR Hook] 배치 작업 취소 실패:', error)
+      handleError({
+        code: 'CANCEL_ERROR',
+        message: error instanceof Error ? error.message : '취소 중 오류 발생',
+        type: 'SERVER_ERROR',
+        userFriendlyMessage: '작업 취소 중 오류가 발생했습니다.',
+        retryable: false
       })
     }
-  }, [batchId, clearPolling, toast])
-  
-  // 상태 초기화
-  const resetState = useCallback(() => {
-    clearPolling()
-    setIsProcessing(false)
+  }, [batchId, handleError])
+
+  // 상태 리셋
+  const reset = useCallback(() => {
+    console.log('[OCR Hook] 상태 리셋')
+    
+    // 진행 중인 폴링 중지
+    if (batchId) {
+      ocrBatchService.stopPolling(batchId)
+    }
+
     setBatchId(null)
     setStatus(null)
-    setProgress({
-      percentage: 0,
-      stage: null,
-      details: undefined,
-      processedImages: 0,
-      totalImages: 0,
-      estimatedTimeRemaining: undefined
-    })
     setResult(null)
     setError(null)
-  }, [clearPolling])
-  
-  // 컴포넌트 언마운트 시 정리
+    setIsSubmitting(false)
+    setStartTime(null)
+    setEndTime(null)
+    lastRequestRef.current = null
+  }, [batchId])
+
+  // 재시도
+  const retry = useCallback(async () => {
+    if (!lastRequestRef.current) {
+      console.warn('[OCR Hook] 재시도할 이전 요청이 없습니다')
+      return
+    }
+
+    console.log('[OCR Hook] 재시도 시작')
+    await submitBatch(lastRequestRef.current)
+  }, [submitBatch])
+
+  // 이미지 유효성 검사
+  const validateImages = useCallback((images: File[]) => {
+    return ocrBatchService.validateImages(images)
+  }, [])
+
+  // 컴포넌트 언마운트 시 폴링 정리
   useEffect(() => {
     return () => {
-      clearPolling()
+      if (batchId) {
+        ocrBatchService.stopPolling(batchId)
+      }
     }
-  }, [clearPolling])
-  
+  }, [batchId])
+
+  // 디버깅을 위한 로그
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[OCR Hook] 상태 변경:', {
+        batchId,
+        status: status?.status,
+        progress,
+        isSubmitting,
+        isProcessing,
+        isCompleted,
+        isFailed,
+        error: error?.code
+      })
+    }
+  }, [batchId, status, progress, isSubmitting, isProcessing, isCompleted, isFailed, error])
+
   return {
-    // 상태
-    isProcessing,
-    batchId,
-    status,
-    progress,
-    result,
-    error,
-    
-    // 액션
-    submitBatch,
-    cancelBatch,
-    resetState
+    state: {
+      batchId,
+      status,
+      result,
+      error,
+      isSubmitting,
+      isProcessing,
+      isCompleted,
+      isFailed,
+      isCancelled,
+      progress,
+      statusMessage,
+      estimatedTimeRemaining,
+      startTime,
+      endTime,
+      processingDuration
+    },
+    actions: {
+      submitBatch,
+      cancelBatch,
+      reset,
+      retry,
+      validateImages
+    }
   }
 }
