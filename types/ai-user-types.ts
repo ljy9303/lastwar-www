@@ -225,3 +225,93 @@ export interface AIUsageTracking {
   completedAt?: string
   error?: string
 }
+
+// OCR 배치 처리 관련 타입들
+export interface OCRBatchRequest {
+  images: File[]
+  userGrade: string
+  options?: OCRProcessingOptions
+}
+
+export interface OCRBatchResponse {
+  batchId: string
+  status: OCRBatchStatus
+  message: string
+  estimatedCompletionTime?: string
+}
+
+export interface OCRBatchStatusResponse {
+  batchId: string
+  status: OCRBatchStatus
+  progress: OCRBatchProgress
+  result?: OCRBatchResult
+  error?: string
+  createdAt: string
+  updatedAt: string
+  estimatedTimeRemaining?: number // seconds
+}
+
+export interface OCRBatchProgress {
+  totalImages: number
+  processedImages: number
+  currentImageIndex: number
+  percentage: number
+  currentStage: OCRProcessingStage
+  stageDetails?: string
+}
+
+export interface OCRBatchResult {
+  totalProcessed: number
+  successfullyProcessed: number
+  failedImages: number
+  extractedPlayers: ValidatedPlayerInfo[]
+  registrationResult?: {
+    insertedCount: number
+    updatedCount: number
+    rejoinedCount: number
+    failedCount: number
+    failedNames?: string[]
+  }
+  warnings?: string[]
+  processingTimeSeconds: number
+}
+
+export interface OCRProcessingOptions {
+  autoRegister?: boolean
+  skipValidation?: boolean
+  overwriteExisting?: boolean
+  enableDuplicateCheck?: boolean
+}
+
+export type OCRBatchStatus = 
+  | 'PENDING'     // 대기중
+  | 'PROCESSING'  // 처리중
+  | 'COMPLETED'   // 완료
+  | 'FAILED'      // 실패
+  | 'CANCELLED'   // 취소됨
+
+export type OCRProcessingStage =
+  | 'QUEUE_WAITING'      // 대기열 대기
+  | 'IMAGE_PREPROCESSING' // 이미지 전처리
+  | 'OCR_ANALYSIS'       // OCR 분석
+  | 'DATA_VALIDATION'    // 데이터 검증
+  | 'USER_REGISTRATION'  // 사용자 등록
+  | 'FINALIZING'         // 마무리
+
+// 에러 메시지 타입
+export interface OCRErrorMessage {
+  code: string
+  message: string
+  type: 'API_LIMIT' | 'QUOTA_EXCEEDED' | 'SERVER_ERROR' | 'VALIDATION_ERROR'
+  userFriendlyMessage: string
+  retryable: boolean
+  retryAfterSeconds?: number
+}
+
+// 폴링 설정
+export interface OCRPollingConfig {
+  intervalMs: number
+  maxAttempts: number
+  backoffMultiplier: number
+  maxIntervalMs: number
+}

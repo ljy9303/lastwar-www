@@ -463,4 +463,78 @@ export async function getAIUsageStats(params?: {
   return fetchFromAPI(`/ai/usage/stats${queryString}`)
 }
 
+// OCR Batch Processing API functions
+export async function submitOCRBatchJob(images: File[], userGrade: string, options?: {
+  autoRegister?: boolean
+  skipValidation?: boolean
+  overwriteExisting?: boolean
+  enableDuplicateCheck?: boolean
+}) {
+  const formData = new FormData()
+  
+  // 이미지 파일들 추가
+  images.forEach((image, index) => {
+    formData.append(`images`, image)
+  })
+  
+  // 메타데이터 추가
+  formData.append('userGrade', userGrade)
+  if (options) {
+    formData.append('options', JSON.stringify(options))
+  }
+  
+  // FormData를 사용할 때는 Content-Type을 자동 설정하도록 headers를 수정
+  const url = `${API_BASE_URL}/ocr/batch/submit`
+  
+  // 세션에서 토큰 가져오기
+  let session
+  if (typeof window === 'undefined') {
+    const { authOptions } = await import('../app/api/auth/[...nextauth]/route')
+    const { getServerSession } = await import('next-auth/next')
+    session = await getServerSession(authOptions)
+  } else {
+    const { getSession } = await import('next-auth/react')
+    session = await getSession()
+  }
+  
+  const headers: Record<string, string> = {}
+  if (session?.accessToken) {
+    headers.Authorization = `Bearer ${session.accessToken}`
+  }
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers, // FormData 사용 시 Content-Type은 브라우저가 자동 설정
+    body: formData
+  })
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    const error = new Error(errorData.error || `HTTP ${response.status}`) as Error & { status?: number }
+    error.status = response.status
+    throw error
+  }
+  
+  return response.json()
+}
+
+export async function getOCRBatchStatus(batchId: string) {
+  return fetchFromAPI(`/ocr/batch/${batchId}/status`)
+}
+
+export async function cancelOCRBatchJob(batchId: string, reason?: string) {
+  const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''
+  return fetchFromAPI(`/ocr/batch/${batchId}/cancel${params}`, {
+    method: 'POST'
+  })
+}
+
+export async function getOCRBatchResult(batchId: string) {
+  return fetchFromAPI(`/ocr/batch/${batchId}/result`)
+}
+
+export async function getUserOCRBatchHistory(page: number = 0, size: number = 10) {
+  return fetchFromAPI(`/ocr/batch/history?page=${page}&size=${size}`)
+}
+
 // Chat API functions (실시간 채팅만 지원)
