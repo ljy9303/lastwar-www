@@ -25,10 +25,9 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { GeminiDesertAIService } from "@/lib/gemini-desert-ai"
 import { ImageProcessingService } from "@/lib/image-processing"
-import { getDesertList, saveDesertBattleResult, saveDesertAttendance } from "@/lib/api-service"
+import { getDesertById, saveDesertBattleResult, saveDesertAttendance } from "@/lib/api-service"
 import { WelcomeScreen } from "./WelcomeScreen"
 import { AnalysisTypeSelector } from "./AnalysisTypeSelector"
-import { DesertSelector } from "./DesertSelector"
 import { ImageUploadZone } from "./ImageUploadZone"
 import { BattleResultEditor } from "./BattleResultEditor"
 import { AttendanceEditor } from "./AttendanceEditor"
@@ -44,7 +43,11 @@ import type {
   DesertRegistrationResult
 } from "@/types/ai-desert-types"
 
-export function AIDesertRegistration() {
+interface AIDesertRegistrationProps {
+  desertSeq: number
+}
+
+export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
   const router = useRouter()
   const { toast } = useToast()
   
@@ -55,7 +58,7 @@ export function AIDesertRegistration() {
   const [currentStep, setCurrentStep] = useState<DesertRegistrationStep>('welcome')
   const [selectedAnalysisType, setSelectedAnalysisType] = useState<DesertAnalysisType | null>(null)
   const [selectedDesert, setSelectedDesert] = useState<Desert | null>(null)
-  const [desertList, setDesertList] = useState<Desert[]>([])
+  const [loading, setLoading] = useState(true)
   
   // 이미지 및 AI 상태
   const [images, setImages] = useState<ProcessedDesertImage[]>([])
@@ -101,31 +104,37 @@ export function AIDesertRegistration() {
     }
   }, [])
 
-  // 사막전 목록 로드
+  // 사막전 정보 로드
   useEffect(() => {
-    if (currentStep === 'desert-selection') {
-      loadDesertList()
-    }
-  }, [currentStep])
+    loadDesertInfo()
+  }, [desertSeq])
 
-  const loadDesertList = async () => {
+  const loadDesertInfo = async () => {
     try {
-      const response = await getDesertList()
-      setDesertList(response.data || [])
+      setLoading(true)
+      const response = await getDesertById(desertSeq)
+      if (response.success && response.data) {
+        setSelectedDesert(response.data)
+      } else {
+        throw new Error(response.message || '사막전 정보를 찾을 수 없습니다.')
+      }
     } catch (error) {
-      console.error('사막전 목록 로드 실패:', error)
+      console.error('사막전 정보 로드 실패:', error)
       toast({
-        title: "사막전 목록 로드 실패",
-        description: "사막전 목록을 불러올 수 없습니다.",
+        title: "사막전 정보 로드 실패",
+        description: error instanceof Error ? error.message : "사막전 정보를 불러올 수 없습니다.",
         variant: "destructive"
       })
+      router.push('/desert-results')
+    } finally {
+      setLoading(false)
     }
   }
 
   // 단계별 진행률 계산
   const getStepProgress = (step: DesertRegistrationStep): number => {
     if (step === 'welcome') return 0
-    const steps = ['type-selection', 'desert-selection', 'image-upload', 'ai-processing', 'validation-editing', 'final-registration', 'registration-complete']
+    const steps = ['type-selection', 'image-upload', 'ai-processing', 'validation-editing', 'final-registration', 'registration-complete']
     return ((steps.indexOf(step) + 1) / steps.length) * 100
   }
 
@@ -136,12 +145,6 @@ export function AIDesertRegistration() {
       title: '분석 유형 선택',
       description: '사막전 결과 또는 참석여부 중 분석할 유형을 선택하세요',
       color: 'text-blue-600'
-    },
-    'desert-selection': {
-      icon: Trophy,
-      title: '사막전 선택',
-      description: '분석할 사막전을 선택하세요',
-      color: 'text-purple-600'
     },
     'image-upload': {
       icon: Upload,
@@ -354,11 +357,8 @@ export function AIDesertRegistration() {
       case 'type-selection':
         setCurrentStep('welcome')
         break
-      case 'desert-selection':
-        setCurrentStep('type-selection')
-        break
       case 'image-upload':
-        setCurrentStep('desert-selection')
+        setCurrentStep('type-selection')
         break
       case 'validation-editing':
         setCurrentStep('image-upload')
@@ -376,11 +376,6 @@ export function AIDesertRegistration() {
         break
       case 'type-selection':
         if (selectedAnalysisType) {
-          setCurrentStep('desert-selection')
-        }
-        break
-      case 'desert-selection':
-        if (selectedDesert) {
           setCurrentStep('image-upload')
         }
         break
@@ -399,7 +394,6 @@ export function AIDesertRegistration() {
   const handleStartNewRegistration = () => {
     setCurrentStep('type-selection')
     setSelectedAnalysisType(null)
-    setSelectedDesert(null)
     setImages([])
     setExtractedData(null)
     setRegistrationResult(null)
@@ -408,6 +402,17 @@ export function AIDesertRegistration() {
       processed: 0,
       status: 'idle'
     })
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 flex justify-center items-center min-h-96">
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+          <span className="text-lg font-medium">사막전 정보 로딩 중...</span>
+        </div>
+      </div>
+    )
   }
 
   if (!aiService) {
@@ -786,15 +791,6 @@ export function AIDesertRegistration() {
           />
         )}
 
-        {currentStep === 'desert-selection' && (
-          <DesertSelector
-            desertList={desertList}
-            selectedDesert={selectedDesert}
-            onDesertSelect={setSelectedDesert}
-            onNext={goToNextStep}
-            onBack={goToPreviousStep}
-          />
-        )}
 
         {currentStep === 'image-upload' && (
           <ImageUploadZone

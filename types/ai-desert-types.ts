@@ -5,7 +5,6 @@ export type DesertAnalysisType = 'EVENT' | 'ATTENDANCE'
 export type DesertRegistrationStep = 
   | 'welcome'
   | 'type-selection'
-  | 'desert-selection'
   | 'image-upload'
   | 'ai-processing'
   | 'validation-editing'
