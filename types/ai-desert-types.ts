@@ -30,6 +30,12 @@ export interface DesertBattleResult {
   battleResult: 'WIN' | 'LOSE' | 'DRAW'
   scoreDifference: number
   mvpList: MvpInfo[]
+  // 추가 옵션 정보들 (기존 사막전 결과 입력과 호환)
+  battleServerNumber?: number
+  battleUnion?: string
+  battleUnionAlias?: string
+  battleUnionRank?: number
+  description?: string
 }
 
 export interface MvpInfo {

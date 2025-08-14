@@ -235,31 +235,26 @@ export function ImageUploadZone({
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* 업로드 안내 */}
-          <Alert className={`border-2 ${
+          {/* 간단한 안내 */}
+          <Alert className={`border ${
             analysisType === 'EVENT' 
               ? 'border-orange-200 dark:border-orange-800' 
               : 'border-blue-200 dark:border-blue-800'
           }`}>
-            <div className="flex items-center gap-2">
-              {analysisType === 'EVENT' ? (
-                <Trophy className="h-4 w-4 text-orange-600" />
-              ) : (
-                <Users className="h-4 w-4 text-blue-600" />
-              )}
-              <span className="font-semibold">{exampleInfo.title}</span>
-            </div>
-            <AlertDescription className="mt-2">
-              <div className="space-y-2">
-                <div className="font-medium text-foreground mb-2">촬영 팁:</div>
-                <ul className="space-y-1 text-sm">
-                  {exampleInfo.tips.map((tip, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-muted-foreground">•</span>
-                      <span>{tip}</span>
-                    </li>
-                  ))}
-                </ul>
+            <AlertDescription>
+              <div className="text-center">
+                <p className="font-medium">
+                  {analysisType === 'EVENT' 
+                    ? '📸 사막전 결과 화면을 스크린샷하여 업로드하세요'
+                    : '📸 참가자 목록 화면을 스크린샷하여 업로드하세요'
+                  }
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {analysisType === 'EVENT' 
+                    ? '점수와 서버/연맹 정보가 명확히 보이는 화면'
+                    : '닉네임과 점수가 명확히 보이는 화면'
+                  }
+                </p>
               </div>
             </AlertDescription>
           </Alert>
