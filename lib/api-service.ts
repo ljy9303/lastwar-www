@@ -463,4 +463,48 @@ export async function getAIUsageStats(params?: {
   return fetchFromAPI(`/ai/usage/stats${queryString}`)
 }
 
+// Desert AI API functions
+export async function getDesertList() {
+  return fetchFromAPI('/desert/list')
+}
+
+export async function saveDesertBattleResult(request: {
+  desertSeq: number
+  ourServer: string
+  ourAllianceName: string
+  ourScore: number
+  enemyServer: string
+  enemyAllianceName: string
+  enemyScore: number
+  battleResult: 'WIN' | 'LOSE' | 'DRAW'
+  scoreDifference: number
+  mvpList: Array<{
+    category: string
+    nickname: string
+    originalNickname: string
+    score: number
+  }>
+}) {
+  return fetchFromAPI('/desert/ai/save-battle-result', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  })
+}
+
+export async function saveDesertAttendance(request: {
+  desertSeq: number
+  attendanceList: Array<{
+    nickname: string
+    originalNickname: string
+    attendance: boolean
+    score: number
+    allianceMemberId?: number
+  }>
+}) {
+  return fetchFromAPI('/desert/ai/save-attendance', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  })
+}
+
 // Chat API functions (실시간 채팅만 지원)
