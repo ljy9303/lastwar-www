@@ -13,14 +13,11 @@ import {
   Edit3,
   Check,
   X,
-  Plus,
   ArrowRight,
   ArrowLeft,
   AlertCircle,
   Target,
-  Users,
-  Crown,
-  Medal
+  Users
 } from "lucide-react"
 import type { DesertBattleResult, Desert } from "@/types/ai-desert-types"
 
@@ -87,42 +84,7 @@ export function BattleResultEditor({
     setTempValue("")
   }, [])
 
-  const handleMvpEdit = useCallback((index: number, field: string, value: string | number) => {
-    const updatedData = { ...data }
-    const updatedMvpList = [...updatedData.mvpList]
-    
-    if (field === 'category') {
-      updatedMvpList[index].category = String(value)
-    } else if (field === 'nickname') {
-      updatedMvpList[index].nickname = String(value)
-      updatedMvpList[index].originalNickname = String(value) // 원본도 동일하게 설정
-    } else if (field === 'score') {
-      updatedMvpList[index].score = Number(value) || 0
-    }
-    
-    updatedData.mvpList = updatedMvpList
-    onDataUpdate(updatedData)
-  }, [data, onDataUpdate])
-
-  const handleMvpAdd = useCallback(() => {
-    const updatedData = { ...data }
-    updatedData.mvpList = [
-      ...updatedData.mvpList,
-      {
-        category: "새 카테고리",
-        nickname: "닉네임",
-        originalNickname: "닉네임",
-        score: 0
-      }
-    ]
-    onDataUpdate(updatedData)
-  }, [data, onDataUpdate])
-
-  const handleMvpRemove = useCallback((index: number) => {
-    const updatedData = { ...data }
-    updatedData.mvpList = updatedData.mvpList.filter((_, i) => i !== index)
-    onDataUpdate(updatedData)
-  }, [data, onDataUpdate])
+  // MVP 관련 함수들 제거 - 보안상 개인 성과 정보 노출 방지
 
   const getBattleResultColor = (result: string) => {
     switch (result) {
@@ -306,84 +268,7 @@ export function BattleResultEditor({
             </CardContent>
           </Card>
 
-          {/* MVP 정보 */}
-          <Card className="border-2 border-dashed border-muted-foreground/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Crown className="h-5 w-5 text-yellow-600" />
-                MVP 정보
-                <Badge variant="outline" className="ml-auto">
-                  {data.mvpList.length}개
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {data.mvpList.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Medal className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>추출된 MVP 정보가 없습니다.</p>
-                  <p className="text-sm">필요시 아래 버튼으로 수동 추가할 수 있습니다.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {data.mvpList.map((mvp, index) => (
-                    <Card key={index} className="border border-muted-foreground/20">
-                      <CardContent className="p-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
-                          <div className="space-y-2">
-                            <Label className="text-sm">카테고리</Label>
-                            <Input
-                              value={mvp.category}
-                              onChange={(e) => handleMvpEdit(index, 'category', e.target.value)}
-                              placeholder="예: 총 피해량"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm">닉네임</Label>
-                            <Input
-                              value={mvp.nickname}
-                              onChange={(e) => handleMvpEdit(index, 'nickname', e.target.value)}
-                              placeholder="플레이어 닉네임"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-sm">수치</Label>
-                            <Input
-                              type="number"
-                              value={mvp.score}
-                              onChange={(e) => handleMvpEdit(index, 'score', e.target.value)}
-                              placeholder="0"
-                            />
-                          </div>
-                          <div className="flex justify-end">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleMvpRemove(index)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex justify-center">
-                <Button
-                  variant="outline"
-                  onClick={handleMvpAdd}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  MVP 정보 추가
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* MVP 정보 섹션 제거 - 보안상 개인 성과 정보 노출 방지 */}
 
           {/* 유효성 검사 결과 */}
           {!isDataValid() && (
