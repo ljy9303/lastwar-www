@@ -8,7 +8,7 @@ import { VirtualizedRosterTable } from "@/components/virtualized/virtualized-ros
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { Search, Save, Filter, ArrowUpDown } from "lucide-react"
+import { Search, Save, Filter, ArrowUpDown, Bot, Sparkles } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "@/hooks/use-toast"
@@ -490,6 +490,24 @@ export default function DesertResultsPage() {
         <h1 className="text-2xl sm:text-3xl font-bold">{eventTitle || '사막전 결과'}</h1>
         <div className="sm:ml-auto">
           <div className="flex flex-wrap gap-2">
+            {/* AI 등록 버튼 - 가장 눈에 띄게 배치 */}
+            {desertSeq && (
+              <OptimizedTouchButton 
+                variant="default" 
+                size="mobile-default" 
+                onClick={() => router.push(`/desert-results/${desertSeq}/ai-add`)}
+                className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md"
+              >
+                <div className="flex items-center gap-1.5">
+                  <div className="relative">
+                    <Bot className="h-4 w-4" />
+                    <Sparkles className="h-2 w-2 absolute -top-0.5 -right-0.5 text-yellow-300" />
+                  </div>
+                  <span className="hidden sm:inline font-medium">AI 등록</span>
+                  <span className="sm:hidden font-medium">AI</span>
+                </div>
+              </OptimizedTouchButton>
+            )}
             <OptimizedTouchButton variant="outline" size="mobile-default" onClick={goBack} className="flex-1 sm:flex-none">
               <span className="hidden sm:inline">사막전 관리</span>
               <span className="sm:hidden">관리</span>
