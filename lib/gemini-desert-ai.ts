@@ -5,7 +5,8 @@ import type {
   GeminiDesertResponse, 
   DesertBattleResult,
   DesertAttendanceData,
-  DesertAnalysisType
+  DesertAnalysisType,
+  DesertTeamGroup
 } from "@/types/ai-desert-types"
 import { startAIUsageTracking, completeAIUsageTracking } from "@/lib/api-service"
 
@@ -23,7 +24,7 @@ export class GeminiDesertAIService {
     this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
   }
 
-  async extractDesertData(file: File, analysisType: DesertAnalysisType): Promise<GeminiDesertResponse> {
+  async extractDesertData(file: File, analysisType: DesertAnalysisType, teamGroup: DesertTeamGroup): Promise<GeminiDesertResponse> {
     // AI 사용량 추적 시작
     let trackingId: number | undefined
     
@@ -46,8 +47,8 @@ export class GeminiDesertAIService {
       const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
       
       const prompt = analysisType === 'EVENT' 
-        ? this.getBattleResultPrompt() 
-        : this.getAttendancePrompt()
+        ? this.getBattleResultPrompt(teamGroup) 
+        : this.getAttendancePrompt(teamGroup)
 
       const imagePart = {
         inlineData: {
@@ -62,8 +63,8 @@ export class GeminiDesertAIService {
       console.log('Gemini 원본 응답:', responseText)
       
       const extractedData = analysisType === 'EVENT'
-        ? this.parseBattleResultResponse(responseText)
-        : this.parseAttendanceResponse(responseText)
+        ? this.parseBattleResultResponse(responseText, teamGroup)
+        : this.parseAttendanceResponse(responseText, teamGroup)
 
       // AI 처리 성공 시 사용량 추적 완료
       if (trackingId) {
@@ -112,14 +113,14 @@ export class GeminiDesertAIService {
     }
   }
 
-  private getBattleResultPrompt(): string {
+  private getBattleResultPrompt(teamGroup: DesertTeamGroup): string {
     return `
 이 Last War: Survival 게임의 사막전 결과 스크린샷을 분석해주세요.
 
 다음 정보를 정확히 추출해주세요:
 
 1. 기본 결과 정보:
-   - 우리 서버명과 연맹명
+   - 우리 서버명과 연맹명 (${teamGroup}조에 속함)
    - 우리 점수
    - 상대 서버명과 연맹명  
    - 상대 점수
@@ -155,9 +156,9 @@ export class GeminiDesertAIService {
     `.trim()
   }
 
-  private getAttendancePrompt(): string {
+  private getAttendancePrompt(teamGroup: DesertTeamGroup): string {
     return `
-이 Last War: Survival 게임의 사막전 참석여부 스크린샷을 분석해주세요.
+이 Last War: Survival 게임의 사막전 참석여부 스크린샷을 분석해주세요. (${teamGroup}조 연맹원들)
 
 각 플레이어의 다음 정보를 추출해주세요:
 - 닉네임
@@ -185,7 +186,7 @@ export class GeminiDesertAIService {
     `.trim()
   }
 
-  private parseBattleResultResponse(responseText: string): DesertBattleResult {
+  private parseBattleResultResponse(responseText: string, teamGroup: DesertTeamGroup): DesertBattleResult {
     try {
       // JSON 부분만 추출
       const jsonMatch = responseText.match(/\{[\s\S]*\}/)
@@ -205,6 +206,7 @@ export class GeminiDesertAIService {
         enemyScore: Number(parsed.enemyScore) || 0,
         battleResult: parsed.battleResult || "DRAW",
         scoreDifference: Number(parsed.scoreDifference) || 0,
+        teamGroup: teamGroup, // 조 정보 추가
         mvpList: Array.isArray(parsed.mvpList) ? parsed.mvpList.map((mvp: any) => ({
           category: mvp.category || "",
           nickname: mvp.nickname || "",
@@ -218,7 +220,7 @@ export class GeminiDesertAIService {
     }
   }
 
-  private parseAttendanceResponse(responseText: string): DesertAttendanceData {
+  private parseAttendanceResponse(responseText: string, teamGroup: DesertTeamGroup): DesertAttendanceData {
     try {
       // JSON 부분만 추출
       const jsonMatch = responseText.match(/\{[\s\S]*\}/)
@@ -243,6 +245,7 @@ export class GeminiDesertAIService {
 
       return {
         attendanceList,
+        teamGroup: teamGroup, // 조 정보 추가
         summary: {
           totalPlayers: totalCount,
           attendedPlayers: attendedCount,

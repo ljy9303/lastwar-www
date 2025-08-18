@@ -70,6 +70,9 @@ export function BattleResultEditor({
       case 'battleResult':
         updatedData.battleResult = tempValue as 'WIN' | 'LOSE' | 'DRAW'
         break
+      case 'teamGroup':
+        updatedData.teamGroup = tempValue as 'A' | 'B'
+        break
     }
 
     // 점수 차이 자동 계산
@@ -163,6 +166,14 @@ export function BattleResultEditor({
                 <Badge className={getBattleResultColor(String(value))}>
                   {getBattleResultText(String(value))}
                 </Badge>
+              ) : field === 'teamGroup' ? (
+                <Badge className={`${
+                  value === 'A' 
+                    ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' 
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                }`}>
+                  {value}조
+                </Badge>
               ) : (
                 <span className="font-medium">{value}</span>
               )}
@@ -189,7 +200,8 @@ export function BattleResultEditor({
       data.enemyAllianceName?.length > 0 &&
       data.ourScore >= 0 &&
       data.enemyScore >= 0 &&
-      ['WIN', 'LOSE', 'DRAW'].includes(data.battleResult)
+      ['WIN', 'LOSE', 'DRAW'].includes(data.battleResult) &&
+      ['A', 'B'].includes(data.teamGroup)
     )
   }
 
@@ -230,6 +242,10 @@ export function BattleResultEditor({
                   우리팀 정보
                 </h3>
                 <div className="space-y-4">
+                  {renderEditableField('teamGroup', '소속 조', data.teamGroup, 'select', [
+                    { value: 'A', label: 'A조' },
+                    { value: 'B', label: 'B조' }
+                  ])}
                   {renderEditableField('ourServer', '서버명', data.ourServer)}
                   {renderEditableField('ourAllianceName', '연맹명', data.ourAllianceName)}
                   {renderEditableField('ourScore', '점수', data.ourScore, 'number')}

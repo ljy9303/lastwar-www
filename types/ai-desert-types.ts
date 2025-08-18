@@ -1,6 +1,7 @@
 // AI 사막전 결과 등록 관련 타입 정의
 
 export type DesertAnalysisType = 'EVENT' | 'ATTENDANCE'
+export type DesertTeamGroup = 'A' | 'B'
 
 export type DesertRegistrationStep = 
   | 'welcome'
@@ -30,6 +31,7 @@ export interface DesertBattleResult {
   battleResult: 'WIN' | 'LOSE' | 'DRAW'
   scoreDifference: number
   mvpList: MvpInfo[]
+  teamGroup: DesertTeamGroup // A조 또는 B조
   // 추가 옵션 정보들 (기존 사막전 결과 입력과 호환)
   battleServerNumber?: number
   battleUnion?: string
@@ -47,6 +49,7 @@ export interface MvpInfo {
 
 export interface DesertAttendanceData {
   attendanceList: AttendanceInfo[]
+  teamGroup: DesertTeamGroup // A조 또는 B조
   summary: {
     totalPlayers: number
     attendedPlayers: number

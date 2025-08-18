@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { 
   Trophy,
   Users,
@@ -9,18 +10,22 @@ import {
   ArrowLeft,
   CheckCircle2
 } from "lucide-react"
-import type { DesertAnalysisType } from "@/types/ai-desert-types"
+import type { DesertAnalysisType, DesertTeamGroup } from "@/types/ai-desert-types"
 
 interface AnalysisTypeSelectorProps {
   selectedType: DesertAnalysisType | null
+  selectedTeamGroup: DesertTeamGroup | null
   onTypeSelect: (type: DesertAnalysisType) => void
+  onTeamGroupSelect: (group: DesertTeamGroup) => void
   onNext: () => void
   onBack: () => void
 }
 
 export function AnalysisTypeSelector({ 
   selectedType, 
+  selectedTeamGroup,
   onTypeSelect, 
+  onTeamGroupSelect,
   onNext, 
   onBack 
 }: AnalysisTypeSelectorProps) {
@@ -80,6 +85,48 @@ export function AnalysisTypeSelector({
             </Card>
           </div>
 
+          {/* 조 선택 */}
+          {selectedType && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-center">우리 연맹이 속한 조를 선택해주세요</h3>
+              <div className="flex justify-center gap-4">
+                <Button
+                  variant={selectedTeamGroup === 'A' ? 'default' : 'outline'}
+                  size="lg"
+                  onClick={() => onTeamGroupSelect('A')}
+                  className={`w-24 h-16 text-lg font-bold ${
+                    selectedTeamGroup === 'A' 
+                      ? 'bg-red-600 hover:bg-red-700 text-white' 
+                      : 'hover:bg-red-50 hover:text-red-600 hover:border-red-300'
+                  }`}
+                >
+                  A조
+                </Button>
+                <Button
+                  variant={selectedTeamGroup === 'B' ? 'default' : 'outline'}
+                  size="lg"
+                  onClick={() => onTeamGroupSelect('B')}
+                  className={`w-24 h-16 text-lg font-bold ${
+                    selectedTeamGroup === 'B' 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300'
+                  }`}
+                >
+                  B조
+                </Button>
+              </div>
+              {selectedTeamGroup && (
+                <div className="text-center">
+                  <Badge variant="outline" className={`text-sm px-3 py-1 ${
+                    selectedTeamGroup === 'A' ? 'border-red-300 text-red-700' : 'border-blue-300 text-blue-700'
+                  }`}>
+                    {selectedTeamGroup}조 선택됨
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 네비게이션 버튼 */}
           <div className="flex justify-between items-center pt-4">
             <Button 
@@ -93,14 +140,14 @@ export function AnalysisTypeSelector({
             
             <Button 
               onClick={onNext}
-              disabled={!selectedType}
+              disabled={!selectedType || !selectedTeamGroup}
               className={`flex items-center gap-2 ${
-                selectedType 
+                selectedType && selectedTeamGroup
                   ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white' 
                   : ''
               }`}
             >
-              다음: 사막전 선택
+              다음: 이미지 업로드
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>

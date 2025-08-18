@@ -35,7 +35,8 @@ import { AttendanceEditor } from "./AttendanceEditor"
 import { RegistrationCompleteScreen } from "./RegistrationCompleteScreen"
 import type { 
   DesertRegistrationStep,
-  DesertAnalysisType, 
+  DesertAnalysisType,
+  DesertTeamGroup,
   ProcessedDesertImage, 
   DesertAIProgress,
   DesertBattleResult,
@@ -57,6 +58,7 @@ export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
   // 단계 관리
   const [currentStep, setCurrentStep] = useState<DesertRegistrationStep>('welcome')
   const [selectedAnalysisType, setSelectedAnalysisType] = useState<DesertAnalysisType | null>(null)
+  const [selectedTeamGroup, setSelectedTeamGroup] = useState<DesertTeamGroup | null>(null)
   const [selectedDesert, setSelectedDesert] = useState<Desert | null>(null)
   const [loading, setLoading] = useState(true)
   
@@ -223,7 +225,7 @@ export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
 
   // AI 처리 시작
   const startAIProcessing = useCallback(async () => {
-    if (!aiService || images.length === 0 || !selectedAnalysisType) {
+    if (!aiService || images.length === 0 || !selectedAnalysisType || !selectedTeamGroup) {
       toast({
         title: "처리 불가",
         description: "AI 서비스를 사용할 수 없거나 필요한 정보가 부족합니다.",
@@ -251,7 +253,7 @@ export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
     ))
 
     try {
-      const result = await aiService.extractDesertData(image.file, selectedAnalysisType)
+      const result = await aiService.extractDesertData(image.file, selectedAnalysisType, selectedTeamGroup)
       
       if (result.success && result.data) {
         setExtractedData(result.data)
@@ -373,7 +375,7 @@ export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
         setCurrentStep('type-selection')
         break
       case 'type-selection':
-        if (selectedAnalysisType) {
+        if (selectedAnalysisType && selectedTeamGroup) {
           setCurrentStep('image-upload')
         }
         break
@@ -392,6 +394,7 @@ export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
   const handleStartNewRegistration = () => {
     setCurrentStep('type-selection')
     setSelectedAnalysisType(null)
+    setSelectedTeamGroup(null)
     setImages([])
     setExtractedData(null)
     setRegistrationResult(null)
@@ -641,6 +644,15 @@ export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
                           <div className="text-muted-foreground text-xs sm:text-xs hidden sm:block">분석 유형</div>
                           <div className="font-semibold text-purple-700 dark:text-purple-300 text-xs sm:text-sm">
                             {selectedAnalysisType === 'EVENT' ? '결과 분석' : '참석여부'}
+                            {selectedTeamGroup && (
+                              <span className={`ml-1 px-1.5 py-0.5 text-xs rounded ${
+                                selectedTeamGroup === 'A' 
+                                  ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' 
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+                              }`}>
+                                {selectedTeamGroup}조
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -783,7 +795,9 @@ export function AIDesertRegistration({ desertSeq }: AIDesertRegistrationProps) {
         {currentStep === 'type-selection' && (
           <AnalysisTypeSelector
             selectedType={selectedAnalysisType}
+            selectedTeamGroup={selectedTeamGroup}
             onTypeSelect={setSelectedAnalysisType}
+            onTeamGroupSelect={setSelectedTeamGroup}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
           />
