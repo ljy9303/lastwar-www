@@ -226,64 +226,273 @@ export function BattleResultEditor({
             </AlertDescription>
           </Alert>
 
-          {/* 기본 결과 정보 */}
-          <Card className="border-2 border-dashed border-muted-foreground/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Target className="h-5 w-5 text-orange-600" />
-                기본 결과 정보
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* 우리팀 정보 */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-600" />
-                  우리팀 정보
-                </h3>
-                <div className="space-y-4">
-                  {renderEditableField('teamGroup', '소속 조', data.teamGroup, 'select', [
-                    { value: 'A', label: 'A조' },
-                    { value: 'B', label: 'B조' }
-                  ])}
-                  {renderEditableField('ourServer', '서버명', data.ourServer)}
-                  {renderEditableField('ourAllianceName', '연맹명', data.ourAllianceName)}
-                  {renderEditableField('ourScore', '점수', data.ourScore, 'number')}
-                </div>
-              </div>
-
-              {/* 상대팀 정보 */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <Users className="h-4 w-4 text-red-600" />
-                  상대팀 정보
-                </h3>
-                <div className="space-y-4">
-                  {renderEditableField('enemyServer', '서버명', data.enemyServer)}
-                  {renderEditableField('enemyAllianceName', '연맹명', data.enemyAllianceName)}
-                  {renderEditableField('enemyScore', '점수', data.enemyScore, 'number')}
-                </div>
-              </div>
+          {/* 핵심 결과 정보 - 크고 명확하게 */}
+          <div className="space-y-6">
+            {/* 소속 조 & 승부 결과 - 가장 중요한 정보 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* 소속 조 */}
+              <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+                <CardContent className="p-6 text-center">
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <Shield className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <div>
+                      <Label className="text-sm text-blue-700 dark:text-blue-300 font-medium">우리 연맹 소속 조</Label>
+                      <div className="mt-2">
+                        {editingField === 'teamGroup' ? (
+                          <div className="flex justify-center gap-2">
+                            <Button
+                              variant={tempValue === 'A' ? 'default' : 'outline'}
+                              size="lg"
+                              onClick={() => setTempValue('A')}
+                              className={`px-8 py-4 text-xl font-bold ${
+                                tempValue === 'A' 
+                                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                                  : 'hover:bg-red-50 hover:text-red-600'
+                              }`}
+                            >
+                              A조
+                            </Button>
+                            <Button
+                              variant={tempValue === 'B' ? 'default' : 'outline'}
+                              size="lg"
+                              onClick={() => setTempValue('B')}
+                              className={`px-8 py-4 text-xl font-bold ${
+                                tempValue === 'B' 
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                  : 'hover:bg-blue-50 hover:text-blue-600'
+                              }`}
+                            >
+                              B조
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="lg"
+                            onClick={() => handleFieldEdit('teamGroup', data.teamGroup)}
+                            className={`px-8 py-4 text-2xl font-black ${
+                              data.teamGroup === 'A' 
+                                ? 'text-red-600 hover:bg-red-50' 
+                                : 'text-blue-600 hover:bg-blue-50'
+                            }`}
+                          >
+                            {data.teamGroup}조
+                          </Button>
+                        )}
+                        {editingField === 'teamGroup' && (
+                          <div className="flex justify-center gap-2 mt-3">
+                            <Button size="sm" onClick={() => handleFieldSave('teamGroup')}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={handleFieldCancel}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* 승부 결과 */}
-              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  {renderEditableField('battleResult', '승부 결과', data.battleResult, 'select', [
-                    { value: 'WIN', label: '승리' },
-                    { value: 'LOSE', label: '패배' },
-                    { value: 'DRAW', label: '무승부' }
-                  ])}
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">점수 차이</Label>
-                  <div className="p-2 rounded border bg-muted/30">
-                    <span className="font-medium">{data.scoreDifference}</span>
-                    <span className="text-sm text-muted-foreground ml-2">(자동 계산)</span>
+              <Card className="border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
+                <CardContent className="p-6 text-center">
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <Trophy className="h-8 w-8 text-orange-600" />
+                    </div>
+                    <div>
+                      <Label className="text-sm text-orange-700 dark:text-orange-300 font-medium">사막전 결과</Label>
+                      <div className="mt-2">
+                        {editingField === 'battleResult' ? (
+                          <div className="flex justify-center gap-2 flex-wrap">
+                            <Button
+                              variant={tempValue === 'WIN' ? 'default' : 'outline'}
+                              size="lg"
+                              onClick={() => setTempValue('WIN')}
+                              className={`px-6 py-3 text-lg font-bold ${
+                                tempValue === 'WIN' 
+                                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                  : 'hover:bg-green-50 hover:text-green-600'
+                              }`}
+                            >
+                              승리
+                            </Button>
+                            <Button
+                              variant={tempValue === 'LOSE' ? 'default' : 'outline'}
+                              size="lg"
+                              onClick={() => setTempValue('LOSE')}
+                              className={`px-6 py-3 text-lg font-bold ${
+                                tempValue === 'LOSE' 
+                                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                                  : 'hover:bg-red-50 hover:text-red-600'
+                              }`}
+                            >
+                              패배
+                            </Button>
+                            <Button
+                              variant={tempValue === 'DRAW' ? 'default' : 'outline'}
+                              size="lg"
+                              onClick={() => setTempValue('DRAW')}
+                              className={`px-6 py-3 text-lg font-bold ${
+                                tempValue === 'DRAW' 
+                                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                                  : 'hover:bg-yellow-50 hover:text-yellow-600'
+                              }`}
+                            >
+                              무승부
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="lg"
+                            onClick={() => handleFieldEdit('battleResult', data.battleResult)}
+                            className={`px-8 py-4 text-2xl font-black ${getBattleResultColor(data.battleResult)} border-0`}
+                          >
+                            {getBattleResultText(data.battleResult)}
+                          </Button>
+                        )}
+                        {editingField === 'battleResult' && (
+                          <div className="flex justify-center gap-2 mt-3">
+                            <Button size="sm" onClick={() => handleFieldSave('battleResult')}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={handleFieldCancel}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* 점수 정보 - 큰 카드로 표시 */}
+            <Card className="border-2 border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    <Target className="h-8 w-8 text-green-600" />
+                  </div>
+                  <Label className="text-lg text-green-700 dark:text-green-300 font-bold">점수 현황</Label>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    {/* 우리 점수 */}
+                    <div className="text-center space-y-2">
+                      <Label className="text-sm text-blue-600 font-medium">우리팀 점수</Label>
+                      {editingField === 'ourScore' ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Input
+                            type="number"
+                            value={tempValue}
+                            onChange={(e) => setTempValue(e.target.value)}
+                            className="text-center text-2xl font-bold h-14 w-32"
+                            autoFocus
+                          />
+                          <div className="flex gap-1">
+                            <Button size="sm" onClick={() => handleFieldSave('ourScore')}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={handleFieldCancel}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleFieldEdit('ourScore', data.ourScore)}
+                          className="text-3xl font-black text-blue-600 hover:bg-blue-50 h-14 px-6"
+                        >
+                          {data.ourScore.toLocaleString()}
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* 점수 차이 */}
+                    <div className="text-center space-y-2">
+                      <Label className="text-sm text-green-600 font-medium">점수 차이</Label>
+                      <div className="flex flex-col items-center">
+                        <div className="text-3xl font-black text-green-600 bg-green-100 dark:bg-green-900 rounded-lg px-4 py-2">
+                          {data.scoreDifference.toLocaleString()}
+                        </div>
+                        <span className="text-xs text-muted-foreground mt-1">(자동 계산)</span>
+                      </div>
+                    </div>
+
+                    {/* 상대 점수 */}
+                    <div className="text-center space-y-2">
+                      <Label className="text-sm text-red-600 font-medium">상대팀 점수</Label>
+                      {editingField === 'enemyScore' ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Input
+                            type="number"
+                            value={tempValue}
+                            onChange={(e) => setTempValue(e.target.value)}
+                            className="text-center text-2xl font-bold h-14 w-32"
+                            autoFocus
+                          />
+                          <div className="flex gap-1">
+                            <Button size="sm" onClick={() => handleFieldSave('enemyScore')}>
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={handleFieldCancel}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleFieldEdit('enemyScore', data.enemyScore)}
+                          className="text-3xl font-black text-red-600 hover:bg-red-50 h-14 px-6"
+                        >
+                          {data.enemyScore.toLocaleString()}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* 팀 정보 - 간소화된 버전 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* 우리팀 정보 */}
+              <Card className="border border-blue-200 dark:border-blue-800">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                    우리팀 정보
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {renderEditableField('ourServer', '서버명', data.ourServer)}
+                  {renderEditableField('ourAllianceName', '연맹명', data.ourAllianceName)}
+                </CardContent>
+              </Card>
+
+              {/* 상대팀 정보 */}
+              <Card className="border border-red-200 dark:border-red-800">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Users className="h-5 w-5 text-red-600" />
+                    상대팀 정보
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {renderEditableField('enemyServer', '서버명', data.enemyServer)}
+                  {renderEditableField('enemyAllianceName', '연맹명', data.enemyAllianceName)}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
           {/* MVP 정보 섹션 제거 - 보안상 개인 성과 정보 노출 방지 */}
 
