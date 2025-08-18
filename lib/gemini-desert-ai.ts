@@ -124,7 +124,7 @@ export class GeminiDesertAIService {
    - 우리 점수
    - 상대 서버명과 연맹명  
    - 상대 점수
-   - 승부 결과 (승리/패배/무승부)
+   - 승부 결과 (승리/패배)
    - 점수 차이
 
 2. MVP 정보 (있다면):
@@ -140,7 +140,7 @@ export class GeminiDesertAIService {
   "enemyServer": "상대서버명",
   "enemyAllianceName": "상대연맹명", 
   "enemyScore": 상대점수숫자,
-  "battleResult": "WIN|LOSE|DRAW",
+  "battleResult": "WIN|LOSE",
   "scoreDifference": 점수차이숫자,
   "mvpList": [
     {
@@ -204,7 +204,7 @@ export class GeminiDesertAIService {
         enemyServer: (parsed.enemyServer || "").replace(/^#/, "").trim(), // '#' 문자 제거
         enemyAllianceName: parsed.enemyAllianceName || "",
         enemyScore: Number(parsed.enemyScore) || 0,
-        battleResult: parsed.battleResult || "DRAW",
+        battleResult: parsed.battleResult || "LOSE",
         scoreDifference: Number(parsed.scoreDifference) || 0,
         teamGroup: teamGroup, // 조 정보 추가
         mvpList: Array.isArray(parsed.mvpList) ? parsed.mvpList.map((mvp: any) => ({

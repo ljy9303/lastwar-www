@@ -28,7 +28,7 @@ export interface DesertBattleResult {
   enemyServer: string
   enemyAllianceName: string
   enemyScore: number
-  battleResult: 'WIN' | 'LOSE' | 'DRAW'
+  battleResult: 'WIN' | 'LOSE'
   scoreDifference: number
   mvpList: MvpInfo[]
   teamGroup: DesertTeamGroup // A조 또는 B조

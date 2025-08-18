@@ -68,7 +68,7 @@ export function BattleResultEditor({
         updatedData.enemyScore = parseInt(tempValue) || 0
         break
       case 'battleResult':
-        updatedData.battleResult = tempValue as 'WIN' | 'LOSE' | 'DRAW'
+        updatedData.battleResult = tempValue as 'WIN' | 'LOSE'
         break
       case 'teamGroup':
         updatedData.teamGroup = tempValue as 'A' | 'B'
@@ -96,8 +96,6 @@ export function BattleResultEditor({
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
       case 'LOSE':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-      case 'DRAW':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
     }
@@ -109,8 +107,6 @@ export function BattleResultEditor({
         return '승리'
       case 'LOSE':
         return '패배'
-      case 'DRAW':
-        return '무승부'
       default:
         return result
     }
@@ -200,7 +196,7 @@ export function BattleResultEditor({
       data.enemyAllianceName?.length > 0 &&
       data.ourScore >= 0 &&
       data.enemyScore >= 0 &&
-      ['WIN', 'LOSE', 'DRAW'].includes(data.battleResult) &&
+      ['WIN', 'LOSE'].includes(data.battleResult) &&
       ['A', 'B'].includes(data.teamGroup)
     )
   }
@@ -308,12 +304,12 @@ export function BattleResultEditor({
                       <Label className="text-sm text-orange-700 dark:text-orange-300 font-medium">사막전 결과</Label>
                       <div className="mt-2">
                         {editingField === 'battleResult' ? (
-                          <div className="flex justify-center gap-2 flex-wrap">
+                          <div className="flex justify-center gap-3">
                             <Button
                               variant={tempValue === 'WIN' ? 'default' : 'outline'}
                               size="lg"
                               onClick={() => setTempValue('WIN')}
-                              className={`px-6 py-3 text-lg font-bold ${
+                              className={`px-8 py-4 text-xl font-bold ${
                                 tempValue === 'WIN' 
                                   ? 'bg-green-600 hover:bg-green-700 text-white' 
                                   : 'hover:bg-green-50 hover:text-green-600'
@@ -325,25 +321,13 @@ export function BattleResultEditor({
                               variant={tempValue === 'LOSE' ? 'default' : 'outline'}
                               size="lg"
                               onClick={() => setTempValue('LOSE')}
-                              className={`px-6 py-3 text-lg font-bold ${
+                              className={`px-8 py-4 text-xl font-bold ${
                                 tempValue === 'LOSE' 
                                   ? 'bg-red-600 hover:bg-red-700 text-white' 
                                   : 'hover:bg-red-50 hover:text-red-600'
                               }`}
                             >
                               패배
-                            </Button>
-                            <Button
-                              variant={tempValue === 'DRAW' ? 'default' : 'outline'}
-                              size="lg"
-                              onClick={() => setTempValue('DRAW')}
-                              className={`px-6 py-3 text-lg font-bold ${
-                                tempValue === 'DRAW' 
-                                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-                                  : 'hover:bg-yellow-50 hover:text-yellow-600'
-                              }`}
-                            >
-                              무승부
                             </Button>
                           </div>
                         ) : (
