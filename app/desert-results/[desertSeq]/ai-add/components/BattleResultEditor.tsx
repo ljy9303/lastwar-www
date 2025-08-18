@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Textarea } from "@/components/ui/textarea"
 import { 
   Trophy,
   Edit3,
@@ -19,7 +18,6 @@ import {
   AlertCircle,
   Target,
   Users,
-  Settings,
   Shield
 } from "lucide-react"
 import type { DesertBattleResult, Desert } from "@/types/ai-desert-types"
@@ -71,21 +69,6 @@ export function BattleResultEditor({
         break
       case 'battleResult':
         updatedData.battleResult = tempValue as 'WIN' | 'LOSE' | 'DRAW'
-        break
-      case 'battleServerNumber':
-        updatedData.battleServerNumber = parseInt(tempValue) || undefined
-        break
-      case 'battleUnion':
-        updatedData.battleUnion = tempValue || undefined
-        break
-      case 'battleUnionAlias':
-        updatedData.battleUnionAlias = tempValue || undefined
-        break
-      case 'battleUnionRank':
-        updatedData.battleUnionRank = parseInt(tempValue) || undefined
-        break
-      case 'description':
-        updatedData.description = tempValue || undefined
         break
     }
 
@@ -288,76 +271,6 @@ export function BattleResultEditor({
 
           {/* MVP 정보 섹션 제거 - 보안상 개인 성과 정보 노출 방지 */}
 
-          {/* 추가 옵션 정보 */}
-          <Card className="border-2 border-dashed border-muted-foreground/20">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Settings className="h-5 w-5 text-blue-600" />
-                추가 옵션 정보
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                상대팀 정보와 추가 세부사항을 입력하세요 (선택사항)
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* 상대팀 세부 정보 */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div>
-                  {renderEditableField('battleServerNumber', '상대 서버 번호', data.battleServerNumber || '', 'number')}
-                </div>
-                <div>
-                  {renderEditableField('battleUnion', '상대 연맹명', data.battleUnion || '')}
-                </div>
-                <div>
-                  {renderEditableField('battleUnionAlias', '연맹 태그', data.battleUnionAlias || '')}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div>
-                  {renderEditableField('battleUnionRank', '상대 연맹 순위', data.battleUnionRank || '', 'number')}
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">전투 비고</Label>
-                  {editingField === 'description' ? (
-                    <div className="flex items-start gap-2">
-                      <Textarea
-                        value={tempValue}
-                        onChange={(e) => setTempValue(e.target.value)}
-                        placeholder="특이사항이나 추가 정보를 입력하세요..."
-                        className="flex-1 min-h-[80px] resize-none"
-                        autoFocus
-                      />
-                      <div className="flex flex-col gap-1">
-                        <Button size="sm" onClick={() => handleFieldSave('description')}>
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={handleFieldCancel}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-2 group">
-                      <div className="flex-1 p-3 rounded border bg-muted/30 min-h-[80px]">
-                        <span className="text-sm text-muted-foreground">
-                          {data.description || '비고 정보가 없습니다.'}
-                        </span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleFieldEdit('description', data.description || '')}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* 유효성 검사 결과 */}
           {!isDataValid() && (

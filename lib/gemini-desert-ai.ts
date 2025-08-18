@@ -197,7 +197,7 @@ export class GeminiDesertAIService {
       const parsed = JSON.parse(jsonText)
 
       return {
-        ourServer: parsed.ourServer || "",
+        ourServer: (parsed.ourServer || "").replace(/^#/, "").trim(), // '#' 문자 제거
         ourAllianceName: parsed.ourAllianceName || "",
         ourScore: Number(parsed.ourScore) || 0,
         enemyServer: (parsed.enemyServer || "").replace(/^#/, "").trim(), // '#' 문자 제거
